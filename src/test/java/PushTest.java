@@ -10,7 +10,7 @@ public class PushTest {
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
         byte[] bytes = Files.readAllBytes(Paths.get("/Users/hooy/Project/npk-loader/input/modred.img"));
         NpkByteOperator npkByteOperator = new NpkByteOperator(Paths.get("/Users/hooy/Project/npk-loader/input/sprite_map_act2_stoneimage.NPK"));
-        byte[] build = npkByteOperator.push(bytes, "hooy/img/modred.img").build();
+        byte[] build = npkByteOperator.add(bytes, "hooy/img/modred.img").build();
         Files.write(Paths.get("/Users/hooy/Project/npk-loader/output/test.npk"), build);
     }
 }

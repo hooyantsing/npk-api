@@ -21,21 +21,21 @@ public class NpkByteOperator {
     private final byte[] originalNpkFile;
 
     // NPK 魔数
-    private byte[] magicNumber;
+    private byte[] magicNumber; // 16byte
 
     // IMG 总数
-    private byte[] imgSize;
+    private byte[] imgSize; // 4byte
 
     // IMG 索引表
-    private byte[] imgTable;
+    private byte[] imgTable; // 264byte * imgSize
 
     // NPK 校验码
-    private byte[] npkValidation;
+    private byte[] npkValidation; // 32byte
 
     // IMG 数据
     private byte[] imgData;
 
-    private static final Integer IMG_TABLE_ITEM_BYTE_LENGTH = 264;  // offset4 + length4 + filename256
+    private static final Integer IMG_TABLE_ITEM_BYTE_LENGTH = 264; // offset4 + length4 + filename256
 
     public NpkByteOperator(String path) throws IOException {
         this(Paths.get(path));
@@ -54,7 +54,7 @@ public class NpkByteOperator {
         this.imgData = ArrayUtils.subarray(originalNpkFile, 52 + bytesToInt(imgSize) * IMG_TABLE_ITEM_BYTE_LENGTH, originalNpkFile.length);
     }
 
-    public NpkByteOperator push(byte[] img, String decryptImgName) throws NoSuchAlgorithmException {
+    public NpkByteOperator add(byte[] img, String decryptImgName) throws NoSuchAlgorithmException {
         // 总数 +1
         imgSize = intToBytes(bytesToInt(imgSize) + 1);
 
