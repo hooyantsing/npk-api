@@ -7,6 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author hooyantsing@gmail.com
+ * @since 2023-05-04
+ */
 public class ApiService {
 
     private final String path;

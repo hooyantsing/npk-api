@@ -1,5 +1,9 @@
 package xyz.hooy.npk.api.model;
 
+/**
+ * @author hooyantsing@gmail.com
+ * @since 2023-05-04
+ */
 public class ReferenceAttribute extends AbstractIndexAttribute {
 
     private Integer to;

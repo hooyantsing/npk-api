@@ -10,6 +10,10 @@ import java.util.function.BiConsumer;
 
 import static xyz.hooy.npk.api.util.ByteUtils.*;
 
+/**
+ * @author hooyantsing@gmail.com
+ * @since 2023-05-04
+ */
 public class ImgByteOperator {
 
     // IMG 原始文件

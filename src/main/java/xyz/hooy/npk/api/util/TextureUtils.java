@@ -7,6 +7,10 @@ import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * @author hooyantsing@gmail.com
+ * @since 2023-05-04
+ */
 public final class TextureUtils {
 
     public static void toPng(Texture texture, String fileName) throws IOException {

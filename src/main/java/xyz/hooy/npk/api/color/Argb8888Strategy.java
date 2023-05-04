@@ -6,6 +6,10 @@ import xyz.hooy.npk.api.util.ByteUtils;
 
 import java.awt.image.BufferedImage;
 
+/**
+ * @author hooyantsing@gmail.com
+ * @since 2023-05-04
+ */
 class Argb8888Strategy extends AbstractColorStrategy {
 
     @Override
