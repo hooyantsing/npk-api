@@ -1,6 +1,7 @@
 package xyz.hooy.npk.api;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,7 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static xyz.hooy.npk.api.ByteUtils.*;
+import static xyz.hooy.npk.api.util.ByteUtils.*;
 
 /**
  * @author hooyantsing@gmail.com
@@ -108,7 +109,7 @@ public class NpkByteOperator {
         for (int i = 0; i < imgTable.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
             int imgOffset = bytesToInt(ArrayUtils.subarray(imgTable, i, i + 4));
             int imgLength = bytesToInt(ArrayUtils.subarray(imgTable, i + 4, i + 8));
-            String imgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, i + 8, i + IMG_TABLE_ITEM_BYTE_LENGTH)));
+            String imgName = StringUtils.trim(bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, i + 8, i + IMG_TABLE_ITEM_BYTE_LENGTH))));
             byte[] imgBytes = ArrayUtils.subarray(newImgFile, imgOffset, imgOffset + imgLength);
             imgs.put(imgName, imgBytes);
         }

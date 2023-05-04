@@ -29,11 +29,31 @@ public class ApiService {
         return npkByteOperator.getImgs();
     }
 
+    public byte[] getImg(String imgName) {
+        return npkByteOperator.getImgs().get(imgName);
+    }
+
     public Map<String, List<Index>> getIndexs() {
         Map<String, List<Index>> indexs = new HashMap<>();
         for (Map.Entry<String, ImgByteOperator> imgByteOperatorEntry : imgByteOperators.entrySet()) {
             indexs.put(imgByteOperatorEntry.getKey(), imgByteOperatorEntry.getValue().getIndexs());
         }
         return indexs;
+    }
+
+    public List<Index> getIndexs(String imgName) {
+        ImgByteOperator imgByteOperator = imgByteOperators.get(imgName);
+        if (imgByteOperator != null) {
+            return imgByteOperator.getIndexs();
+        }
+        return null;
+    }
+
+    public Index getIndex(String imgName, int index) {
+        ImgByteOperator imgByteOperator = imgByteOperators.get(imgName);
+        if (imgByteOperator != null) {
+            return imgByteOperator.getIndexs().get(index);
+        }
+        return null;
     }
 }

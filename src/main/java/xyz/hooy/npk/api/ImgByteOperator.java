@@ -9,7 +9,7 @@ import xyz.hooy.npk.api.model.TextureAttribute;
 import java.util.ArrayList;
 import java.util.List;
 
-import static xyz.hooy.npk.api.ByteUtils.*;
+import static xyz.hooy.npk.api.util.ByteUtils.*;
 
 public class ImgByteOperator {
 

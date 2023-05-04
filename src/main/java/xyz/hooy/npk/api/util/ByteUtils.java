@@ -1,4 +1,4 @@
-package xyz.hooy.npk.api;
+package xyz.hooy.npk.api.util;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
