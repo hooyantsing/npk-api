@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static xyz.hooy.npk.api.ByteUtils.*;
 
@@ -66,7 +68,7 @@ public class NpkByteOperator {
                 imgTable[i + j] = newOffsetBytes[j];
             }
         }
-        byte[] imgOffset = intToBytes(originalNpkFile.length + IMG_TABLE_ITEM_BYTE_LENGTH);
+        byte[] imgOffset = intToBytes(build().length + IMG_TABLE_ITEM_BYTE_LENGTH);
         byte[] imgLength = intToBytes(img.length);
         byte[] encryptImgName = encryptImgName(stringToBytes(decryptImgName));
         imgTable = ArrayUtils.addAll(imgTable,
@@ -100,6 +102,19 @@ public class NpkByteOperator {
         return this;
     }
 
+    public Map<String, byte[]> getImgs() {
+        Map<String, byte[]> imgs = new HashMap<>();
+        byte[] newImgFile = build();
+        for (int i = 0; i < imgTable.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
+            int imgOffset = bytesToInt(ArrayUtils.subarray(imgTable, i, i + 4));
+            int imgLength = bytesToInt(ArrayUtils.subarray(imgTable, i + 4, i + 8));
+            String imgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, i + 8, i + IMG_TABLE_ITEM_BYTE_LENGTH)));
+            byte[] imgBytes = ArrayUtils.subarray(newImgFile, imgOffset, imgLength);
+            imgs.put(imgName, imgBytes);
+        }
+        return imgs;
+    }
+
     public byte[] build() {
         return ArrayUtils.addAll(magicNumber,
                 ArrayUtils.addAll(imgSize,
@@ -114,5 +129,25 @@ public class NpkByteOperator {
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         messageDigest.update(specimenBytes);
         npkValidation = messageDigest.digest();
+    }
+
+    public byte[] getMagicNumber() {
+        return magicNumber;
+    }
+
+    public byte[] getImgSize() {
+        return imgSize;
+    }
+
+    public byte[] getImgTable() {
+        return imgTable;
+    }
+
+    public byte[] getNpkValidation() {
+        return npkValidation;
+    }
+
+    public byte[] getImgData() {
+        return imgData;
     }
 }

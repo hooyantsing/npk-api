@@ -80,4 +80,28 @@ public class ImgByteOperator {
                                         ArrayUtils.addAll(indexSize,
                                                 ArrayUtils.addAll(indexTable, indexData))))));
     }
+
+    public byte[] getMagicNumber() {
+        return magicNumber;
+    }
+
+    public byte[] getIndexTableLength() {
+        return indexTableLength;
+    }
+
+    public byte[] getImgVersion() {
+        return imgVersion;
+    }
+
+    public byte[] getIndexSize() {
+        return indexSize;
+    }
+
+    public byte[] getIndexTable() {
+        return indexTable;
+    }
+
+    public byte[] getIndexData() {
+        return indexData;
+    }
 }
