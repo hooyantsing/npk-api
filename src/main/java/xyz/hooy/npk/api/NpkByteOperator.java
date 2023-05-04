@@ -109,7 +109,7 @@ public class NpkByteOperator {
             int imgOffset = bytesToInt(ArrayUtils.subarray(imgTable, i, i + 4));
             int imgLength = bytesToInt(ArrayUtils.subarray(imgTable, i + 4, i + 8));
             String imgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, i + 8, i + IMG_TABLE_ITEM_BYTE_LENGTH)));
-            byte[] imgBytes = ArrayUtils.subarray(newImgFile, imgOffset, imgLength);
+            byte[] imgBytes = ArrayUtils.subarray(newImgFile, imgOffset, imgOffset + imgLength);
             imgs.put(imgName, imgBytes);
         }
         return imgs;
