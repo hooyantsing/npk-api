@@ -1,0 +1,28 @@
+package xyz.hooy.npk.api.color;
+
+import xyz.hooy.npk.api.model.Texture;
+import xyz.hooy.npk.api.model.TextureAttribute;
+import xyz.hooy.npk.api.util.ByteUtils;
+
+import java.awt.image.BufferedImage;
+
+class Argb1555Strategy extends AbstractColorStrategy {
+
+    @Override
+    public BufferedImage process(Texture texture) {
+        TextureAttribute attribute = texture.getTextureAttribute();
+        BufferedImage bufferedImage = new BufferedImage(attribute.getWidth(), attribute.getHeight(), BufferedImage.TYPE_4BYTE_ABGR_PRE);
+        byte[] tempBytes = new byte[4];
+        for (int i = 0; i < attribute.getHeight(); i++) {
+            for (int j = 0; j < attribute.getWidth(); j++) {
+                tempBytes[0] = (byte) ((texture.getTexture()[i * attribute.getWidth() * 2 + j * 2] & 0x003F) << 3); // blue
+                tempBytes[1] = (byte) ((((texture.getTexture()[i * attribute.getWidth() * 2 + j * 2 + 1] & 0x0003) << 3) | ((texture.getTexture()[i * attribute.getWidth() * 2 + j * 2] >> 5) & 0x0007)) << 3); // green
+                tempBytes[2] = (byte) (((texture.getTexture()[i * attribute.getWidth() * 2 + j * 2 + 1] & 127) >> 2) << 3);   // red
+                tempBytes[3] = (byte) ((texture.getTexture()[i * attribute.getWidth() * 2 + j * 2 + 1] >> 7) == 0 ? 0 : 255); // alpha
+                int data = ByteUtils.bytesToInt(tempBytes);
+                bufferedImage.setRGB(j, i, data);
+            }
+        }
+        return bufferedImage;
+    }
+}

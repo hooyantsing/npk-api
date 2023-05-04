@@ -1,6 +1,7 @@
 package xyz.hooy.npk.api;
 
 import org.apache.commons.lang3.ArrayUtils;
+import xyz.hooy.npk.api.consts.IndexConstant;
 import xyz.hooy.npk.api.model.*;
 
 import java.util.ArrayList;
@@ -47,8 +48,8 @@ public class ImgByteOperator {
         this.indexData = ArrayUtils.subarray(originalImgFile, 32 + bytesToInt(indexTableLength), originalImgFile.length);
     }
 
-    public List<Index> getIndexs() {
-        List<Index> indexs = new ArrayList<>();
+    public List<AbstractIndex> getIndexs() {
+        List<AbstractIndex> indexs = new ArrayList<>();
         int size = bytesToInt(indexSize);
         int indexTableOffset = 0;
         int indexDataOffset = 0;

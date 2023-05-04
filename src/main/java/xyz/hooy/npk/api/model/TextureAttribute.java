@@ -1,6 +1,6 @@
 package xyz.hooy.npk.api.model;
 
-public class TextureAttribute extends IndexAttribute {
+public class TextureAttribute extends AbstractIndexAttribute {
 
     private Integer width;
     private Integer height;

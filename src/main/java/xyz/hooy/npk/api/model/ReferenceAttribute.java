@@ -1,6 +1,6 @@
 package xyz.hooy.npk.api.model;
 
-public class ReferenceAttribute extends IndexAttribute {
+public class ReferenceAttribute extends AbstractIndexAttribute {
 
     private Integer to;
 

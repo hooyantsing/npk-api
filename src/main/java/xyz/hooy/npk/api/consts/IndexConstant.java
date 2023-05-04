@@ -1,4 +1,4 @@
-package xyz.hooy.npk.api.model;
+package xyz.hooy.npk.api.consts;
 
 public final class IndexConstant {
 

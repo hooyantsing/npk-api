@@ -1,6 +1,6 @@
 package xyz.hooy.npk.api;
 
-import xyz.hooy.npk.api.model.Index;
+import xyz.hooy.npk.api.model.AbstractIndex;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -33,15 +33,15 @@ public class ApiService {
         return npkByteOperator.getImgs().get(imgName);
     }
 
-    public Map<String, List<Index>> getIndexs() {
-        Map<String, List<Index>> indexs = new HashMap<>();
+    public Map<String, List<AbstractIndex>> getIndexs() {
+        Map<String, List<AbstractIndex>> indexs = new HashMap<>();
         for (Map.Entry<String, ImgByteOperator> imgByteOperatorEntry : imgByteOperators.entrySet()) {
             indexs.put(imgByteOperatorEntry.getKey(), imgByteOperatorEntry.getValue().getIndexs());
         }
         return indexs;
     }
 
-    public List<Index> getIndexs(String imgName) {
+    public List<AbstractIndex> getIndexs(String imgName) {
         ImgByteOperator imgByteOperator = imgByteOperators.get(imgName);
         if (imgByteOperator != null) {
             return imgByteOperator.getIndexs();
@@ -49,7 +49,7 @@ public class ApiService {
         return null;
     }
 
-    public Index getIndex(String imgName, int index) {
+    public AbstractIndex getIndex(String imgName, int index) {
         ImgByteOperator imgByteOperator = imgByteOperators.get(imgName);
         if (imgByteOperator != null) {
             return imgByteOperator.getIndexs().get(index);

@@ -3,7 +3,7 @@ package xyz.hooy.npk.api.test;
 import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.Test;
 import xyz.hooy.npk.api.ApiService;
-import xyz.hooy.npk.api.model.Index;
+import xyz.hooy.npk.api.model.AbstractIndex;
 import xyz.hooy.npk.api.model.Texture;
 import xyz.hooy.npk.api.util.TextureUtils;
 
@@ -32,10 +32,10 @@ public class ApiServiceTest {
     @Test
     void getIndexs() throws IOException {
         ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
-        Map<String, List<Index>> imgs = apiService.getIndexs();
-        for (Map.Entry<String, List<Index>> img : imgs.entrySet()) {
+        Map<String, List<AbstractIndex>> imgs = apiService.getIndexs();
+        for (Map.Entry<String, List<AbstractIndex>> img : imgs.entrySet()) {
             System.out.println(img.getKey());
-            for (Index index : img.getValue()) {
+            for (AbstractIndex index : img.getValue()) {
                 if (index instanceof Texture) {
                     Texture texture = (Texture) index;
                     System.out.println(texture);
@@ -47,12 +47,12 @@ public class ApiServiceTest {
     @Test
     void toPng() throws IOException {
         ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
-        Map<String, List<Index>> imgs = apiService.getIndexs();
-        for (Map.Entry<String, List<Index>> img : imgs.entrySet()) {
+        Map<String, List<AbstractIndex>> imgs = apiService.getIndexs();
+        for (Map.Entry<String, List<AbstractIndex>> img : imgs.entrySet()) {
             Path fileName = Paths.get(img.getKey()).getFileName();
             System.out.println(fileName);
             for (int i = 0; i < img.getValue().size(); i++) {
-                Index index = img.getValue().get(i);
+                AbstractIndex index = img.getValue().get(i);
                 if (index instanceof Texture) {
                     Texture texture = (Texture) index;
                     TextureUtils.toPng(texture, OUTPUT_PATH + fileName + "_" + i + ".png");
