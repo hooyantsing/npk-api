@@ -37,7 +37,7 @@ public final class ByteUtils {
      */
     public static String bytesToString(byte[] src) {
         if (src.length > 0) {
-            return new String(src);
+            return new String(src).trim();
         }
         return null;
     }
