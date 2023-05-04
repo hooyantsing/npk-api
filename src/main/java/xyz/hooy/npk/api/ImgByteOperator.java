@@ -48,6 +48,9 @@ public class ImgByteOperator {
         this.indexData = ArrayUtils.subarray(originalImgFile, 32 + bytesToInt(indexTableLength), originalImgFile.length);
     }
 
+    /**
+     * @return 返回由图片型索引和指向型索引组成的列表
+     */
     public List<AbstractIndex> getIndexs() {
         List<AbstractIndex> indexs = new ArrayList<>();
         int size = bytesToInt(indexSize);
@@ -57,31 +60,49 @@ public class ImgByteOperator {
             int type = readIndexType(indexTableOffset);
             if (type != IndexConstant.TYPE_REFERENCE) {
                 // 图片型索引项
-                Texture texture = new Texture();
-                TextureAttribute textureAttribute = texture.getTextureAttribute();
-                textureAttribute.setType(type);
-                textureAttribute.setWidth(readTextureWidth(indexTableOffset));
-                textureAttribute.setHeight(readTextureHeight(indexTableOffset));
-                textureAttribute.setX(readTextureX(indexTableOffset));
-                textureAttribute.setY(readTextureY(indexTableOffset));
-                textureAttribute.setFrameWidth(readTextureFrameWidth(indexTableOffset));
-                textureAttribute.setFrameHeight(readTextureFrameHeight(indexTableOffset));
-                texture.setTexture(readTextureFile(indexTableOffset, indexDataOffset));
+                Texture texture = createTexture(indexTableOffset, indexDataOffset);
                 indexs.add(texture);
                 // 移动偏移
                 indexDataOffset += readTextureLength(indexTableOffset);
                 indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
             } else {
-                // 指向性索引项
-                Reference reference = new Reference();
-                reference.getReferenceAttribute().setType(type);
-                reference.getReferenceAttribute().setTo(readReferenceTo(indexTableOffset));
+                // 指向型索引项
+                Reference reference = createReference(indexTableOffset);
                 indexs.add(reference);
                 // 移动偏移
                 indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
             }
         }
         return indexs;
+    }
+
+    /**
+     * @return 先将指向型索引转换为图片型索引后，只含有图片型索引列表
+     */
+    public List<Texture> transferTextures() {
+        List<Texture> textures = new ArrayList<>();
+        int size = bytesToInt(indexSize);
+        int indexTableOffset = 0;
+        int indexDataOffset = 0;
+        for (int i = 0; i < size; i++) {
+            int type = readIndexType(indexTableOffset);
+            if (type != IndexConstant.TYPE_REFERENCE) {
+                // 图片型索引项
+                Texture texture = createTexture(indexTableOffset, indexDataOffset);
+                textures.add(texture);
+                // 移动偏移
+                indexDataOffset += readTextureLength(indexTableOffset);
+                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            } else {
+                // 指向型索引项
+                Reference reference = createReference(indexTableOffset);
+                int indexNum = reference.getReferenceAttribute().getTo();
+                textures.add(textures.get(indexNum));
+                // 移动偏移
+                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            }
+        }
+        return textures;
     }
 
     public ImgByteOperator addTexture(byte[] indexAttributes, byte[] textureData) {
@@ -170,6 +191,27 @@ public class ImgByteOperator {
 
     private Integer readReferenceTo(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8));
+    }
+
+    private Texture createTexture(int indexTableOffset, int indexDataOffset) {
+        Texture texture = new Texture();
+        TextureAttribute textureAttribute = texture.getTextureAttribute();
+        textureAttribute.setType(readIndexType(indexTableOffset));
+        textureAttribute.setWidth(readTextureWidth(indexTableOffset));
+        textureAttribute.setHeight(readTextureHeight(indexTableOffset));
+        textureAttribute.setX(readTextureX(indexTableOffset));
+        textureAttribute.setY(readTextureY(indexTableOffset));
+        textureAttribute.setFrameWidth(readTextureFrameWidth(indexTableOffset));
+        textureAttribute.setFrameHeight(readTextureFrameHeight(indexTableOffset));
+        texture.setTexture(readTextureFile(indexTableOffset, indexDataOffset));
+        return texture;
+    }
+
+    private Reference createReference(int indexTableOffset) {
+        Reference reference = new Reference();
+        reference.getReferenceAttribute().setType(readIndexType(indexTableOffset));
+        reference.getReferenceAttribute().setTo(readReferenceTo(indexTableOffset));
+        return reference;
     }
 
     public byte[] getMagicNumber() {

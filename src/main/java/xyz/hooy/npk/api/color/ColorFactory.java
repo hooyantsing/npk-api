@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ColorFactory {
+public final class ColorFactory {
 
     private static final Map<Integer, AbstractColorStrategy> colorMap = new HashMap<>();
 
