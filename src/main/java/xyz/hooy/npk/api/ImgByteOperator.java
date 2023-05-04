@@ -6,6 +6,7 @@ import xyz.hooy.npk.api.model.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import static xyz.hooy.npk.api.util.ByteUtils.*;
 
@@ -52,57 +53,21 @@ public class ImgByteOperator {
      * @return 返回由图片型索引和指向型索引组成的列表
      */
     public List<AbstractIndex> getIndexs() {
-        List<AbstractIndex> indexs = new ArrayList<>();
-        int size = bytesToInt(indexSize);
-        int indexTableOffset = 0;
-        int indexDataOffset = 0;
-        for (int i = 0; i < size; i++) {
-            int type = readIndexType(indexTableOffset);
-            if (type != IndexConstant.TYPE_REFERENCE) {
-                // 图片型索引项
-                Texture texture = createTexture(indexTableOffset, indexDataOffset);
-                indexs.add(texture);
-                // 移动偏移
-                indexDataOffset += readTextureLength(indexTableOffset);
-                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
-            } else {
-                // 指向型索引项
-                Reference reference = createReference(indexTableOffset);
-                indexs.add(reference);
-                // 移动偏移
-                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
-            }
-        }
-        return indexs;
+        return traversalIndexs((indexTableOffset, indexs) -> {
+            Reference reference = createReference(indexTableOffset);
+            indexs.add(reference);
+        });
     }
 
     /**
      * @return 先将指向型索引转换为图片型索引后，只含有图片型索引列表
      */
     public List<Texture> transferTextures() {
-        List<Texture> textures = new ArrayList<>();
-        int size = bytesToInt(indexSize);
-        int indexTableOffset = 0;
-        int indexDataOffset = 0;
-        for (int i = 0; i < size; i++) {
-            int type = readIndexType(indexTableOffset);
-            if (type != IndexConstant.TYPE_REFERENCE) {
-                // 图片型索引项
-                Texture texture = createTexture(indexTableOffset, indexDataOffset);
-                textures.add(texture);
-                // 移动偏移
-                indexDataOffset += readTextureLength(indexTableOffset);
-                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
-            } else {
-                // 指向型索引项
-                Reference reference = createReference(indexTableOffset);
-                int indexNum = reference.getReferenceAttribute().getTo();
-                textures.add(textures.get(indexNum));
-                // 移动偏移
-                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
-            }
-        }
-        return textures;
+        return traversalIndexs((indexTableOffset, textures) -> {
+            Reference reference = createReference(indexTableOffset);
+            int indexNum = reference.getReferenceAttribute().getTo();
+            textures.add(textures.get(indexNum));
+        });
     }
 
     public ImgByteOperator addTexture(byte[] indexAttributes, byte[] textureData) {
@@ -141,6 +106,30 @@ public class ImgByteOperator {
                                 ArrayUtils.addAll(imgVersion,
                                         ArrayUtils.addAll(indexSize,
                                                 ArrayUtils.addAll(indexTable, indexData))))));
+    }
+
+    private List traversalIndexs(BiConsumer<Integer, List> processReferences) {
+        List<AbstractIndex> indexs = new ArrayList<>();
+        int size = bytesToInt(indexSize);
+        int indexTableOffset = 0;
+        int indexDataOffset = 0;
+        for (int i = 0; i < size; i++) {
+            int type = readIndexType(indexTableOffset);
+            if (type != IndexConstant.TYPE_REFERENCE) {
+                // 图片型索引项
+                Texture texture = createTexture(indexTableOffset, indexDataOffset);
+                indexs.add(texture);
+                // 移动偏移
+                indexDataOffset += readTextureLength(indexTableOffset);
+                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            } else {
+                // 指向型索引项
+                processReferences.accept(indexDataOffset, indexs);
+                // 移动偏移
+                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            }
+        }
+        return indexs;
     }
 
     private Integer readIndexType(int offset) {
