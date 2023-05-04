@@ -1,10 +1,7 @@
 package xyz.hooy.npk.api;
 
 import org.apache.commons.lang3.ArrayUtils;
-import xyz.hooy.npk.api.model.Index;
-import xyz.hooy.npk.api.model.Reference;
-import xyz.hooy.npk.api.model.Texture;
-import xyz.hooy.npk.api.model.TextureAttribute;
+import xyz.hooy.npk.api.model.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +54,7 @@ public class ImgByteOperator {
         int indexDataOffset = 0;
         for (int i = 0; i < size; i++) {
             int type = readIndexType(indexTableOffset);
-            if (type != 0x11) {
+            if (type != IndexConstant.TYPE_REFERENCE) {
                 // 图片型索引项
                 Texture texture = new Texture();
                 TextureAttribute textureAttribute = texture.getTextureAttribute();
@@ -129,7 +126,7 @@ public class ImgByteOperator {
     }
 
     private Boolean readTextureZlib(int offset) {
-        return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8)) == 0x06;
+        return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8)) == IndexConstant.TEXTURE_NON_ZLIB;
     }
 
     private Integer readTextureWidth(int offset) {
