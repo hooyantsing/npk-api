@@ -10,6 +10,7 @@ import xyz.hooy.npk.api.util.TextureUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,12 @@ public class ApiServiceTest {
         for (String imgName : img.keySet()) {
             System.out.println(imgName);
         }
+    }
+
+    @Test
+    void deleteImg() throws IOException, NoSuchAlgorithmException {
+        ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
+        apiService.deleteImg(1);
     }
 
     @Test

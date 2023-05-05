@@ -43,6 +43,11 @@ public class ApiService {
         imgByteOperators.put(decryptImgName, new ImgByteOperator(img));
     }
 
+    public void deleteImg(int index) throws NoSuchAlgorithmException {
+        String oldImgName = npkByteOperator.delete(index);
+        imgByteOperators.remove(oldImgName);
+    }
+
     public void renameImg(int index, String newImgName) throws NoSuchAlgorithmException {
         String oldImgName = npkByteOperator.rename(index, newImgName);
         ImgByteOperator imgByteOperator = imgByteOperators.get(oldImgName);
