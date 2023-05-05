@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static xyz.hooy.npk.api.util.ByteUtils.*;
@@ -68,7 +68,7 @@ public class NpkByteOperator {
                 imgTable[i + j] = newOffsetBytes[j];
             }
         }
-        byte[] imgOffset = intToBytes(build().length + IMG_TABLE_ITEM_BYTE_LENGTH);
+        byte[] imgOffset = intToBytes(52 + imgTable.length + imgData.length + IMG_TABLE_ITEM_BYTE_LENGTH);
         byte[] imgLength = intToBytes(img.length);
         byte[] encryptImgName = encryptImgName(stringToBytes(decryptImgName));
         imgTable = ArrayUtils.addAll(imgTable,
@@ -81,6 +81,35 @@ public class NpkByteOperator {
 
         // 添加至数据
         imgData = ArrayUtils.addAll(imgData, img);
+    }
+
+    public void delete(int index) throws NoSuchAlgorithmException {
+        // 总数 -1
+        imgSize = intToBytes(bytesToInt(imgSize) - 1);
+
+        // 从索引表删除
+        int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH;
+        byte[] imgTableBeforeBytes = ArrayUtils.subarray(imgTable, 0, imgTableOffset);
+        byte[] imgTableDeleteBytes = ArrayUtils.subarray(imgTable, imgTableOffset, IMG_TABLE_ITEM_BYTE_LENGTH);
+        byte[] imgTableAfterBytes = ArrayUtils.subarray(imgTable, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH, imgTable.length);
+        int imgDataDeleteOffset = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, imgTableOffset, imgTableOffset + 4));
+        int imgDataDeleteLength = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, imgTableOffset + 4, imgTableOffset + 8));
+        for (int i = 0; i < imgTableAfterBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
+            byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(imgTableAfterBytes, i, i + 4)) - imgDataDeleteLength);
+            for (int j = 0; j < 4; j++) {
+                imgTableAfterBytes[i] = newImgOffset[j];
+            }
+        }
+        imgTable = ArrayUtils.addAll(imgTableBeforeBytes, imgTableAfterBytes);
+
+        // 刷新校验码
+        refreshNpkValidation();
+
+        // 从数据删除
+        int imgDataDeleteRelativeOffset = imgDataDeleteOffset - (52 + imgTable.length);
+        byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataDeleteRelativeOffset);
+        byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataDeleteRelativeOffset + imgDataDeleteLength, imgData.length);
+        imgData = ArrayUtils.addAll(imgDataBeforeBytes, imgDataAfterBytes);
     }
 
     public String rename(int index, String newImgName) throws NoSuchAlgorithmException {
@@ -103,7 +132,7 @@ public class NpkByteOperator {
     }
 
     public Map<String, byte[]> getImgs() {
-        Map<String, byte[]> imgs = new HashMap<>();
+        Map<String, byte[]> imgs = new LinkedHashMap<>();
         byte[] newImgFile = build();
         for (int i = 0; i < imgTable.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
             int imgOffset = bytesToInt(ArrayUtils.subarray(imgTable, i, i + 4));
@@ -124,7 +153,7 @@ public class NpkByteOperator {
 
 
     private void refreshNpkValidation() throws NoSuchAlgorithmException {
-        int specimenLimit = new Double(Math.floor((magicNumber.length + imgSize.length + imgTable.length) / 17) * 17).intValue();
+        int specimenLimit = new Double(Math.floor((8 + imgTable.length) / 17) * 17).intValue();
         byte[] specimenBytes = ArrayUtils.subarray(ArrayUtils.addAll(magicNumber, ArrayUtils.addAll(imgSize, imgTable)), 0, specimenLimit);
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         messageDigest.update(specimenBytes);

@@ -4,7 +4,7 @@ import xyz.hooy.npk.api.model.AbstractIndex;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +16,7 @@ public class ApiService {
 
     private final String path;
     private final NpkByteOperator npkByteOperator;
-    private final Map<String, ImgByteOperator> imgByteOperators = new HashMap<>();
+    private final Map<String, ImgByteOperator> imgByteOperators = new LinkedHashMap<>();
 
     private ApiService(String path) throws IOException {
         this.path = path;
@@ -53,7 +53,7 @@ public class ApiService {
     }
 
     public Map<String, List<AbstractIndex>> getIndexs() {
-        Map<String, List<AbstractIndex>> indexs = new HashMap<>();
+        Map<String, List<AbstractIndex>> indexs = new LinkedHashMap<>();
         for (Map.Entry<String, ImgByteOperator> imgByteOperatorEntry : imgByteOperators.entrySet()) {
             indexs.put(imgByteOperatorEntry.getKey(), imgByteOperatorEntry.getValue().getIndexs());
         }
