@@ -74,15 +74,15 @@ public class ImgByteOperator {
         });
     }
 
-    public ImgByteOperator addTexture(byte[] indexAttributes, byte[] textureData) {
-        return add(indexAttributes, textureData);
+    public void addTexture(byte[] indexAttributes, byte[] textureData) {
+        add(indexAttributes, textureData);
     }
 
-    public ImgByteOperator addReference(byte[] indexAttributes) {
-        return add(indexAttributes, null);
+    public void addReference(byte[] indexAttributes) {
+        add(indexAttributes, null);
     }
 
-    public ImgByteOperator add(byte[] indexAttributes, byte[] textureData) {
+    public void add(byte[] indexAttributes, byte[] textureData) {
         if (indexAttributes.length == TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH && ArrayUtils.isNotEmpty(textureData)) {
             // 索引表长度
             indexTableLength = intToBytes(bytesToInt(indexTableLength) + TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH);
@@ -100,7 +100,6 @@ public class ImgByteOperator {
 
         // 索引表
         indexTable = ArrayUtils.addAll(indexTable, indexAttributes);
-        return this;
     }
 
     public byte[] build() {
@@ -113,7 +112,7 @@ public class ImgByteOperator {
     }
 
     private List traversalIndexs(BiConsumer<Integer, List> processReferences) {
-        List<AbstractIndex> indexs = new ArrayList<>();
+        List indexs = new ArrayList<>();
         int size = bytesToInt(indexSize);
         int indexTableOffset = 0;
         int indexDataOffset = 0;
@@ -136,39 +135,39 @@ public class ImgByteOperator {
         return indexs;
     }
 
-    private Integer readIndexType(int offset) {
+    private int readIndexType(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset, offset + 4));
     }
 
-    private Boolean readTextureZlib(int offset) {
+    private boolean readTextureZlib(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8)) == IndexConstant.TEXTURE_NON_ZLIB;
     }
 
-    private Integer readTextureWidth(int offset) {
+    private int readTextureWidth(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 8, offset + 12));
     }
 
-    private Integer readTextureHeight(int offset) {
+    private int readTextureHeight(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 12, offset + 16));
     }
 
-    private Integer readTextureLength(int offset) {
+    private int readTextureLength(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 16, offset + 20));
     }
 
-    private Integer readTextureX(int offset) {
+    private int readTextureX(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 20, offset + 24));
     }
 
-    private Integer readTextureY(int offset) {
+    private int readTextureY(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 24, offset + 28));
     }
 
-    private Integer readTextureFrameWidth(int offset) {
+    private int readTextureFrameWidth(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 28, offset + 32));
     }
 
-    private Integer readTextureFrameHeight(int offset) {
+    private int readTextureFrameHeight(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 32, offset + 36));
     }
 
@@ -182,7 +181,7 @@ public class ImgByteOperator {
         return textureBytes;
     }
 
-    private Integer readReferenceTo(int offset) {
+    private int readReferenceTo(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8));
     }
 
@@ -205,29 +204,5 @@ public class ImgByteOperator {
         reference.getReferenceAttribute().setType(readIndexType(indexTableOffset));
         reference.getReferenceAttribute().setTo(readReferenceTo(indexTableOffset));
         return reference;
-    }
-
-    public byte[] getMagicNumber() {
-        return magicNumber;
-    }
-
-    public byte[] getIndexTableLength() {
-        return indexTableLength;
-    }
-
-    public byte[] getImgVersion() {
-        return imgVersion;
-    }
-
-    public byte[] getIndexSize() {
-        return indexSize;
-    }
-
-    public byte[] getIndexTable() {
-        return indexTable;
-    }
-
-    public byte[] getIndexData() {
-        return indexData;
     }
 }

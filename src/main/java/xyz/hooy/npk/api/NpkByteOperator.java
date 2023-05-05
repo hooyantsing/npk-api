@@ -56,7 +56,7 @@ public class NpkByteOperator {
         this.imgData = ArrayUtils.subarray(originalNpkFile, 52 + bytesToInt(imgSize) * IMG_TABLE_ITEM_BYTE_LENGTH, originalNpkFile.length);
     }
 
-    public NpkByteOperator add(byte[] img, String decryptImgName) throws NoSuchAlgorithmException {
+    public void add(byte[] img, String decryptImgName) throws NoSuchAlgorithmException {
         // 总数 +1
         imgSize = intToBytes(bytesToInt(imgSize) + 1);
 
@@ -81,10 +81,9 @@ public class NpkByteOperator {
 
         // 添加至数据
         imgData = ArrayUtils.addAll(imgData, img);
-        return this;
     }
 
-    public NpkByteOperator rename(Integer index, String newImgName) throws NoSuchAlgorithmException {
+    public String rename(int index, String newImgName) throws NoSuchAlgorithmException {
         int maxImgSize = bytesToInt(imgSize);
         if (index < 0 || index > maxImgSize) {
             throw new RuntimeException(String.format("Exceeding IMG size %s, you want to visit %s", maxImgSize, index));
@@ -92,6 +91,7 @@ public class NpkByteOperator {
 
         // 修改索引表 IMG 文件名
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH + 8;
+        String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + 256)));
         byte[] encryptImgName = encryptImgName(stringToBytes(newImgName));
         for (int i = 0; i < 256; i++) {
             imgTable[imgTableOffset + i] = encryptImgName[i];
@@ -99,7 +99,7 @@ public class NpkByteOperator {
 
         // 刷新校验码
         refreshNpkValidation();
-        return this;
+        return oldImgName;
     }
 
     public Map<String, byte[]> getImgs() {
@@ -129,25 +129,5 @@ public class NpkByteOperator {
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         messageDigest.update(specimenBytes);
         npkValidation = messageDigest.digest();
-    }
-
-    public byte[] getMagicNumber() {
-        return magicNumber;
-    }
-
-    public byte[] getImgSize() {
-        return imgSize;
-    }
-
-    public byte[] getImgTable() {
-        return imgTable;
-    }
-
-    public byte[] getNpkValidation() {
-        return npkValidation;
-    }
-
-    public byte[] getImgData() {
-        return imgData;
     }
 }

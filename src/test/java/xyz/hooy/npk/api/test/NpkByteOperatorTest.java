@@ -19,7 +19,8 @@ public class NpkByteOperatorTest {
     void add() throws IOException, NoSuchAlgorithmException {
         byte[] img = Files.readAllBytes(Paths.get(INPUT_PATH + "modred.img"));
         NpkByteOperator npkByteOperator = new NpkByteOperator(Paths.get(INPUT_PATH + "sprite_common.NPK"));
-        byte[] build = npkByteOperator.add(img, "img/hooy/modred.img").build();
+        npkByteOperator.add(img, "img/hooy/modred.img");
+        byte[] build = npkByteOperator.build();
         Files.write(Paths.get(OUTPUT_PATH + "NpkByteOperator-add-test.npk"), build);
     }
 }

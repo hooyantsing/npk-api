@@ -3,6 +3,7 @@ package xyz.hooy.npk.api;
 import xyz.hooy.npk.api.model.AbstractIndex;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,20 @@ public class ApiService {
 
     public byte[] getImg(String imgName) {
         return npkByteOperator.getImgs().get(imgName);
+    }
+
+    public void addImg(byte[] img, String decryptImgName) throws NoSuchAlgorithmException {
+        npkByteOperator.add(img, decryptImgName);
+        imgByteOperators.put(decryptImgName, new ImgByteOperator(img));
+    }
+
+    public void renameImg(int index, String newImgName) throws NoSuchAlgorithmException {
+        String oldImgName = npkByteOperator.rename(index, newImgName);
+        ImgByteOperator imgByteOperator = imgByteOperators.get(oldImgName);
+        if (imgByteOperator != null) {
+            imgByteOperators.remove(oldImgName);
+        }
+        imgByteOperators.put(newImgName, imgByteOperator);
     }
 
     public Map<String, List<AbstractIndex>> getIndexs() {

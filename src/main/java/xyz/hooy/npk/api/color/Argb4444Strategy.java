@@ -11,6 +11,7 @@ import java.awt.image.BufferedImage;
  * @since 2023-05-04
  */
 class Argb4444Strategy extends AbstractColorStrategy {
+
     @Override
     public BufferedImage process(Texture texture) {
         TextureAttribute attribute = texture.getTextureAttribute();

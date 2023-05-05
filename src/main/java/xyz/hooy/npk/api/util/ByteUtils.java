@@ -11,16 +11,13 @@ import java.util.zip.Inflater;
 public final class ByteUtils {
 
     /**
-     * bytes <-> Integer - 小端模式
+     * bytes <-> int - 小端模式
      */
-    public static Integer bytesToInt(byte[] bytes) {
-        if (bytes.length == 4) {
-            return (bytes[0] & 0xFF)
-                    | ((bytes[1] & 0xFF) << 8)
-                    | ((bytes[2] & 0xFF) << 16)
-                    | ((bytes[3] & 0xFF) << 24);
-        }
-        return null;
+    public static int bytesToInt(byte[] bytes) {
+        return (bytes[0] & 0xFF)
+                | ((bytes[1] & 0xFF) << 8)
+                | ((bytes[2] & 0xFF) << 16)
+                | ((bytes[3] & 0xFF) << 24);
     }
 
     public static byte[] intToBytes(int i) {
@@ -36,17 +33,11 @@ public final class ByteUtils {
      * bytes <-> String
      */
     public static String bytesToString(byte[] src) {
-        if (src.length > 0) {
-            return new String(src).trim();
-        }
-        return null;
+        return new String(src).trim();
     }
 
     public static byte[] stringToBytes(String src) {
-        if (src.length() > 0) {
-            return src.getBytes(StandardCharsets.UTF_8);
-        }
-        return null;
+        return src.getBytes(StandardCharsets.UTF_8);
     }
 
 
