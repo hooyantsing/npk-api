@@ -22,7 +22,7 @@ public class ApiServiceTest {
     private static final String INPUT_NPK_FILE = INPUT_PATH + "sprite_map_npc_chn_knight.NPK";
 
     @Test
-    void getImg() throws IOException {
+    void getImgs() throws IOException {
         ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
         Map<String, byte[]> img = apiService.getImgs();
         for (String imgName : img.keySet()) {
@@ -34,7 +34,8 @@ public class ApiServiceTest {
     void removeImg() throws IOException {
         ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
         apiService.removeImg(1);
-        Files.write(Paths.get(OUTPUT_PATH + "NpkByteOperator-remove-test.npk"), apiService.build());
+        byte[] build = apiService.build();
+        Files.write(Paths.get(OUTPUT_PATH + "NpkByteOperator-remove-test.npk"), build);
     }
 
     @Test

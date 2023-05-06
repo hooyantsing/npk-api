@@ -83,9 +83,10 @@ public class ApiService {
     }
 
     public byte[] build() {
-        for (int i = 0; i < imgByteOperators.size(); i++) {
-            byte[] newImgBytes = imgByteOperators.get(i).build();
-            npkByteOperator.replace(i, newImgBytes);
+        int i = 0;
+        for (Map.Entry<String, ImgByteOperator> entry : imgByteOperators.entrySet()) {
+            byte[] newImgBytes = entry.getValue().build();
+            npkByteOperator.replace(i++, newImgBytes);
         }
         return npkByteOperator.build();
     }
