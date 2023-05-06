@@ -8,7 +8,6 @@ import xyz.hooy.npk.api.model.Texture;
 import xyz.hooy.npk.api.util.TextureUtils;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -24,18 +23,18 @@ public class ApiServiceTest {
     @Test
     void getImgs() throws IOException {
         ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
-        Map<String, byte[]> img = apiService.getImgs();
-        for (String imgName : img.keySet()) {
+        Map<String, byte[]> imgs = apiService.getImgs();
+        for (String imgName : imgs.keySet()) {
             System.out.println(imgName);
         }
     }
 
     @Test
     void removeImg() throws IOException {
-        ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
-        apiService.removeImg(1);
-        byte[] build = apiService.build();
-        Files.write(Paths.get(OUTPUT_PATH + "NpkByteOperator-remove-test.npk"), build);
+        Map<String, byte[]> imgs = ApiService.newInstance(INPUT_NPK_FILE).removeImg(1).getImgs();
+        for (String imgName : imgs.keySet()) {
+            System.out.println(imgName);
+        }
     }
 
     @Test

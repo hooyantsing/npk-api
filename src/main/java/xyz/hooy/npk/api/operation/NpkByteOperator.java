@@ -134,12 +134,12 @@ public class NpkByteOperator {
 
     public Map<String, byte[]> getImgs() {
         Map<String, byte[]> imgs = new LinkedHashMap<>();
-        byte[] newImgFile = build();
         for (int i = 0; i < imgTable.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
             int imgOffset = bytesToInt(ArrayUtils.subarray(imgTable, i, i + 4));
             int imgLength = bytesToInt(ArrayUtils.subarray(imgTable, i + 4, i + 8));
             String imgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, i + 8, i + IMG_TABLE_ITEM_BYTE_LENGTH)));
-            byte[] imgBytes = ArrayUtils.subarray(newImgFile, imgOffset, imgOffset + imgLength);
+            int imgRelativeOffset = imgOffset - (52 + imgTable.length);
+            byte[] imgBytes = ArrayUtils.subarray(imgData, imgRelativeOffset, imgRelativeOffset + imgLength);
             imgs.put(imgName, imgBytes);
         }
         return imgs;

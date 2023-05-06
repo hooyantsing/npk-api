@@ -39,23 +39,26 @@ public class ApiService {
         return npkByteOperator.getImgs().get(imgName);
     }
 
-    public void addImg(byte[] img, String decryptImgName) {
+    public ApiService addImg(byte[] img, String decryptImgName) {
         npkByteOperator.add(img, decryptImgName);
         imgByteOperators.put(decryptImgName, new ImgByteOperator(img));
+        return this;
     }
 
-    public void removeImg(int index) {
+    public ApiService removeImg(int index) {
         String oldImgName = npkByteOperator.remove(index);
         imgByteOperators.remove(oldImgName);
+        return this;
     }
 
-    public void renameImg(int index, String newImgName) {
+    public ApiService renameImg(int index, String newImgName) {
         String oldImgName = npkByteOperator.rename(index, newImgName);
         ImgByteOperator imgByteOperator = imgByteOperators.get(oldImgName);
         if (imgByteOperator != null) {
             imgByteOperators.remove(oldImgName);
         }
         imgByteOperators.put(newImgName, imgByteOperator);
+        return this;
     }
 
     public Map<String, List<AbstractIndex>> getIndexs() {
