@@ -1,5 +1,7 @@
 package xyz.hooy.npk.api;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import xyz.hooy.npk.api.model.AbstractIndex;
 import xyz.hooy.npk.api.operation.ImgByteOperator;
 import xyz.hooy.npk.api.operation.NpkByteOperator;
@@ -39,25 +41,33 @@ public class ApiService {
         return npkByteOperator.getImgs().get(imgName);
     }
 
-    public ApiService addImg(byte[] img, String decryptImgName) {
-        npkByteOperator.add(img, decryptImgName);
-        imgByteOperators.put(decryptImgName, new ImgByteOperator(img));
+    public byte[] getImg(int imgIndex) {
+        String imgName = imgByteOperatorsIndexToName(imgIndex);
+        return getImg(imgName);
+    }
+
+    public ApiService addImg(byte[] img, String imgName) {
+        if (ArrayUtils.isNotEmpty(img) && StringUtils.isNotBlank(imgName)) {
+            npkByteOperator.add(img, imgName);
+            imgByteOperators.put(imgName, new ImgByteOperator(img));
+        }
         return this;
     }
 
-    public ApiService removeImg(int index) {
-        String oldImgName = npkByteOperator.remove(index);
-        imgByteOperators.remove(oldImgName);
+    public ApiService removeImg(int imgIndex) {
+        String name = imgByteOperatorsIndexToName(imgIndex);
+        npkByteOperator.remove(imgIndex);
+        imgByteOperators.remove(name);
         return this;
     }
 
-    public ApiService renameImg(int index, String newImgName) {
-        String oldImgName = npkByteOperator.rename(index, newImgName);
-        ImgByteOperator imgByteOperator = imgByteOperators.get(oldImgName);
-        if (imgByteOperator != null) {
+    public ApiService renameImg(int oldImgIndex, String newImgName) {
+        String oldImgName = imgByteOperatorsIndexToName(oldImgIndex);
+        if (!StringUtils.equals(oldImgName, newImgName)) {
+            npkByteOperator.rename(oldImgIndex, newImgName);
+            imgByteOperators.put(newImgName, imgByteOperators.get(oldImgName));
             imgByteOperators.remove(oldImgName);
         }
-        imgByteOperators.put(newImgName, imgByteOperator);
         return this;
     }
 
@@ -69,20 +79,14 @@ public class ApiService {
         return indexs;
     }
 
-    public List<AbstractIndex> getIndexs(String imgName) {
-        ImgByteOperator imgByteOperator = imgByteOperators.get(imgName);
-        if (imgByteOperator != null) {
-            return imgByteOperator.getIndexs();
-        }
-        return null;
+    public List<AbstractIndex> getIndexs(int imgIndex) {
+        String name = imgByteOperatorsIndexToName(imgIndex);
+        ImgByteOperator imgByteOperator = imgByteOperators.get(name);
+        return imgByteOperator.getIndexs();
     }
 
-    public AbstractIndex getIndex(String imgName, int index) {
-        ImgByteOperator imgByteOperator = imgByteOperators.get(imgName);
-        if (imgByteOperator != null) {
-            return imgByteOperator.getIndexs().get(index);
-        }
-        return null;
+    public AbstractIndex getIndex(int imgIndex, int index) {
+        return getIndexs(imgIndex).get(index);
     }
 
     public byte[] build() {
@@ -92,5 +96,31 @@ public class ApiService {
             npkByteOperator.replace(i++, newImgBytes);
         }
         return npkByteOperator.build();
+    }
+
+    protected String imgByteOperatorsIndexToName(int index) {
+        if (0 <= index && index < imgByteOperators.size()) {
+            int i = 0;
+            for (Map.Entry<String, ImgByteOperator> img : imgByteOperators.entrySet()) {
+                if (i == index) {
+                    return img.getKey();
+                }
+                i++;
+            }
+        }
+        throw new RuntimeException("Out of imgByteOperators range");
+    }
+
+    protected int imgByteOperatorsNameToIndex(String name) {
+        if (StringUtils.isNotBlank(name)) {
+            int i = 0;
+            for (Map.Entry<String, ImgByteOperator> img : imgByteOperators.entrySet()) {
+                if (StringUtils.equals(img.getKey(), name)) {
+                    return i;
+                }
+                i++;
+            }
+        }
+        throw new RuntimeException("Out of imgByteOperators range");
     }
 }

@@ -74,7 +74,7 @@ public class NpkByteOperator {
         imgSize = intToBytes(bytesToInt(imgSize) + 1);
     }
 
-    public String remove(int index) {
+    public void remove(int index) {
         // 从索引表删除
         int originalIndexTableLength = imgTable.length;
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH;
@@ -83,7 +83,6 @@ public class NpkByteOperator {
         byte[] imgTableAfterBytes = ArrayUtils.subarray(imgTable, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH, originalIndexTableLength);
         int imgDataRemoveOffset = bytesToInt(ArrayUtils.subarray(imgTableRemoveBytes, 0, 4));
         int imgDataRemoveLength = bytesToInt(ArrayUtils.subarray(imgTableRemoveBytes, 4, 8));
-        String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTableRemoveBytes, 8, imgTableRemoveBytes.length)));
         refreshIndexTableOffset(imgTableBeforeBytes, -IMG_TABLE_ITEM_BYTE_LENGTH);
         refreshIndexTableOffset(imgTableAfterBytes, -(IMG_TABLE_ITEM_BYTE_LENGTH + imgDataRemoveLength));
         imgTable = ArrayUtils.addAll(imgTableBeforeBytes, imgTableAfterBytes);
@@ -96,7 +95,6 @@ public class NpkByteOperator {
 
         // 总数 -1
         imgSize = intToBytes(bytesToInt(imgSize) - 1);
-        return oldImgName;
     }
 
     public void replace(int index, byte[] newImg) {
@@ -121,15 +119,13 @@ public class NpkByteOperator {
         imgData = ArrayUtils.addAll(imgDataBeforeBytes, ArrayUtils.addAll(newImg, imgDataAfterBytes));
     }
 
-    public String rename(int index, String newImgName) {
+    public void rename(int index, String newImgName) {
         // 修改索引表 IMG 文件名
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH + 8;
-        String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + 256)));
         byte[] encryptImgName = encryptImgName(stringToBytes(newImgName));
         for (int i = 0; i < 256; i++) {
             imgTable[imgTableOffset + i] = encryptImgName[i];
         }
-        return oldImgName;
     }
 
     public Map<String, byte[]> getImgs() {
