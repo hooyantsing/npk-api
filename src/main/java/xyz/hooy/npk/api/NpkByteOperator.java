@@ -61,13 +61,7 @@ public class NpkByteOperator {
         imgSize = intToBytes(bytesToInt(imgSize) + 1);
 
         // 添加至索引表
-        for (int i = 0; i < imgTable.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
-            byte[] oldOffsetBytes = ArrayUtils.subarray(imgTable, i, i + 4);
-            byte[] newOffsetBytes = intToBytes(bytesToInt(oldOffsetBytes) + IMG_TABLE_ITEM_BYTE_LENGTH);
-            for (int j = 0; j < 4; j++) {
-                imgTable[i + j] = newOffsetBytes[j];
-            }
-        }
+        refreshIndexTableOffset(imgTable, IMG_TABLE_ITEM_BYTE_LENGTH);
         byte[] imgOffset = intToBytes(52 + imgTable.length + imgData.length + IMG_TABLE_ITEM_BYTE_LENGTH);
         byte[] imgLength = intToBytes(img.length);
         byte[] encryptImgName = encryptImgName(stringToBytes(decryptImgName));
@@ -96,18 +90,8 @@ public class NpkByteOperator {
         int imgDataDeleteOffset = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, 0, 4));
         int imgDataDeleteLength = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, 4, 8));
         String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTableDeleteBytes, 8, imgTableDeleteBytes.length)));
-        for (int i = 0; i < imgTableBeforeBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
-            byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(imgTableBeforeBytes, i, i + 4)) - IMG_TABLE_ITEM_BYTE_LENGTH);
-            for (int j = 0; j < 4; j++) {
-                imgTableBeforeBytes[i + j] = newImgOffset[j];
-            }
-        }
-        for (int i = 0; i < imgTableAfterBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
-            byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(imgTableAfterBytes, i, i + 4)) - IMG_TABLE_ITEM_BYTE_LENGTH - imgDataDeleteLength);
-            for (int j = 0; j < 4; j++) {
-                imgTableAfterBytes[i + j] = newImgOffset[j];
-            }
-        }
+        refreshIndexTableOffset(imgTableBeforeBytes, -IMG_TABLE_ITEM_BYTE_LENGTH);
+        refreshIndexTableOffset(imgTableAfterBytes, -(IMG_TABLE_ITEM_BYTE_LENGTH + imgDataDeleteLength));
         imgTable = ArrayUtils.addAll(imgTableBeforeBytes, imgTableAfterBytes);
 
         // 刷新校验码
@@ -160,6 +144,14 @@ public class NpkByteOperator {
                                 ArrayUtils.addAll(npkValidation, imgData))));
     }
 
+    private void refreshIndexTableOffset(byte[] indexTableBytes, int moveLength) {
+        for (int i = 0; i < indexTableBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
+            byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(indexTableBytes, i, i + 4)) + moveLength);
+            for (int j = 0; j < 4; j++) {
+                indexTableBytes[i + j] = newImgOffset[j];
+            }
+        }
+    }
 
     private void refreshNpkValidation() throws NoSuchAlgorithmException {
         int specimenLimit = new Double(Math.floor((8 + imgTable.length) / 17) * 17).intValue();

@@ -57,8 +57,7 @@ public class ImgByteOperator {
      * @return 返回由图片型索引和指向型索引组成的列表
      */
     public List<AbstractIndex> getIndexs() {
-        return traversalIndexs((indexTableOffset, indexs) -> {
-            Reference reference = createReference(indexTableOffset);
+        return traversalIndexs((reference, indexs) -> {
             indexs.add(reference);
         });
     }
@@ -67,8 +66,7 @@ public class ImgByteOperator {
      * @return 先将指向型索引转换为图片型索引后，只含有图片型索引列表
      */
     public List<Texture> transferTextures() {
-        return traversalIndexs((indexTableOffset, textures) -> {
-            Reference reference = createReference(indexTableOffset);
+        return traversalIndexs((reference, textures) -> {
             int indexNum = reference.getReferenceAttribute().getTo();
             textures.add(textures.get(indexNum));
         });
@@ -111,7 +109,7 @@ public class ImgByteOperator {
                                                 ArrayUtils.addAll(indexTable, indexData))))));
     }
 
-    private List traversalIndexs(BiConsumer<Integer, List> processReferences) {
+    private List traversalIndexs(BiConsumer<Reference, List> processReferences) {
         List indexs = new ArrayList<>();
         int size = bytesToInt(indexSize);
         int indexTableOffset = 0;
@@ -127,7 +125,8 @@ public class ImgByteOperator {
                 indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
             } else {
                 // 指向型索引项
-                processReferences.accept(indexDataOffset, indexs);
+                Reference reference = createReference(indexTableOffset);
+                processReferences.accept(reference, indexs);
                 // 移动偏移
                 indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
             }
