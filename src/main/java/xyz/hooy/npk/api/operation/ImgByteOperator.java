@@ -81,23 +81,78 @@ public class ImgByteOperator {
     }
 
     public void add(byte[] indexAttributes, byte[] textureData) {
-        if (indexAttributes.length == TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH && ArrayUtils.isNotEmpty(textureData)) {
-            // 索引表长度
-            indexTableLength = intToBytes(bytesToInt(indexTableLength) + TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH);
-            // 索引数据
-            indexData = ArrayUtils.addAll(indexData, textureData);
-        } else if (indexAttributes.length == REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH) {
-            // 索引表长度
-            indexTableLength = intToBytes(bytesToInt(indexTableLength) + REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH);
-        } else {
+        if (indexAttributes.length != TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH && indexAttributes.length != REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH) {
             throw new RuntimeException(String.format("Failed to add IMG, index attributes length %s", indexAttributes.length));
         }
 
-        // 索引总数
-        indexSize = intToBytes(bytesToInt(indexSize) + 1);
+        // 索引数据
+        if (indexAttributes.length == TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH) {
+            if (ArrayUtils.isNotEmpty(textureData)) {
+                indexData = ArrayUtils.addAll(indexData, textureData);
+            } else {
+                throw new RuntimeException("Texture length cannot be 0");
+            }
+        }
 
         // 索引表
         indexTable = ArrayUtils.addAll(indexTable, indexAttributes);
+
+        // 索引表长度
+        indexTableLength = intToBytes(indexTable.length);
+
+        // 索引总数
+        indexSize = intToBytes(bytesToInt(indexSize) + 1);
+    }
+
+    public void remove(int index) {
+        int indexTableRemoveOffset = 0;
+        int indexDataRemoveOffset = 0;
+        int indexTableOffset = 0;
+        int indexDataOffset = 0;
+        int size = bytesToInt(indexSize);
+        for (int i = 0; i < size; i++) {
+            if (i == index) {
+                // 找到要删除的元素，记录其偏移量
+                indexTableRemoveOffset = indexTableOffset;
+                indexDataRemoveOffset = indexDataOffset;
+            }
+            if (readIsTexture(indexTableOffset)) {
+                // 移动偏移
+                indexDataOffset += readTextureLength(indexTableOffset);
+                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            } else {
+                if (i > index) {
+                    Reference reference = createReference(indexTableOffset);
+                    if (reference.getReferenceAttribute().getTo() == index) {
+                        // 当前帧被后续帧引用，无法删除，请先删除后续帧
+                        throw new RuntimeException("The current frame is referenced by subsequent frames and cannot be deleted. Please delete subsequent frames first");
+                    }
+                }
+                // 移动偏移
+                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            }
+        }
+
+        // 从索引表里删除 & 从数据里删除
+        byte[] indexTableBeforeBytes = ArrayUtils.subarray(indexTable, 0, indexTableRemoveOffset);
+        byte[] indexDataBeforeBytes = ArrayUtils.subarray(indexData, 0, indexDataRemoveOffset);
+        byte[] indexTableAfterBytes;
+        byte[] indexDataAfterBytes;
+        if (readIsTexture(indexTableRemoveOffset)) {
+            indexTableAfterBytes = ArrayUtils.subarray(indexTable, indexTableRemoveOffset + TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexTable.length);
+            indexDataAfterBytes = ArrayUtils.subarray(indexData, indexDataRemoveOffset + TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexData.length);
+        } else {
+            indexTableAfterBytes = ArrayUtils.subarray(indexTable, indexTableRemoveOffset + REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexTable.length);
+            indexDataAfterBytes = ArrayUtils.subarray(indexData, indexDataRemoveOffset + REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexData.length);
+        }
+        indexTable = ArrayUtils.addAll(indexTableBeforeBytes, indexTableAfterBytes);
+        indexData = ArrayUtils.addAll(indexDataBeforeBytes, indexDataAfterBytes);
+
+        // 索引表长度
+        indexTableLength = intToBytes(indexTable.length);
+
+        // 总数 -1
+        indexSize = intToBytes(bytesToInt(indexSize) - 1);
     }
 
     public byte[] build() {
@@ -111,12 +166,11 @@ public class ImgByteOperator {
 
     protected List traversalIndexs(BiConsumer<Reference, List> processReferences) {
         List indexs = new ArrayList<>();
-        int size = bytesToInt(indexSize);
         int indexTableOffset = 0;
         int indexDataOffset = 0;
+        int size = bytesToInt(indexSize);
         for (int i = 0; i < size; i++) {
-            int type = readIndexType(indexTableOffset);
-            if (type != IndexConstant.TYPE_REFERENCE) {
+            if (readIsTexture(indexTableOffset)) {
                 // 图片型索引项
                 Texture texture = createTexture(indexTableOffset, indexDataOffset);
                 indexs.add(texture);
@@ -136,6 +190,10 @@ public class ImgByteOperator {
 
     protected int readIndexType(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset, offset + 4));
+    }
+
+    protected boolean readIsTexture(int offset) {
+        return readIndexType(offset) != IndexConstant.TYPE_REFERENCE;
     }
 
     protected boolean readTextureZlib(int offset) {
