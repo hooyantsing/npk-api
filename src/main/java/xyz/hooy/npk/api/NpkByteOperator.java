@@ -88,17 +88,24 @@ public class NpkByteOperator {
         imgSize = intToBytes(bytesToInt(imgSize) - 1);
 
         // 从索引表删除
+        int originalIndexTableLength = imgTable.length;
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH;
         byte[] imgTableBeforeBytes = ArrayUtils.subarray(imgTable, 0, imgTableOffset);
-        byte[] imgTableDeleteBytes = ArrayUtils.subarray(imgTable, imgTableOffset, IMG_TABLE_ITEM_BYTE_LENGTH);
-        byte[] imgTableAfterBytes = ArrayUtils.subarray(imgTable, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH, imgTable.length);
+        byte[] imgTableDeleteBytes = ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH);
+        byte[] imgTableAfterBytes = ArrayUtils.subarray(imgTable, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH, originalIndexTableLength);
         int imgDataDeleteOffset = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, 0, 4));
         int imgDataDeleteLength = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, 4, 8));
-        String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTableDeleteBytes, 8, 256)));
-        for (int i = 0; i < imgTableAfterBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
-            byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(imgTableAfterBytes, i, i + 4)) - imgDataDeleteLength);
+        String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTableDeleteBytes, 8, imgTableDeleteBytes.length)));
+        for (int i = 0; i < imgTableBeforeBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
+            byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(imgTableBeforeBytes, i, i + 4)) - IMG_TABLE_ITEM_BYTE_LENGTH);
             for (int j = 0; j < 4; j++) {
-                imgTableAfterBytes[i] = newImgOffset[j];
+                imgTableBeforeBytes[i + j] = newImgOffset[j];
+            }
+        }
+        for (int i = 0; i < imgTableAfterBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
+            byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(imgTableAfterBytes, i, i + 4)) - IMG_TABLE_ITEM_BYTE_LENGTH - imgDataDeleteLength);
+            for (int j = 0; j < 4; j++) {
+                imgTableAfterBytes[i + j] = newImgOffset[j];
             }
         }
         imgTable = ArrayUtils.addAll(imgTableBeforeBytes, imgTableAfterBytes);
@@ -107,7 +114,7 @@ public class NpkByteOperator {
         refreshNpkValidation();
 
         // 从数据删除
-        int imgDataDeleteRelativeOffset = imgDataDeleteOffset - (52 + imgTable.length);
+        int imgDataDeleteRelativeOffset = imgDataDeleteOffset - (52 + originalIndexTableLength);
         byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataDeleteRelativeOffset);
         byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataDeleteRelativeOffset + imgDataDeleteLength, imgData.length);
         imgData = ArrayUtils.addAll(imgDataBeforeBytes, imgDataAfterBytes);
