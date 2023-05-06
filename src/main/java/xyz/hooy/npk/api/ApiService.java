@@ -45,8 +45,8 @@ public class ApiService {
         imgByteOperators.put(decryptImgName, new ImgByteOperator(img));
     }
 
-    public void deleteImg(int index) throws NoSuchAlgorithmException {
-        String oldImgName = npkByteOperator.delete(index);
+    public void removeImg(int index) throws NoSuchAlgorithmException {
+        String oldImgName = npkByteOperator.remove(index);
         imgByteOperators.remove(oldImgName);
     }
 
@@ -81,5 +81,13 @@ public class ApiService {
             return imgByteOperator.getIndexs().get(index);
         }
         return null;
+    }
+
+    public byte[] build() throws NoSuchAlgorithmException {
+        for (int i = 0; i < imgByteOperators.size(); i++) {
+            byte[] newImgBytes = imgByteOperators.get(i).build();
+            npkByteOperator.replace(i, newImgBytes);
+        }
+        return npkByteOperator.build();
     }
 }

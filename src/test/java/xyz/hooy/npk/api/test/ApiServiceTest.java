@@ -8,6 +8,7 @@ import xyz.hooy.npk.api.model.Texture;
 import xyz.hooy.npk.api.util.TextureUtils;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
@@ -31,9 +32,10 @@ public class ApiServiceTest {
     }
 
     @Test
-    void deleteImg() throws IOException, NoSuchAlgorithmException {
+    void removeImg() throws IOException, NoSuchAlgorithmException {
         ApiService apiService = ApiService.newInstance(INPUT_NPK_FILE);
-        apiService.deleteImg(1);
+        apiService.removeImg(1);
+        Files.write(Paths.get(OUTPUT_PATH + "NpkByteOperator-remove-test.npk"), apiService.build());
     }
 
     @Test

@@ -77,7 +77,7 @@ public class NpkByteOperator {
         imgData = ArrayUtils.addAll(imgData, img);
     }
 
-    public String delete(int index) throws NoSuchAlgorithmException {
+    public String remove(int index) throws NoSuchAlgorithmException {
         // 总数 -1
         imgSize = intToBytes(bytesToInt(imgSize) - 1);
 
@@ -85,24 +85,49 @@ public class NpkByteOperator {
         int originalIndexTableLength = imgTable.length;
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH;
         byte[] imgTableBeforeBytes = ArrayUtils.subarray(imgTable, 0, imgTableOffset);
-        byte[] imgTableDeleteBytes = ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH);
+        byte[] imgTableRemoveBytes = ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH);
         byte[] imgTableAfterBytes = ArrayUtils.subarray(imgTable, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH, originalIndexTableLength);
-        int imgDataDeleteOffset = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, 0, 4));
-        int imgDataDeleteLength = bytesToInt(ArrayUtils.subarray(imgTableDeleteBytes, 4, 8));
-        String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTableDeleteBytes, 8, imgTableDeleteBytes.length)));
+        int imgDataRemoveOffset = bytesToInt(ArrayUtils.subarray(imgTableRemoveBytes, 0, 4));
+        int imgDataRemoveLength = bytesToInt(ArrayUtils.subarray(imgTableRemoveBytes, 4, 8));
+        String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTableRemoveBytes, 8, imgTableRemoveBytes.length)));
         refreshIndexTableOffset(imgTableBeforeBytes, -IMG_TABLE_ITEM_BYTE_LENGTH);
-        refreshIndexTableOffset(imgTableAfterBytes, -(IMG_TABLE_ITEM_BYTE_LENGTH + imgDataDeleteLength));
+        refreshIndexTableOffset(imgTableAfterBytes, -(IMG_TABLE_ITEM_BYTE_LENGTH + imgDataRemoveLength));
         imgTable = ArrayUtils.addAll(imgTableBeforeBytes, imgTableAfterBytes);
 
         // 刷新校验码
         refreshNpkValidation();
 
         // 从数据删除
-        int imgDataDeleteRelativeOffset = imgDataDeleteOffset - (52 + originalIndexTableLength);
-        byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataDeleteRelativeOffset);
-        byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataDeleteRelativeOffset + imgDataDeleteLength, imgData.length);
+        int imgDataRemoveRelativeOffset = imgDataRemoveOffset - (52 + originalIndexTableLength);
+        byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataRemoveRelativeOffset);
+        byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataRemoveRelativeOffset + imgDataRemoveLength, imgData.length);
         imgData = ArrayUtils.addAll(imgDataBeforeBytes, imgDataAfterBytes);
         return oldImgName;
+    }
+
+    public void replace(int index, byte[] newImg) throws NoSuchAlgorithmException {
+        // 修改索引表 offset
+        int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH;
+        byte[] imgTableBeforeBytes = ArrayUtils.subarray(imgTable, 0, imgTableOffset);
+        byte[] imgTableOldBytes = ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH);
+        byte[] imgTableAfterBytes = ArrayUtils.subarray(imgTable, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH, imgTable.length);
+        int imgDataOldOffset = bytesToInt(ArrayUtils.subarray(imgTableOldBytes, 0, 4));
+        int imgDataOldLength = bytesToInt(ArrayUtils.subarray(imgTableOldBytes, 4, 8));
+        byte[] imgDataNewLengthBytes = intToBytes(newImg.length);
+        for (int i = 0; i < 4; i++) {
+            imgTableOldBytes[i + 4] = imgDataNewLengthBytes[i];
+        }
+        refreshIndexTableOffset(imgTableAfterBytes, newImg.length - imgDataOldLength);
+        imgTable = ArrayUtils.addAll(imgTableBeforeBytes, ArrayUtils.addAll(imgTableOldBytes, imgTableAfterBytes));
+
+        // 刷新校验码
+        refreshNpkValidation();
+
+        // 移动数据
+        int imgDataOldRelativeOffset = imgDataOldOffset - (52 + imgTable.length);
+        byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataOldRelativeOffset);
+        byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataOldRelativeOffset + imgDataOldLength, imgData.length);
+        imgData = ArrayUtils.addAll(imgDataBeforeBytes, ArrayUtils.addAll(newImg, imgDataAfterBytes));
     }
 
     public String rename(int index, String newImgName) throws NoSuchAlgorithmException {

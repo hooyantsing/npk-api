@@ -26,12 +26,12 @@ public class NpkByteOperatorTest {
     }
 
     @Test
-    void delete() throws IOException, NoSuchAlgorithmException {
+    void remove() throws IOException, NoSuchAlgorithmException {
         byte[] npk = Files.readAllBytes(Paths.get(INPUT_NPK_FILE));
         NpkByteOperator npkByteOperator = new NpkByteOperator(npk);
-        npkByteOperator.delete(4);
+        npkByteOperator.remove(4);
         byte[] build = npkByteOperator.build();
-        Files.write(Paths.get(OUTPUT_PATH + "NpkByteOperator-delete-test.npk"), build);
+        Files.write(Paths.get(OUTPUT_PATH + "NpkByteOperator-remove-test.npk"), build);
     }
 
     @Test
