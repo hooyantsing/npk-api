@@ -57,9 +57,6 @@ public class NpkByteOperator {
     }
 
     public void add(byte[] img, String decryptImgName) {
-        // 总数 +1
-        imgSize = intToBytes(bytesToInt(imgSize) + 1);
-
         // 添加至索引表
         refreshIndexTableOffset(imgTable, IMG_TABLE_ITEM_BYTE_LENGTH);
         byte[] imgOffset = intToBytes(52 + imgTable.length + imgData.length + IMG_TABLE_ITEM_BYTE_LENGTH);
@@ -72,12 +69,12 @@ public class NpkByteOperator {
 
         // 添加至数据
         imgData = ArrayUtils.addAll(imgData, img);
+
+        // 总数 +1
+        imgSize = intToBytes(bytesToInt(imgSize) + 1);
     }
 
     public String remove(int index) {
-        // 总数 -1
-        imgSize = intToBytes(bytesToInt(imgSize) - 1);
-
         // 从索引表删除
         int originalIndexTableLength = imgTable.length;
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH;
@@ -96,6 +93,9 @@ public class NpkByteOperator {
         byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataRemoveRelativeOffset);
         byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataRemoveRelativeOffset + imgDataRemoveLength, imgData.length);
         imgData = ArrayUtils.addAll(imgDataBeforeBytes, imgDataAfterBytes);
+
+        // 总数 -1
+        imgSize = intToBytes(bytesToInt(imgSize) - 1);
         return oldImgName;
     }
 
