@@ -7,7 +7,6 @@ import xyz.hooy.npk.api.operation.NpkByteOperator;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.NoSuchAlgorithmException;
 
 @Ignore
 public class NpkByteOperatorTest {
@@ -17,7 +16,7 @@ public class NpkByteOperatorTest {
     private static final String INPUT_NPK_FILE = INPUT_PATH + "sprite_map_npc_chn_knight.NPK";
 
     @Test
-    void add() throws IOException, NoSuchAlgorithmException {
+    void add() throws IOException {
         byte[] img = Files.readAllBytes(Paths.get(INPUT_PATH + "modred.img"));
         NpkByteOperator npkByteOperator = new NpkByteOperator(Paths.get(INPUT_PATH + "sprite_common.NPK"));
         npkByteOperator.add(img, "img/hooy/modred.img");
@@ -26,7 +25,7 @@ public class NpkByteOperatorTest {
     }
 
     @Test
-    void remove() throws IOException, NoSuchAlgorithmException {
+    void remove() throws IOException {
         byte[] npk = Files.readAllBytes(Paths.get(INPUT_NPK_FILE));
         NpkByteOperator npkByteOperator = new NpkByteOperator(npk);
         npkByteOperator.remove(4);
@@ -35,7 +34,7 @@ public class NpkByteOperatorTest {
     }
 
     @Test
-    void rename() throws IOException, NoSuchAlgorithmException {
+    void rename() throws IOException {
         byte[] npk = Files.readAllBytes(Paths.get(INPUT_NPK_FILE));
         NpkByteOperator npkByteOperator = new NpkByteOperator(npk);
         npkByteOperator.rename(2, "img/hooy/rename.img");

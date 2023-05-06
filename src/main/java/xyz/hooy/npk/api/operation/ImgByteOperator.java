@@ -90,7 +90,7 @@ public class ImgByteOperator {
             // 索引表长度
             indexTableLength = intToBytes(bytesToInt(indexTableLength) + REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH);
         } else {
-            throw new RuntimeException("");
+            throw new RuntimeException(String.format("Failed to add IMG, index attributes length %s", indexAttributes.length));
         }
 
         // 索引总数

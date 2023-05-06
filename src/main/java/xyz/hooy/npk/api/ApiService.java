@@ -5,7 +5,6 @@ import xyz.hooy.npk.api.operation.ImgByteOperator;
 import xyz.hooy.npk.api.operation.NpkByteOperator;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,17 +39,17 @@ public class ApiService {
         return npkByteOperator.getImgs().get(imgName);
     }
 
-    public void addImg(byte[] img, String decryptImgName) throws NoSuchAlgorithmException {
+    public void addImg(byte[] img, String decryptImgName) {
         npkByteOperator.add(img, decryptImgName);
         imgByteOperators.put(decryptImgName, new ImgByteOperator(img));
     }
 
-    public void removeImg(int index) throws NoSuchAlgorithmException {
+    public void removeImg(int index) {
         String oldImgName = npkByteOperator.remove(index);
         imgByteOperators.remove(oldImgName);
     }
 
-    public void renameImg(int index, String newImgName) throws NoSuchAlgorithmException {
+    public void renameImg(int index, String newImgName) {
         String oldImgName = npkByteOperator.rename(index, newImgName);
         ImgByteOperator imgByteOperator = imgByteOperators.get(oldImgName);
         if (imgByteOperator != null) {
@@ -83,7 +82,7 @@ public class ApiService {
         return null;
     }
 
-    public byte[] build() throws NoSuchAlgorithmException {
+    public byte[] build() {
         for (int i = 0; i < imgByteOperators.size(); i++) {
             byte[] newImgBytes = imgByteOperators.get(i).build();
             npkByteOperator.replace(i, newImgBytes);

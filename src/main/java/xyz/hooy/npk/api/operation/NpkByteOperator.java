@@ -56,7 +56,7 @@ public class NpkByteOperator {
         this.imgData = ArrayUtils.subarray(originalNpkFile, 52 + bytesToInt(imgSize) * IMG_TABLE_ITEM_BYTE_LENGTH, originalNpkFile.length);
     }
 
-    public void add(byte[] img, String decryptImgName) throws NoSuchAlgorithmException {
+    public void add(byte[] img, String decryptImgName) {
         // 总数 +1
         imgSize = intToBytes(bytesToInt(imgSize) + 1);
 
@@ -70,14 +70,11 @@ public class NpkByteOperator {
                         ArrayUtils.addAll(imgLength,
                                 ArrayUtils.addAll(encryptImgName))));
 
-        // 刷新校验码
-        refreshNpkValidation();
-
         // 添加至数据
         imgData = ArrayUtils.addAll(imgData, img);
     }
 
-    public String remove(int index) throws NoSuchAlgorithmException {
+    public String remove(int index) {
         // 总数 -1
         imgSize = intToBytes(bytesToInt(imgSize) - 1);
 
@@ -94,9 +91,6 @@ public class NpkByteOperator {
         refreshIndexTableOffset(imgTableAfterBytes, -(IMG_TABLE_ITEM_BYTE_LENGTH + imgDataRemoveLength));
         imgTable = ArrayUtils.addAll(imgTableBeforeBytes, imgTableAfterBytes);
 
-        // 刷新校验码
-        refreshNpkValidation();
-
         // 从数据删除
         int imgDataRemoveRelativeOffset = imgDataRemoveOffset - (52 + originalIndexTableLength);
         byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataRemoveRelativeOffset);
@@ -105,8 +99,8 @@ public class NpkByteOperator {
         return oldImgName;
     }
 
-    public void replace(int index, byte[] newImg) throws NoSuchAlgorithmException {
-        // 修改索引表 offset
+    public void replace(int index, byte[] newImg) {
+        // 修改索引表
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH;
         byte[] imgTableBeforeBytes = ArrayUtils.subarray(imgTable, 0, imgTableOffset);
         byte[] imgTableOldBytes = ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + IMG_TABLE_ITEM_BYTE_LENGTH);
@@ -120,9 +114,6 @@ public class NpkByteOperator {
         refreshIndexTableOffset(imgTableAfterBytes, newImg.length - imgDataOldLength);
         imgTable = ArrayUtils.addAll(imgTableBeforeBytes, ArrayUtils.addAll(imgTableOldBytes, imgTableAfterBytes));
 
-        // 刷新校验码
-        refreshNpkValidation();
-
         // 移动数据
         int imgDataOldRelativeOffset = imgDataOldOffset - (52 + imgTable.length);
         byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataOldRelativeOffset);
@@ -130,12 +121,7 @@ public class NpkByteOperator {
         imgData = ArrayUtils.addAll(imgDataBeforeBytes, ArrayUtils.addAll(newImg, imgDataAfterBytes));
     }
 
-    public String rename(int index, String newImgName) throws NoSuchAlgorithmException {
-        int maxImgSize = bytesToInt(imgSize);
-        if (index < 0 || index > maxImgSize) {
-            throw new RuntimeException(String.format("Exceeding IMG size %s, you want to visit %s", maxImgSize, index));
-        }
-
+    public String rename(int index, String newImgName) {
         // 修改索引表 IMG 文件名
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH + 8;
         String oldImgName = bytesToString(decryptImgName(ArrayUtils.subarray(imgTable, imgTableOffset, imgTableOffset + 256)));
@@ -143,9 +129,6 @@ public class NpkByteOperator {
         for (int i = 0; i < 256; i++) {
             imgTable[imgTableOffset + i] = encryptImgName[i];
         }
-
-        // 刷新校验码
-        refreshNpkValidation();
         return oldImgName;
     }
 
@@ -163,6 +146,8 @@ public class NpkByteOperator {
     }
 
     public byte[] build() {
+        // 刷新校验码
+        refreshNpkValidation();
         return ArrayUtils.addAll(magicNumber,
                 ArrayUtils.addAll(imgSize,
                         ArrayUtils.addAll(imgTable,
@@ -178,11 +163,15 @@ public class NpkByteOperator {
         }
     }
 
-    protected void refreshNpkValidation() throws NoSuchAlgorithmException {
+    protected void refreshNpkValidation() {
         int specimenLimit = new Double(Math.floor((8 + imgTable.length) / 17) * 17).intValue();
         byte[] specimenBytes = ArrayUtils.subarray(ArrayUtils.addAll(magicNumber, ArrayUtils.addAll(imgSize, imgTable)), 0, specimenLimit);
-        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-        messageDigest.update(specimenBytes);
-        npkValidation = messageDigest.digest();
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            messageDigest.update(specimenBytes);
+            npkValidation = messageDigest.digest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
