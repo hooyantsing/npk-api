@@ -3,6 +3,7 @@ package xyz.hooy.npk.api;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import xyz.hooy.npk.api.model.AbstractIndex;
+import xyz.hooy.npk.api.model.Texture;
 import xyz.hooy.npk.api.operation.ImgByteOperator;
 import xyz.hooy.npk.api.operation.NpkByteOperator;
 
@@ -87,6 +88,35 @@ public class ApiService {
 
     public AbstractIndex getIndex(int imgIndex, int index) {
         return getIndexs(imgIndex).get(index);
+    }
+
+    public Map<String, List<Texture>> transferTextures() {
+        Map<String, List<Texture>> textures = new LinkedHashMap<>();
+        for (Map.Entry<String, ImgByteOperator> imgByteOperatorEntry : imgByteOperators.entrySet()) {
+            textures.put(imgByteOperatorEntry.getKey(), imgByteOperatorEntry.getValue().transferTextures());
+        }
+        return textures;
+    }
+
+    public List<Texture> transferTextures(int imgIndex) {
+        String name = imgByteOperatorsIndexToName(imgIndex);
+        ImgByteOperator imgByteOperator = imgByteOperators.get(name);
+        return imgByteOperator.transferTextures();
+    }
+
+    public Texture transferTexture(int imgIndex, int index) {
+        return transferTextures(imgIndex).get(index);
+    }
+
+    public ApiService addTexture() {
+        return this;
+    }
+
+    public ApiService removeIndex(int imgIndex, int index) {
+        String name = imgByteOperatorsIndexToName(imgIndex);
+        ImgByteOperator imgByteOperator = imgByteOperators.get(name);
+        imgByteOperator.remove(index);
+        return this;
     }
 
     public byte[] build() {

@@ -136,14 +136,13 @@ public class ImgByteOperator {
         // 从索引表里删除 & 从数据里删除
         byte[] indexTableBeforeBytes = ArrayUtils.subarray(indexTable, 0, indexTableRemoveOffset);
         byte[] indexDataBeforeBytes = ArrayUtils.subarray(indexData, 0, indexDataRemoveOffset);
-        byte[] indexTableAfterBytes;
-        byte[] indexDataAfterBytes;
+        byte[] indexTableAfterBytes = null;
+        byte[] indexDataAfterBytes = null;
         if (readIsTexture(indexTableRemoveOffset)) {
             indexTableAfterBytes = ArrayUtils.subarray(indexTable, indexTableRemoveOffset + TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexTable.length);
-            indexDataAfterBytes = ArrayUtils.subarray(indexData, indexDataRemoveOffset + TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexData.length);
+            indexDataAfterBytes = ArrayUtils.subarray(indexData, indexDataRemoveOffset + readTextureLength(indexTableRemoveOffset), indexData.length);
         } else {
             indexTableAfterBytes = ArrayUtils.subarray(indexTable, indexTableRemoveOffset + REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexTable.length);
-            indexDataAfterBytes = ArrayUtils.subarray(indexData, indexDataRemoveOffset + REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexData.length);
         }
         indexTable = ArrayUtils.addAll(indexTableBeforeBytes, indexTableAfterBytes);
         indexData = ArrayUtils.addAll(indexDataBeforeBytes, indexDataAfterBytes);

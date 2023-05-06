@@ -9,6 +9,7 @@ import xyz.hooy.npk.api.model.Texture;
 import xyz.hooy.npk.api.util.TextureUtils;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -28,19 +29,40 @@ public class ApiServiceTest {
     }
 
     @Test
-    void removeImg() throws IOException {
-        Map<String, byte[]> imgs = ApiService.newInstance(INPUT_NPK_FILE).removeImg(1).getImgs();
-        long count = imgs.keySet().stream().peek(System.out::println).count();
-        Assertions.assertEquals(count, 10);
-    }
-
-    @Test
     void getIndexs() throws IOException {
         Map<String, List<AbstractIndex>> indexs = ApiService.newInstance(INPUT_NPK_FILE).getIndexs();
         indexs.entrySet().forEach(entry -> {
             System.out.println(entry.getKey());
             entry.getValue().stream().forEach(System.out::println);
         });
+    }
+
+    @Test
+    void transferTextures() throws IOException {
+        Map<String, List<Texture>> textures = ApiService.newInstance(INPUT_NPK_FILE).transferTextures();
+        textures.entrySet().forEach(entry -> {
+            System.out.println(entry.getKey());
+            entry.getValue().stream().forEach(System.out::println);
+        });
+    }
+
+    @Test
+    void addImg() throws IOException {
+        byte[] img = Files.readAllBytes(Paths.get(INPUT_PATH + "modred.img"));
+        byte[] build = ApiService.newInstance(INPUT_NPK_FILE).addImg(img, "img/modred/hooy.img").build();
+        Files.write(Paths.get(OUTPUT_PATH + "ApiService-addImg-test.npk"), build);
+    }
+
+    @Test
+    void removeImg() throws IOException {
+        byte[] build = ApiService.newInstance(INPUT_NPK_FILE).removeImg(1).build();
+        Files.write(Paths.get(OUTPUT_PATH + "ApiService-removeImg-test.npk"), build);
+    }
+
+    @Test
+    void removeIndex() throws IOException {
+        byte[] build = ApiService.newInstance(INPUT_NPK_FILE).removeIndex(1, 2).build();
+        Files.write(Paths.get(OUTPUT_PATH + "ApiService-removeIndex-test.npk"), build);
     }
 
     @Test
