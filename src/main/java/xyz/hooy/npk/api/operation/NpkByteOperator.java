@@ -1,4 +1,4 @@
-package xyz.hooy.npk.api;
+package xyz.hooy.npk.api.operation;
 
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -20,24 +20,24 @@ import static xyz.hooy.npk.api.util.ByteUtils.*;
 public class NpkByteOperator {
 
     // NPK 原始文件
-    private final byte[] originalNpkFile;
+    protected final byte[] originalNpkFile;
 
     // NPK 魔数
-    private byte[] magicNumber; // 16byte
+    protected byte[] magicNumber; // 16byte
 
     // IMG 总数
-    private byte[] imgSize; // 4byte
+    protected byte[] imgSize; // 4byte
 
     // IMG 索引表
-    private byte[] imgTable; // 264byte * imgSize
+    protected byte[] imgTable; // 264byte * imgSize
 
     // NPK 校验码
-    private byte[] npkValidation; // 32byte
+    protected byte[] npkValidation; // 32byte
 
     // IMG 数据
-    private byte[] imgData;
+    protected byte[] imgData;
 
-    private static final Integer IMG_TABLE_ITEM_BYTE_LENGTH = 264; // offset4 + length4 + filename256
+    protected static final Integer IMG_TABLE_ITEM_BYTE_LENGTH = 264; // offset4 + length4 + filename256
 
     public NpkByteOperator(String path) throws IOException {
         this(Paths.get(path));
@@ -144,7 +144,7 @@ public class NpkByteOperator {
                                 ArrayUtils.addAll(npkValidation, imgData))));
     }
 
-    private void refreshIndexTableOffset(byte[] indexTableBytes, int moveLength) {
+    protected void refreshIndexTableOffset(byte[] indexTableBytes, int moveLength) {
         for (int i = 0; i < indexTableBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
             byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(indexTableBytes, i, i + 4)) + moveLength);
             for (int j = 0; j < 4; j++) {
@@ -153,7 +153,7 @@ public class NpkByteOperator {
         }
     }
 
-    private void refreshNpkValidation() throws NoSuchAlgorithmException {
+    protected void refreshNpkValidation() throws NoSuchAlgorithmException {
         int specimenLimit = new Double(Math.floor((8 + imgTable.length) / 17) * 17).intValue();
         byte[] specimenBytes = ArrayUtils.subarray(ArrayUtils.addAll(magicNumber, ArrayUtils.addAll(imgSize, imgTable)), 0, specimenLimit);
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");

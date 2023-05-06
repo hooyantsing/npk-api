@@ -1,6 +1,6 @@
 package xyz.hooy.npk.api.color;
 
-import xyz.hooy.npk.api.consts.IndexConstant;
+import xyz.hooy.npk.api.constant.IndexConstant;
 import xyz.hooy.npk.api.model.Texture;
 
 import java.awt.image.BufferedImage;

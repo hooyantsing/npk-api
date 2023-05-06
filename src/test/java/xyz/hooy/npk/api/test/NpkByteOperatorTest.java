@@ -2,7 +2,7 @@ package xyz.hooy.npk.api.test;
 
 import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.Test;
-import xyz.hooy.npk.api.NpkByteOperator;
+import xyz.hooy.npk.api.operation.NpkByteOperator;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -1,6 +1,8 @@
 package xyz.hooy.npk.api;
 
 import xyz.hooy.npk.api.model.AbstractIndex;
+import xyz.hooy.npk.api.operation.ImgByteOperator;
+import xyz.hooy.npk.api.operation.NpkByteOperator;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;

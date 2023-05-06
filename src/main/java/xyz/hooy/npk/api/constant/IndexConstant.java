@@ -1,4 +1,4 @@
-package xyz.hooy.npk.api.consts;
+package xyz.hooy.npk.api.constant;
 
 /**
  * @author hooyantsing@gmail.com

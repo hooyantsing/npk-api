@@ -1,7 +1,7 @@
-package xyz.hooy.npk.api;
+package xyz.hooy.npk.api.operation;
 
 import org.apache.commons.lang3.ArrayUtils;
-import xyz.hooy.npk.api.consts.IndexConstant;
+import xyz.hooy.npk.api.constant.IndexConstant;
 import xyz.hooy.npk.api.model.*;
 
 import java.util.ArrayList;
@@ -17,31 +17,31 @@ import static xyz.hooy.npk.api.util.ByteUtils.*;
 public class ImgByteOperator {
 
     // IMG 原始文件
-    private final byte[] originalImgFile;
+    protected final byte[] originalImgFile;
 
     // IMG 魔数
-    private byte[] magicNumber; // 16byte
+    protected byte[] magicNumber; // 16byte
 
     // 索引表长度
-    private byte[] indexTableLength; // 4byte
+    protected byte[] indexTableLength; // 4byte
 
     // 保留
-    private static final byte[] imgReserve = new byte[4]; // 4byte 全0
+    protected static final byte[] imgReserve = new byte[4]; // 4byte 全0
 
     // IMG 版本
-    private byte[] imgVersion; // 4byte
+    protected byte[] imgVersion; // 4byte
 
     // 索引 总数
-    private byte[] indexSize; // 4byte
+    protected byte[] indexSize; // 4byte
 
     // 索引 索引表
-    private byte[] indexTable;
+    protected byte[] indexTable;
 
     // 索引 数据
-    private byte[] indexData;
+    protected byte[] indexData;
 
-    private static final Integer TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH = 36;
-    private static final Integer REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH = 8;
+    protected static final Integer TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH = 36;
+    protected static final Integer REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH = 8;
 
     public ImgByteOperator(byte[] originalImgFile) {
         this.originalImgFile = originalImgFile;
@@ -109,7 +109,7 @@ public class ImgByteOperator {
                                                 ArrayUtils.addAll(indexTable, indexData))))));
     }
 
-    private List traversalIndexs(BiConsumer<Reference, List> processReferences) {
+    protected List traversalIndexs(BiConsumer<Reference, List> processReferences) {
         List indexs = new ArrayList<>();
         int size = bytesToInt(indexSize);
         int indexTableOffset = 0;
@@ -134,43 +134,43 @@ public class ImgByteOperator {
         return indexs;
     }
 
-    private int readIndexType(int offset) {
+    protected int readIndexType(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset, offset + 4));
     }
 
-    private boolean readTextureZlib(int offset) {
+    protected boolean readTextureZlib(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8)) == IndexConstant.TEXTURE_NON_ZLIB;
     }
 
-    private int readTextureWidth(int offset) {
+    protected int readTextureWidth(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 8, offset + 12));
     }
 
-    private int readTextureHeight(int offset) {
+    protected int readTextureHeight(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 12, offset + 16));
     }
 
-    private int readTextureLength(int offset) {
+    protected int readTextureLength(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 16, offset + 20));
     }
 
-    private int readTextureX(int offset) {
+    protected int readTextureX(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 20, offset + 24));
     }
 
-    private int readTextureY(int offset) {
+    protected int readTextureY(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 24, offset + 28));
     }
 
-    private int readTextureFrameWidth(int offset) {
+    protected int readTextureFrameWidth(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 28, offset + 32));
     }
 
-    private int readTextureFrameHeight(int offset) {
+    protected int readTextureFrameHeight(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 32, offset + 36));
     }
 
-    private byte[] readTextureFile(int indexTableOffset, int indexDataOffset) {
+    protected byte[] readTextureFile(int indexTableOffset, int indexDataOffset) {
         int length = readTextureLength(indexTableOffset);
         byte[] textureBytes = ArrayUtils.subarray(indexData, indexDataOffset, indexDataOffset + length);
         if (readTextureZlib(indexTableOffset)) {
@@ -180,11 +180,11 @@ public class ImgByteOperator {
         return textureBytes;
     }
 
-    private int readReferenceTo(int offset) {
+    protected int readReferenceTo(int offset) {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8));
     }
 
-    private Texture createTexture(int indexTableOffset, int indexDataOffset) {
+    protected Texture createTexture(int indexTableOffset, int indexDataOffset) {
         Texture texture = new Texture();
         TextureAttribute textureAttribute = texture.getTextureAttribute();
         textureAttribute.setType(readIndexType(indexTableOffset));
@@ -198,7 +198,7 @@ public class ImgByteOperator {
         return texture;
     }
 
-    private Reference createReference(int indexTableOffset) {
+    protected Reference createReference(int indexTableOffset) {
         Reference reference = new Reference();
         reference.getReferenceAttribute().setType(readIndexType(indexTableOffset));
         reference.getReferenceAttribute().setTo(readReferenceTo(indexTableOffset));
