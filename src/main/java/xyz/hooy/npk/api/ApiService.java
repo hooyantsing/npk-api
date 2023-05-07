@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author hooyantsing@gmail.com
@@ -21,12 +22,14 @@ public class ApiService {
     private final String path;
     private final NpkByteOperator npkByteOperator;
     private final Map<String, ImgByteOperator> imgByteOperators = new LinkedHashMap<>();
+    private final Map<String, Boolean> imgByteOperatorsChange = new LinkedHashMap<>();
 
     private ApiService(String path) throws IOException {
         this.path = path;
         this.npkByteOperator = new NpkByteOperator(path);
         for (Map.Entry<String, byte[]> img : npkByteOperator.getImgs().entrySet()) {
             imgByteOperators.put(img.getKey(), new ImgByteOperator(img.getValue()));
+            imgByteOperatorsChange.put(img.getKey(), false);
         }
     }
 
@@ -51,6 +54,7 @@ public class ApiService {
         if (ArrayUtils.isNotEmpty(img) && StringUtils.isNotBlank(imgName)) {
             npkByteOperator.add(img, imgName);
             imgByteOperators.put(imgName, new ImgByteOperator(img));
+            imgByteOperatorsChange.put(imgName, false);
         }
         return this;
     }
@@ -59,6 +63,7 @@ public class ApiService {
         String name = imgByteOperatorsIndexToName(imgIndex);
         npkByteOperator.remove(imgIndex);
         imgByteOperators.remove(name);
+        imgByteOperatorsChange.remove(name);
         return this;
     }
 
@@ -67,7 +72,9 @@ public class ApiService {
         if (!StringUtils.equals(oldImgName, newImgName)) {
             npkByteOperator.rename(oldImgIndex, newImgName);
             imgByteOperators.put(newImgName, imgByteOperators.get(oldImgName));
+            imgByteOperatorsChange.put(newImgName, false);
             imgByteOperators.remove(oldImgName);
+            imgByteOperatorsChange.remove(oldImgName);
         }
         return this;
     }
@@ -116,14 +123,18 @@ public class ApiService {
         String name = imgByteOperatorsIndexToName(imgIndex);
         ImgByteOperator imgByteOperator = imgByteOperators.get(name);
         imgByteOperator.remove(index);
+        imgByteOperatorsChange.put(name, true);
         return this;
     }
 
     public byte[] build() {
         int i = 0;
         for (Map.Entry<String, ImgByteOperator> entry : imgByteOperators.entrySet()) {
-            byte[] newImgBytes = entry.getValue().build();
-            npkByteOperator.replace(i++, newImgBytes);
+            if (imgByteOperatorsChange.get(entry.getKey())) {
+                byte[] newImgBytes = entry.getValue().build();
+                npkByteOperator.replace(i, newImgBytes);
+            }
+            i++;
         }
         return npkByteOperator.build();
     }
