@@ -61,7 +61,7 @@ public class ApiServiceTest {
 
     @Test
     void removeIndex() throws IOException {
-        byte[] build = ApiService.newInstance(INPUT_NPK_FILE).removeIndex(1, 2).build();
+        byte[] build = ApiService.newInstance(INPUT_NPK_FILE).removeIndex(1, 2).removeIndex(3, 1).build();
         Files.write(Paths.get(OUTPUT_PATH + "ApiService-removeIndex-test.npk"), build);
     }
 

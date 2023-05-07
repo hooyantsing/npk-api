@@ -28,8 +28,7 @@ public class ApiService {
         this.path = path;
         this.npkByteOperator = new NpkByteOperator(path);
         for (Map.Entry<String, byte[]> img : npkByteOperator.getImgs().entrySet()) {
-            imgByteOperators.put(img.getKey(), new ImgByteOperator(img.getValue()));
-            imgByteOperatorsChange.put(img.getKey(), false);
+            putImgByteOperator(img.getKey(), img.getValue());
         }
     }
 
@@ -53,8 +52,7 @@ public class ApiService {
     public ApiService addImg(byte[] img, String imgName) {
         if (ArrayUtils.isNotEmpty(img) && StringUtils.isNotBlank(imgName)) {
             npkByteOperator.add(img, imgName);
-            imgByteOperators.put(imgName, new ImgByteOperator(img));
-            imgByteOperatorsChange.put(imgName, false);
+            putImgByteOperator(imgName, img);
         }
         return this;
     }
@@ -62,8 +60,7 @@ public class ApiService {
     public ApiService removeImg(int imgIndex) {
         String name = imgByteOperatorsIndexToName(imgIndex);
         npkByteOperator.remove(imgIndex);
-        imgByteOperators.remove(name);
-        imgByteOperatorsChange.remove(name);
+        removeImgByteOperator(name);
         return this;
     }
 
@@ -71,10 +68,8 @@ public class ApiService {
         String oldImgName = imgByteOperatorsIndexToName(oldImgIndex);
         if (!StringUtils.equals(oldImgName, newImgName)) {
             npkByteOperator.rename(oldImgIndex, newImgName);
-            imgByteOperators.put(newImgName, imgByteOperators.get(oldImgName));
-            imgByteOperatorsChange.put(newImgName, false);
-            imgByteOperators.remove(oldImgName);
-            imgByteOperatorsChange.remove(oldImgName);
+            putImgByteOperator(newImgName, imgByteOperators.get(oldImgName));
+            removeImgByteOperator(oldImgName);
         }
         return this;
     }
@@ -163,5 +158,19 @@ public class ApiService {
             }
         }
         throw new RuntimeException("Out of imgByteOperators range");
+    }
+
+    protected void putImgByteOperator(String imgName, byte[] img) {
+        putImgByteOperator(imgName, new ImgByteOperator(img));
+    }
+
+    protected void putImgByteOperator(String imgName, ImgByteOperator imgByteOperator) {
+        imgByteOperators.put(imgName, imgByteOperator);
+        imgByteOperatorsChange.put(imgName, false);
+    }
+
+    protected void removeImgByteOperator(String imgName) {
+        imgByteOperators.remove(imgName);
+        imgByteOperatorsChange.remove(imgName);
     }
 }
