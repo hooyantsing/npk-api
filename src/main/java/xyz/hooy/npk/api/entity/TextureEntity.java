@@ -1,10 +1,10 @@
-package xyz.hooy.npk.api.model;
+package xyz.hooy.npk.api.entity;
 
 /**
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-public class Texture extends AbstractIndex {
+public class TextureEntity extends AbstractIndex {
 
     private final TextureAttribute textureAttribute = new TextureAttribute();
     private byte[] texture;

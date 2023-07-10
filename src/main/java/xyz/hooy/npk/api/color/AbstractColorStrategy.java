@@ -1,6 +1,6 @@
 package xyz.hooy.npk.api.color;
 
-import xyz.hooy.npk.api.model.Texture;
+import xyz.hooy.npk.api.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
 
@@ -10,5 +10,5 @@ import java.awt.image.BufferedImage;
  */
 abstract class AbstractColorStrategy {
 
-    public abstract BufferedImage process(Texture texture);
+    public abstract BufferedImage process(TextureEntity texture);
 }

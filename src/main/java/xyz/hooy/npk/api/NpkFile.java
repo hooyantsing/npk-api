@@ -2,8 +2,8 @@ package xyz.hooy.npk.api;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import xyz.hooy.npk.api.model.AbstractIndex;
-import xyz.hooy.npk.api.model.Texture;
+import xyz.hooy.npk.api.entity.AbstractIndex;
+import xyz.hooy.npk.api.entity.TextureEntity;
 import xyz.hooy.npk.api.operation.ImgByteOperator;
 import xyz.hooy.npk.api.operation.NpkByteOperator;
 
@@ -11,29 +11,24 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-public class ApiService {
+public class NpkFile {
 
     private final String path;
     private final NpkByteOperator npkByteOperator;
     private final Map<String, ImgByteOperator> imgByteOperators = new LinkedHashMap<>();
     private final Map<String, Boolean> imgByteOperatorsChange = new LinkedHashMap<>();
 
-    private ApiService(String path) throws IOException {
+    public NpkFile(String path) throws IOException {
         this.path = path;
         this.npkByteOperator = new NpkByteOperator(path);
         for (Map.Entry<String, byte[]> img : npkByteOperator.getImgs().entrySet()) {
             putImgByteOperator(img.getKey(), img.getValue());
         }
-    }
-
-    public static ApiService newInstance(String path) throws IOException {
-        return new ApiService(path);
     }
 
     public Map<String, byte[]> getImgs() {
@@ -49,7 +44,7 @@ public class ApiService {
         return getImg(imgName);
     }
 
-    public ApiService addImg(byte[] img, String imgName) {
+    public NpkFile addImg(byte[] img, String imgName) {
         if (ArrayUtils.isNotEmpty(img) && StringUtils.isNotBlank(imgName)) {
             npkByteOperator.add(img, imgName);
             putImgByteOperator(imgName, img);
@@ -57,14 +52,14 @@ public class ApiService {
         return this;
     }
 
-    public ApiService removeImg(int imgIndex) {
+    public NpkFile removeImg(int imgIndex) {
         String name = imgByteOperatorsIndexToName(imgIndex);
         npkByteOperator.remove(imgIndex);
         removeImgByteOperator(name);
         return this;
     }
 
-    public ApiService renameImg(int oldImgIndex, String newImgName) {
+    public NpkFile renameImg(int oldImgIndex, String newImgName) {
         String oldImgName = imgByteOperatorsIndexToName(oldImgIndex);
         if (!StringUtils.equals(oldImgName, newImgName)) {
             npkByteOperator.rename(oldImgIndex, newImgName);
@@ -92,29 +87,29 @@ public class ApiService {
         return getIndexs(imgIndex).get(index);
     }
 
-    public Map<String, List<Texture>> transferTextures() {
-        Map<String, List<Texture>> textures = new LinkedHashMap<>();
+    public Map<String, List<TextureEntity>> transferTextures() {
+        Map<String, List<TextureEntity>> textures = new LinkedHashMap<>();
         for (Map.Entry<String, ImgByteOperator> imgByteOperatorEntry : imgByteOperators.entrySet()) {
             textures.put(imgByteOperatorEntry.getKey(), imgByteOperatorEntry.getValue().transferTextures());
         }
         return textures;
     }
 
-    public List<Texture> transferTextures(int imgIndex) {
+    public List<TextureEntity> transferTextures(int imgIndex) {
         String name = imgByteOperatorsIndexToName(imgIndex);
         ImgByteOperator imgByteOperator = imgByteOperators.get(name);
         return imgByteOperator.transferTextures();
     }
 
-    public Texture transferTexture(int imgIndex, int index) {
+    public TextureEntity transferTexture(int imgIndex, int index) {
         return transferTextures(imgIndex).get(index);
     }
 
-    public ApiService addTexture() {
+    public NpkFile addTexture() {
         return this;
     }
 
-    public ApiService removeIndex(int imgIndex, int index) {
+    public NpkFile removeIndex(int imgIndex, int index) {
         String name = imgByteOperatorsIndexToName(imgIndex);
         ImgByteOperator imgByteOperator = imgByteOperators.get(name);
         imgByteOperator.remove(index);

@@ -1,10 +1,10 @@
-package xyz.hooy.npk.api.model;
+package xyz.hooy.npk.api.entity;
 
 /**
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-public class Reference extends AbstractIndex {
+public class ReferenceEntity extends AbstractIndex {
 
     private final ReferenceAttribute referenceAttribute = new ReferenceAttribute();
 

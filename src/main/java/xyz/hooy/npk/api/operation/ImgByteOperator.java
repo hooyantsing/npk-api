@@ -2,7 +2,7 @@ package xyz.hooy.npk.api.operation;
 
 import org.apache.commons.lang3.ArrayUtils;
 import xyz.hooy.npk.api.constant.IndexConstant;
-import xyz.hooy.npk.api.model.*;
+import xyz.hooy.npk.api.entity.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +65,7 @@ public class ImgByteOperator {
     /**
      * @return 先将指向型索引转换为图片型索引后，只含有图片型索引列表
      */
-    public List<Texture> transferTextures() {
+    public List<TextureEntity> transferTextures() {
         return traversalIndexs((reference, textures) -> {
             int indexNum = reference.getReferenceAttribute().getTo();
             textures.add(textures.get(indexNum));
@@ -122,7 +122,7 @@ public class ImgByteOperator {
                 indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
             } else {
                 if (i > index) {
-                    Reference reference = createReference(indexTableOffset);
+                    ReferenceEntity reference = createReference(indexTableOffset);
                     if (reference.getReferenceAttribute().getTo() == index) {
                         // 当前帧被后续帧引用，无法删除，请先删除后续帧
                         throw new RuntimeException("The current frame is referenced by subsequent frames and cannot be deleted. Please delete subsequent frames first");
@@ -163,7 +163,7 @@ public class ImgByteOperator {
                                                 ArrayUtils.addAll(indexTable, indexData))))));
     }
 
-    protected List traversalIndexs(BiConsumer<Reference, List> processReferences) {
+    protected List traversalIndexs(BiConsumer<ReferenceEntity, List> processReferences) {
         List indexs = new ArrayList<>();
         int indexTableOffset = 0;
         int indexDataOffset = 0;
@@ -171,14 +171,14 @@ public class ImgByteOperator {
         for (int i = 0; i < size; i++) {
             if (readIsTexture(indexTableOffset)) {
                 // 图片型索引项
-                Texture texture = createTexture(indexTableOffset, indexDataOffset);
+                TextureEntity texture = createTexture(indexTableOffset, indexDataOffset);
                 indexs.add(texture);
                 // 移动偏移
                 indexDataOffset += readTextureLength(indexTableOffset);
                 indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
             } else {
                 // 指向型索引项
-                Reference reference = createReference(indexTableOffset);
+                ReferenceEntity reference = createReference(indexTableOffset);
                 processReferences.accept(reference, indexs);
                 // 移动偏移
                 indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
@@ -241,8 +241,8 @@ public class ImgByteOperator {
         return bytesToInt(ArrayUtils.subarray(indexTable, offset + 4, offset + 8));
     }
 
-    protected Texture createTexture(int indexTableOffset, int indexDataOffset) {
-        Texture texture = new Texture();
+    protected TextureEntity createTexture(int indexTableOffset, int indexDataOffset) {
+        TextureEntity texture = new TextureEntity();
         TextureAttribute textureAttribute = texture.getTextureAttribute();
         textureAttribute.setType(readIndexType(indexTableOffset));
         textureAttribute.setWidth(readTextureWidth(indexTableOffset));
@@ -255,8 +255,8 @@ public class ImgByteOperator {
         return texture;
     }
 
-    protected Reference createReference(int indexTableOffset) {
-        Reference reference = new Reference();
+    protected ReferenceEntity createReference(int indexTableOffset) {
+        ReferenceEntity reference = new ReferenceEntity();
         reference.getReferenceAttribute().setType(readIndexType(indexTableOffset));
         reference.getReferenceAttribute().setTo(readReferenceTo(indexTableOffset));
         return reference;

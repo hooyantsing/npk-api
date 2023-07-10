@@ -1,7 +1,7 @@
 package xyz.hooy.npk.api.color;
 
 import xyz.hooy.npk.api.constant.IndexConstant;
-import xyz.hooy.npk.api.model.Texture;
+import xyz.hooy.npk.api.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
@@ -33,7 +33,7 @@ public final class ColorFactory {
         return abstractColorStrategy;
     }
 
-    public static BufferedImage process(Texture texture) {
+    public static BufferedImage process(TextureEntity texture) {
         return get(texture.getTextureAttribute().getType()).process(texture);
     }
 }
