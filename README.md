@@ -2,7 +2,7 @@
 
 > 提供对《地下城与勇士》（DNF、DFO）游戏资源 NPK 文件基础操作能力。
 
-[![Java](https://img.shields.io/badge/java-8+-ae7118.svg?style=flat-square)](https://www.oracle.com/cn/java/technologies)
+[![Java](https://img.shields.io/badge/java-8-ae7118.svg?style=flat-square)](https://www.oracle.com/cn/java/technologies)
 
 ### 平台特性
 
