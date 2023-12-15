@@ -7,7 +7,7 @@ package xyz.hooy.npk.api.entity;
 public class TextureEntity extends AbstractIndex {
 
     private final TextureAttribute textureAttribute = new TextureAttribute();
-    private byte[] texture;
+    private byte[] texture = new byte[0];
 
     public TextureAttribute getTextureAttribute() {
         return textureAttribute;

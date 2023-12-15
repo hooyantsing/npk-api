@@ -31,7 +31,8 @@ class Argb4444Strategy extends AbstractColorStrategy {
     }
 
     @Override
-    public TextureEntity encode(BufferedImage texture) {
-        return null;
+    public TextureEntity encode(BufferedImage bufferedImage) {
+        // TODO：像素转换算法
+        throw new UnsupportedOperationException();
     }
 }

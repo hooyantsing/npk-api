@@ -1,5 +1,6 @@
 package xyz.hooy.npk.api.color;
 
+import xyz.hooy.npk.api.constant.IndexConstant;
 import xyz.hooy.npk.api.entity.TextureAttribute;
 import xyz.hooy.npk.api.entity.TextureEntity;
 import xyz.hooy.npk.api.util.ByteUtils;
@@ -31,7 +32,24 @@ class Argb8888Strategy extends AbstractColorStrategy {
     }
 
     @Override
-    public TextureEntity encode(BufferedImage texture) {
-        return null;
+    public TextureEntity encode(BufferedImage bufferedImage) {
+        TextureEntity texture = new TextureEntity();
+        TextureAttribute attribute = texture.getTextureAttribute();
+        attribute.setCompress(IndexConstant.TEXTURE_NON_ZLIB);
+        attribute.setHeight(bufferedImage.getHeight());
+        attribute.setWidth(bufferedImage.getWidth());
+        byte[] textureBytes = new byte[bufferedImage.getHeight() * bufferedImage.getWidth() * 4];
+        for (int i = 0; i < bufferedImage.getHeight(); i++) {
+            for (int j = 0; j < bufferedImage.getWidth(); j++) {
+                int data = bufferedImage.getRGB(j, i);
+                byte[] tempBytes = ByteUtils.intToBytes(data);
+                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4] = tempBytes[0]; // blue
+                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4 + 1] = tempBytes[1]; // green
+                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4 + 2] = tempBytes[2]; // red
+                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4 + 3] = tempBytes[3]; // alpha
+            }
+        }
+        texture.setTexture(textureBytes);
+        return texture;
     }
 }

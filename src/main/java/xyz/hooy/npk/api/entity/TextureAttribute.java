@@ -1,6 +1,7 @@
 package xyz.hooy.npk.api.entity;
 
 import org.apache.commons.lang3.ArrayUtils;
+import xyz.hooy.npk.api.constant.IndexConstant;
 
 import static xyz.hooy.npk.api.util.ByteUtils.intToBytes;
 
@@ -10,13 +11,13 @@ import static xyz.hooy.npk.api.util.ByteUtils.intToBytes;
  */
 public class TextureAttribute extends AbstractIndexAttribute {
 
-    private Integer compress;
-    private Integer width;
-    private Integer height;
-    private Integer x;
-    private Integer y;
-    private Integer frameWidth;
-    private Integer frameHeight;
+    private Integer compress = IndexConstant.TEXTURE_NON_ZLIB;
+    private Integer width = 0;
+    private Integer height = 0;
+    private Integer x = 0;
+    private Integer y = 0;
+    private Integer frameWidth = 0;
+    private Integer frameHeight = 0;
 
     public byte[] toBytes() {
         return ArrayUtils.addAll(intToBytes(type),

@@ -9,6 +9,7 @@ import xyz.hooy.npk.api.entity.TextureEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 
 import static xyz.hooy.npk.api.util.ByteUtils.*;
@@ -76,7 +77,13 @@ public class ImgByteOperator {
     }
 
     public void addTexture(TextureEntity textureEntity) {
-        add(textureEntity.getTextureAttribute().toBytes(), textureEntity.getTexture());
+        if (Objects.equals(textureEntity.getTextureAttribute().getCompress(), IndexConstant.TEXTURE_NON_ZLIB)) {
+            // 压缩
+            textureEntity.getTextureAttribute().setCompress(IndexConstant.TEXTURE_ZLIB);
+            add(textureEntity.getTextureAttribute().toBytes(), decompressZlib(textureEntity.getTexture()));
+        } else {
+            add(textureEntity.getTextureAttribute().toBytes(), textureEntity.getTexture());
+        }
     }
 
     public void addReference(ReferenceEntity referenceEntity) {

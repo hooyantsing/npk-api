@@ -18,5 +18,5 @@ abstract class AbstractColorStrategy {
     /**
      * 编码
      */
-    public abstract TextureEntity encode(BufferedImage texture);
+    public abstract TextureEntity encode(BufferedImage bufferedImage);
 }

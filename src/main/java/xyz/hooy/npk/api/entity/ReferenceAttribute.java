@@ -10,7 +10,7 @@ import static xyz.hooy.npk.api.util.ByteUtils.intToBytes;
  */
 public class ReferenceAttribute extends AbstractIndexAttribute {
 
-    private Integer to;
+    private Integer to = -1;
 
     public byte[] toBytes() {
         return ArrayUtils.addAll(intToBytes(type), intToBytes(to));

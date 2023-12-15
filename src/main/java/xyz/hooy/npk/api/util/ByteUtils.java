@@ -91,4 +91,12 @@ public final class ByteUtils {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * zlib 压缩
+     */
+    public static byte[] compressZlib(byte[] data) {
+        // TODO: 压缩算法
+        return data;
+    }
 }
