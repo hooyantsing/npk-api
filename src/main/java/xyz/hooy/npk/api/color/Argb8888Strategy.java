@@ -39,14 +39,17 @@ class Argb8888Strategy extends AbstractColorStrategy {
         attribute.setHeight(bufferedImage.getHeight());
         attribute.setWidth(bufferedImage.getWidth());
         byte[] textureBytes = new byte[bufferedImage.getHeight() * bufferedImage.getWidth() * 4];
-        for (int i = 0; i < bufferedImage.getHeight(); i++) {
-            for (int j = 0; j < bufferedImage.getWidth(); j++) {
-                int data = bufferedImage.getRGB(j, i);
-                byte[] tempBytes = ByteUtils.intToBytes(data);
-                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4] = tempBytes[0]; // blue
-                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4 + 1] = tempBytes[1]; // green
-                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4 + 2] = tempBytes[2]; // red
-                textureBytes[i * bufferedImage.getWidth() * 4 + j * 4 + 3] = tempBytes[3]; // alpha
+        for (int y = 0; y < bufferedImage.getHeight(); y++) {
+            for (int x = 0; x < bufferedImage.getWidth(); x++) {
+                int argb = bufferedImage.getRGB(x, y);
+                int alpha = (argb >> 24) & 0xFF;
+                int red = (argb >> 16) & 0xFF;
+                int green = (argb >> 8) & 0xFF;
+                int blue = argb & 0xFF;
+                textureBytes[(y * bufferedImage.getWidth() + x) * 4] = (byte) blue;
+                textureBytes[(y * bufferedImage.getWidth() + x) * 4 + 1] = (byte) green;
+                textureBytes[(y * bufferedImage.getWidth() + x) * 4 + 2] = (byte) red;
+                textureBytes[(y * bufferedImage.getWidth() + x) * 4 + 3] = (byte) alpha;
             }
         }
         texture.setTexture(textureBytes);

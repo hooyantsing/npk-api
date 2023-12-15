@@ -1,5 +1,6 @@
 package xyz.hooy.npk.api.color;
 
+import xyz.hooy.npk.api.constant.IndexConstant;
 import xyz.hooy.npk.api.entity.TextureAttribute;
 import xyz.hooy.npk.api.entity.TextureEntity;
 import xyz.hooy.npk.api.util.ByteUtils;
@@ -32,7 +33,25 @@ class Argb1555Strategy extends AbstractColorStrategy {
 
     @Override
     public TextureEntity encode(BufferedImage bufferedImage) {
-        // TODO：像素转换算法
-        throw new UnsupportedOperationException();
+        TextureEntity texture = new TextureEntity();
+        TextureAttribute attribute = texture.getTextureAttribute();
+        attribute.setCompress(IndexConstant.TEXTURE_NON_ZLIB);
+        attribute.setHeight(bufferedImage.getHeight());
+        attribute.setWidth(bufferedImage.getWidth());
+        byte[] textureBytes = new byte[bufferedImage.getHeight() * bufferedImage.getWidth() * 2];
+        for (int y = 0; y < bufferedImage.getHeight(); y++) {
+            for (int x = 0; x < bufferedImage.getWidth(); x++) {
+                int argb = bufferedImage.getRGB(x, y);
+                int alpha = (argb >> 24) & 0xFF;
+                int red = (argb >> 16) & 0xFF;
+                int green = (argb >> 8) & 0xFF;
+                int blue = argb & 0xFF;
+                int argb1555 = ((alpha >> 7) << 15) | ((red >> 3) << 10) | ((green >> 3) << 5) | (blue >> 3);
+                textureBytes[(y * bufferedImage.getWidth() + x) * 2] = (byte) (argb1555 & 0xFF);
+                textureBytes[(y * bufferedImage.getWidth() + x) * 2 + 1] = (byte) ((argb1555 >> 8) & 0xFF);
+            }
+        }
+        texture.setTexture(textureBytes);
+        return texture;
     }
 }

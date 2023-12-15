@@ -156,8 +156,8 @@ public class NpkByteOperator {
     }
 
     protected void refreshNpkValidation() {
-        int specimenLimit = new Double(Math.floor((double) (8 + imgTable.length) / 17) * 17).intValue();
-        byte[] specimenBytes = ArrayUtils.subarray(ArrayUtils.addAll(magicNumber, ArrayUtils.addAll(imgSize, imgTable)), 0, specimenLimit);
+        byte[] bytes = ArrayUtils.addAll(magicNumber, ArrayUtils.addAll(imgSize, imgTable));
+        byte[] specimenBytes = ArrayUtils.subarray(bytes, 0, bytes.length / 17 * 17);
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
             messageDigest.update(specimenBytes);
