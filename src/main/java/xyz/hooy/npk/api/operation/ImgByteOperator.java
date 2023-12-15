@@ -10,10 +10,8 @@ import xyz.hooy.npk.api.entity.TextureEntity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiConsumer;
 
 import static xyz.hooy.npk.api.util.ByteUtils.*;
-import static xyz.hooy.npk.api.util.ByteUtils.mergeByteArrays;
 
 /**
  * @author hooyantsing@gmail.com
@@ -62,19 +60,55 @@ public class ImgByteOperator {
      * @return 返回由图片型索引和指向型索引组成的列表
      */
     public List<AbstractIndex> getIndexs() {
-        return traversalIndexs((reference, indexs) -> {
-            indexs.add(reference);
-        });
+        List<AbstractIndex> indexs = new ArrayList<>();
+        int indexTableOffset = 0;
+        int indexDataOffset = 0;
+        int size = bytesToInt(indexSize);
+        for (int i = 0; i < size; i++) {
+            if (readIsTexture(indexTableOffset)) {
+                // 图片型索引项
+                TextureEntity texture = createTexture(indexTableOffset, indexDataOffset);
+                indexs.add(texture);
+                // 移动偏移
+                indexDataOffset += readTextureLength(indexTableOffset);
+                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            } else {
+                // 指向型索引项
+                ReferenceEntity reference = createReference(indexTableOffset);
+                indexs.add(reference);
+                // 移动偏移
+                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            }
+        }
+        return indexs;
     }
 
     /**
      * @return 先将指向型索引转换为图片型索引后，只含有图片型索引列表
      */
     public List<TextureEntity> transferTextures() {
-        return traversalIndexs((reference, textures) -> {
-            int indexNum = reference.getReferenceAttribute().getTo();
-            textures.add(textures.get(indexNum));
-        });
+        List<TextureEntity> textures = new ArrayList<>();
+        int indexTableOffset = 0;
+        int indexDataOffset = 0;
+        int size = bytesToInt(indexSize);
+        for (int i = 0; i < size; i++) {
+            if (readIsTexture(indexTableOffset)) {
+                // 图片型索引项
+                TextureEntity texture = createTexture(indexTableOffset, indexDataOffset);
+                textures.add(texture);
+                // 移动偏移
+                indexDataOffset += readTextureLength(indexTableOffset);
+                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            } else {
+                // 指向型索引项
+                ReferenceEntity reference = createReference(indexTableOffset);
+                int indexNum = reference.getReferenceAttribute().getTo();
+                textures.add(textures.get(indexNum));
+                // 移动偏移
+                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
+            }
+        }
+        return textures;
     }
 
     public void addTexture(TextureEntity textureEntity) {
@@ -167,30 +201,6 @@ public class ImgByteOperator {
 
     public byte[] build() {
         return mergeByteArrays(magicNumber, indexTableLength, imgReserve, imgVersion, indexSize, indexTable, indexData);
-    }
-
-    protected List traversalIndexs(BiConsumer<ReferenceEntity, List> processReferences) {
-        List indexs = new ArrayList<>();
-        int indexTableOffset = 0;
-        int indexDataOffset = 0;
-        int size = bytesToInt(indexSize);
-        for (int i = 0; i < size; i++) {
-            if (readIsTexture(indexTableOffset)) {
-                // 图片型索引项
-                TextureEntity texture = createTexture(indexTableOffset, indexDataOffset);
-                indexs.add(texture);
-                // 移动偏移
-                indexDataOffset += readTextureLength(indexTableOffset);
-                indexTableOffset += TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH;
-            } else {
-                // 指向型索引项
-                ReferenceEntity reference = createReference(indexTableOffset);
-                processReferences.accept(reference, indexs);
-                // 移动偏移
-                indexTableOffset += REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH;
-            }
-        }
-        return indexs;
     }
 
     protected int readIndexType(int offset) {

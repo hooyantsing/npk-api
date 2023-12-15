@@ -31,6 +31,10 @@ public class NpkFile {
         }
     }
 
+    public String getPath() {
+        return path;
+    }
+
     public Map<String, byte[]> getImgs() {
         return npkByteOperator.getImgs();
     }
