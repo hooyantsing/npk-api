@@ -1,7 +1,9 @@
 package xyz.hooy.npk.api.util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 /**
@@ -96,7 +98,35 @@ public final class ByteUtils {
      * zlib 压缩
      */
     public static byte[] compressZlib(byte[] data) {
-        // TODO: 压缩算法
-        return data;
+        Deflater deflater = new Deflater();
+        deflater.reset();
+        deflater.setInput(data);
+        deflater.finish();
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length)) {
+            byte[] buffer = new byte[1024];
+            while (!deflater.finished()) {
+                int count = deflater.deflate(buffer);
+                outputStream.write(buffer, 0, count);
+            }
+            outputStream.close();
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] mergeByteArrays(byte[]... arrays) {
+        int sumLength = 0;
+        for (byte[] array : arrays) {
+            sumLength += array.length;
+        }
+        byte[] mergeArray = new byte[sumLength];
+        int index = 0;
+        for (byte[] array : arrays) {
+            for (byte b : array) {
+                mergeArray[index++] = b;
+            }
+        }
+        return mergeArray;
     }
 }

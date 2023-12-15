@@ -3,6 +3,7 @@ package xyz.hooy.npk.api.entity;
 import org.apache.commons.lang3.ArrayUtils;
 
 import static xyz.hooy.npk.api.util.ByteUtils.intToBytes;
+import static xyz.hooy.npk.api.util.ByteUtils.mergeByteArrays;
 
 /**
  * @author hooyantsing@gmail.com
@@ -13,7 +14,7 @@ public class ReferenceAttribute extends AbstractIndexAttribute {
     private Integer to = -1;
 
     public byte[] toBytes() {
-        return ArrayUtils.addAll(intToBytes(type), intToBytes(to));
+        return mergeByteArrays(intToBytes(type), intToBytes(to));
     }
 
     public Integer getTo() {

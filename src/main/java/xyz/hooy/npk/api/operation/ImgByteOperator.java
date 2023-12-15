@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 
 import static xyz.hooy.npk.api.util.ByteUtils.*;
+import static xyz.hooy.npk.api.util.ByteUtils.mergeByteArrays;
 
 /**
  * @author hooyantsing@gmail.com
@@ -98,14 +99,14 @@ public class ImgByteOperator {
         // 索引数据
         if (indexAttributes.length == TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH) {
             if (ArrayUtils.isNotEmpty(textureData)) {
-                indexData = ArrayUtils.addAll(indexData, textureData);
+                indexData = mergeByteArrays(indexData, textureData);
             } else {
                 throw new RuntimeException("Texture length cannot be 0");
             }
         }
 
         // 索引表
-        indexTable = ArrayUtils.addAll(indexTable, indexAttributes);
+        indexTable = mergeByteArrays(indexTable, indexAttributes);
 
         // 索引表长度
         indexTableLength = intToBytes(indexTable.length);
@@ -154,8 +155,8 @@ public class ImgByteOperator {
         } else {
             indexTableAfterBytes = ArrayUtils.subarray(indexTable, indexTableRemoveOffset + REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH, indexTable.length);
         }
-        indexTable = ArrayUtils.addAll(indexTableBeforeBytes, indexTableAfterBytes);
-        indexData = ArrayUtils.addAll(indexDataBeforeBytes, indexDataAfterBytes);
+        indexTable = mergeByteArrays(indexTableBeforeBytes, indexTableAfterBytes);
+        indexData = mergeByteArrays(indexDataBeforeBytes, indexDataAfterBytes);
 
         // 索引表长度
         indexTableLength = intToBytes(indexTable.length);
@@ -165,12 +166,7 @@ public class ImgByteOperator {
     }
 
     public byte[] build() {
-        return ArrayUtils.addAll(magicNumber,
-                ArrayUtils.addAll(indexTableLength,
-                        ArrayUtils.addAll(imgReserve,
-                                ArrayUtils.addAll(imgVersion,
-                                        ArrayUtils.addAll(indexSize,
-                                                ArrayUtils.addAll(indexTable, indexData))))));
+        return mergeByteArrays(magicNumber, indexTableLength, imgReserve, imgVersion, indexSize, indexTable, indexData);
     }
 
     protected List traversalIndexs(BiConsumer<ReferenceEntity, List> processReferences) {

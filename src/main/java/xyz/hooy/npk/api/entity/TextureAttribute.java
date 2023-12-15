@@ -4,6 +4,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import xyz.hooy.npk.api.constant.IndexConstant;
 
 import static xyz.hooy.npk.api.util.ByteUtils.intToBytes;
+import static xyz.hooy.npk.api.util.ByteUtils.mergeByteArrays;
 
 /**
  * @author hooyantsing@gmail.com
@@ -20,13 +21,7 @@ public class TextureAttribute extends AbstractIndexAttribute {
     private Integer frameHeight = 0;
 
     public byte[] toBytes() {
-        return ArrayUtils.addAll(intToBytes(type),
-                ArrayUtils.addAll(intToBytes(compress),
-                        ArrayUtils.addAll(intToBytes(width),
-                                ArrayUtils.addAll(intToBytes(height),
-                                        ArrayUtils.addAll(intToBytes(x),
-                                                ArrayUtils.addAll(intToBytes(y),
-                                                        ArrayUtils.addAll(intToBytes(frameWidth), intToBytes(frameHeight))))))));
+        return mergeByteArrays(intToBytes(type), intToBytes(compress), intToBytes(width), intToBytes(height), intToBytes(x), intToBytes(y), intToBytes(frameWidth), intToBytes(frameHeight));
     }
 
     public Integer getCompress() {

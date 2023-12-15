@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static xyz.hooy.npk.api.util.ByteUtils.*;
+import static xyz.hooy.npk.api.util.ByteUtils.mergeByteArrays;
 
 /**
  * @author hooyantsing@gmail.com
@@ -62,13 +63,10 @@ public class NpkByteOperator {
         byte[] imgOffset = intToBytes(52 + imgTable.length + imgData.length + IMG_TABLE_ITEM_BYTE_LENGTH);
         byte[] imgLength = intToBytes(img.length);
         byte[] encryptImgName = encryptImgName(stringToBytes(decryptImgName));
-        imgTable = ArrayUtils.addAll(imgTable,
-                ArrayUtils.addAll(imgOffset,
-                        ArrayUtils.addAll(imgLength,
-                                ArrayUtils.addAll(encryptImgName))));
+        imgTable = mergeByteArrays(imgTable, imgOffset, imgLength, encryptImgName);
 
         // 添加至数据
-        imgData = ArrayUtils.addAll(imgData, img);
+        imgData = mergeByteArrays(imgData, img);
 
         // 总数 +1
         imgSize = intToBytes(bytesToInt(imgSize) + 1);
@@ -85,13 +83,13 @@ public class NpkByteOperator {
         int imgDataRemoveLength = bytesToInt(ArrayUtils.subarray(imgTableRemoveBytes, 4, 8));
         refreshIndexTableOffset(imgTableBeforeBytes, -IMG_TABLE_ITEM_BYTE_LENGTH);
         refreshIndexTableOffset(imgTableAfterBytes, -(IMG_TABLE_ITEM_BYTE_LENGTH + imgDataRemoveLength));
-        imgTable = ArrayUtils.addAll(imgTableBeforeBytes, imgTableAfterBytes);
+        imgTable = mergeByteArrays(imgTableBeforeBytes, imgTableAfterBytes);
 
         // 从数据删除
         int imgDataRemoveRelativeOffset = imgDataRemoveOffset - (52 + originalIndexTableLength);
         byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataRemoveRelativeOffset);
         byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataRemoveRelativeOffset + imgDataRemoveLength, imgData.length);
-        imgData = ArrayUtils.addAll(imgDataBeforeBytes, imgDataAfterBytes);
+        imgData = mergeByteArrays(imgDataBeforeBytes, imgDataAfterBytes);
 
         // 总数 -1
         imgSize = intToBytes(bytesToInt(imgSize) - 1);
@@ -108,13 +106,13 @@ public class NpkByteOperator {
         byte[] imgDataNewLengthBytes = intToBytes(newImg.length);
         System.arraycopy(imgDataNewLengthBytes, 0, imgTableOldBytes, 4, 4);
         refreshIndexTableOffset(imgTableAfterBytes, newImg.length - imgDataOldLength);
-        imgTable = ArrayUtils.addAll(imgTableBeforeBytes, ArrayUtils.addAll(imgTableOldBytes, imgTableAfterBytes));
+        imgTable = mergeByteArrays(imgTableBeforeBytes, imgTableOldBytes, imgTableAfterBytes);
 
         // 移动数据
         int imgDataOldRelativeOffset = imgDataOldOffset - (52 + imgTable.length);
         byte[] imgDataBeforeBytes = ArrayUtils.subarray(imgData, 0, imgDataOldRelativeOffset);
         byte[] imgDataAfterBytes = ArrayUtils.subarray(imgData, imgDataOldRelativeOffset + imgDataOldLength, imgData.length);
-        imgData = ArrayUtils.addAll(imgDataBeforeBytes, ArrayUtils.addAll(newImg, imgDataAfterBytes));
+        imgData = mergeByteArrays(imgDataBeforeBytes, newImg, imgDataAfterBytes);
     }
 
     public void rename(int index, String newImgName) {
@@ -142,10 +140,7 @@ public class NpkByteOperator {
     public byte[] build() {
         // 刷新校验码
         refreshNpkValidation();
-        return ArrayUtils.addAll(magicNumber,
-                ArrayUtils.addAll(imgSize,
-                        ArrayUtils.addAll(imgTable,
-                                ArrayUtils.addAll(npkValidation, imgData))));
+        return mergeByteArrays(magicNumber, imgSize, imgTable, npkValidation, imgData);
     }
 
     protected void refreshIndexTableOffset(byte[] indexTableBytes, int moveLength) {
@@ -156,7 +151,7 @@ public class NpkByteOperator {
     }
 
     protected void refreshNpkValidation() {
-        byte[] bytes = ArrayUtils.addAll(magicNumber, ArrayUtils.addAll(imgSize, imgTable));
+        byte[] bytes = mergeByteArrays(magicNumber, imgSize, imgTable);
         byte[] specimenBytes = ArrayUtils.subarray(bytes, 0, bytes.length / 17 * 17);
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
