@@ -1,7 +1,7 @@
 package xyz.hooy.npk.api.color;
 
-import xyz.hooy.npk.api.entity.TextureEntity;
 import xyz.hooy.npk.api.entity.TextureAttribute;
+import xyz.hooy.npk.api.entity.TextureEntity;
 import xyz.hooy.npk.api.util.ByteUtils;
 
 import java.awt.image.BufferedImage;
@@ -13,7 +13,7 @@ import java.awt.image.BufferedImage;
 class Argb1555Strategy extends AbstractColorStrategy {
 
     @Override
-    public BufferedImage process(TextureEntity texture) {
+    public BufferedImage decode(TextureEntity texture) {
         TextureAttribute attribute = texture.getTextureAttribute();
         BufferedImage bufferedImage = new BufferedImage(attribute.getWidth(), attribute.getHeight(), BufferedImage.TYPE_4BYTE_ABGR_PRE);
         byte[] tempBytes = new byte[4];
@@ -28,5 +28,10 @@ class Argb1555Strategy extends AbstractColorStrategy {
             }
         }
         return bufferedImage;
+    }
+
+    @Override
+    public TextureEntity encode(BufferedImage texture) {
+        return null;
     }
 }

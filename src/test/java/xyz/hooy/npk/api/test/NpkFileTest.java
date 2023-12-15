@@ -1,13 +1,15 @@
 package xyz.hooy.npk.api.test;
 
-import com.sun.prism.Texture;
 import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.Test;
 import xyz.hooy.npk.api.NpkFileFactory;
-import xyz.hooy.npk.api.entity.AbstractIndex;
+import xyz.hooy.npk.api.color.ColorFactory;
+import xyz.hooy.npk.api.constant.SupportedImages;
 import xyz.hooy.npk.api.entity.TextureEntity;
-import xyz.hooy.npk.api.util.TextureUtils;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
@@ -22,8 +24,9 @@ public class NpkFileTest {
         for (Map.Entry<String, List<TextureEntity>> textureEntries : textureMaps.entrySet()) {
             String fileName = Paths.get(textureEntries.getKey()).getFileName().toString();
             for (int i = 0; i < textureEntries.getValue().size(); i++) {
-                TextureEntity index = textureEntries.getValue().get(i);
-                TextureUtils.toPng(index, "/Users/hooy/Project/npk-api/output/" + fileName + "_" + i + ".png");
+                TextureEntity texture = textureEntries.getValue().get(i);
+                BufferedImage bufferedImage = ColorFactory.decode(texture);
+                ImageIO.write(bufferedImage, SupportedImages.PNG.name(), new File("/Users/hooy/Project/npk-api/output/" + fileName + "_" + i + ".png"));
             }
             System.out.println(fileName);
         }

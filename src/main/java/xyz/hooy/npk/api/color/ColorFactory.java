@@ -33,7 +33,11 @@ public final class ColorFactory {
         return abstractColorStrategy;
     }
 
-    public static BufferedImage process(TextureEntity texture) {
-        return get(texture.getTextureAttribute().getType()).process(texture);
+    public static BufferedImage decode(TextureEntity texture) {
+        return get(texture.getTextureAttribute().getType()).decode(texture);
+    }
+
+    public static TextureEntity encode(BufferedImage bufferedImage, int type) {
+        return get(type).encode(bufferedImage);
     }
 }

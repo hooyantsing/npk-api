@@ -10,5 +10,13 @@ import java.awt.image.BufferedImage;
  */
 abstract class AbstractColorStrategy {
 
-    public abstract BufferedImage process(TextureEntity texture);
+    /**
+     * 解码
+     */
+    public abstract BufferedImage decode(TextureEntity texture);
+
+    /**
+     * 编码
+     */
+    public abstract TextureEntity encode(BufferedImage texture);
 }

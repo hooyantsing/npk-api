@@ -1,17 +1,40 @@
 package xyz.hooy.npk.api.entity;
 
+import org.apache.commons.lang3.ArrayUtils;
+
+import static xyz.hooy.npk.api.util.ByteUtils.intToBytes;
+
 /**
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
 public class TextureAttribute extends AbstractIndexAttribute {
 
+    private Integer compress;
     private Integer width;
     private Integer height;
     private Integer x;
     private Integer y;
     private Integer frameWidth;
     private Integer frameHeight;
+
+    public byte[] toBytes() {
+        return ArrayUtils.addAll(intToBytes(type),
+                ArrayUtils.addAll(intToBytes(compress),
+                        ArrayUtils.addAll(intToBytes(width),
+                                ArrayUtils.addAll(intToBytes(height),
+                                        ArrayUtils.addAll(intToBytes(x),
+                                                ArrayUtils.addAll(intToBytes(y),
+                                                        ArrayUtils.addAll(intToBytes(frameWidth), intToBytes(frameHeight))))))));
+    }
+
+    public Integer getCompress() {
+        return compress;
+    }
+
+    public void setCompress(Integer compress) {
+        this.compress = compress;
+    }
 
     public Integer getWidth() {
         return width;

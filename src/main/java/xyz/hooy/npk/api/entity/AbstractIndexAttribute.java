@@ -6,7 +6,7 @@ package xyz.hooy.npk.api.entity;
  */
 public abstract class AbstractIndexAttribute {
 
-    private Integer type;
+    protected Integer type;
 
     public Integer getType() {
         return type;

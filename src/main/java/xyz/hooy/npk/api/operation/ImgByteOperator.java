@@ -2,7 +2,10 @@ package xyz.hooy.npk.api.operation;
 
 import org.apache.commons.lang3.ArrayUtils;
 import xyz.hooy.npk.api.constant.IndexConstant;
-import xyz.hooy.npk.api.entity.*;
+import xyz.hooy.npk.api.entity.AbstractIndex;
+import xyz.hooy.npk.api.entity.ReferenceEntity;
+import xyz.hooy.npk.api.entity.TextureAttribute;
+import xyz.hooy.npk.api.entity.TextureEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,15 +75,15 @@ public class ImgByteOperator {
         });
     }
 
-    public void addTexture(byte[] indexAttributes, byte[] textureData) {
-        add(indexAttributes, textureData);
+    public void addTexture(TextureEntity textureEntity) {
+        add(textureEntity.getTextureAttribute().toBytes(), textureEntity.getTexture());
     }
 
-    public void addReference(byte[] indexAttributes) {
-        add(indexAttributes, null);
+    public void addReference(ReferenceEntity referenceEntity) {
+        add(referenceEntity.getReferenceAttribute().toBytes(), null);
     }
 
-    public void add(byte[] indexAttributes, byte[] textureData) {
+    protected void add(byte[] indexAttributes, byte[] textureData) {
         if (indexAttributes.length != TEXTURE_INDEX_TABLE_ITEM_BYTE_LENGTH && indexAttributes.length != REFERENCE_INDEX_TABLE_ITEM_BYTE_LENGTH) {
             throw new RuntimeException(String.format("Failed to add IMG, index attributes length %s", indexAttributes.length));
         }
@@ -229,12 +232,7 @@ public class ImgByteOperator {
 
     protected byte[] readTextureFile(int indexTableOffset, int indexDataOffset) {
         int length = readTextureLength(indexTableOffset);
-        byte[] textureBytes = ArrayUtils.subarray(indexData, indexDataOffset, indexDataOffset + length);
-        if (readTextureZlib(indexTableOffset)) {
-            // 解压
-            textureBytes = decompressZlib(textureBytes);
-        }
-        return textureBytes;
+        return ArrayUtils.subarray(indexData, indexDataOffset, indexDataOffset + length);
     }
 
     protected int readReferenceTo(int offset) {
@@ -245,13 +243,19 @@ public class ImgByteOperator {
         TextureEntity texture = new TextureEntity();
         TextureAttribute textureAttribute = texture.getTextureAttribute();
         textureAttribute.setType(readIndexType(indexTableOffset));
+        textureAttribute.setCompress(IndexConstant.TEXTURE_NON_ZLIB);
         textureAttribute.setWidth(readTextureWidth(indexTableOffset));
         textureAttribute.setHeight(readTextureHeight(indexTableOffset));
         textureAttribute.setX(readTextureX(indexTableOffset));
         textureAttribute.setY(readTextureY(indexTableOffset));
         textureAttribute.setFrameWidth(readTextureFrameWidth(indexTableOffset));
         textureAttribute.setFrameHeight(readTextureFrameHeight(indexTableOffset));
-        texture.setTexture(readTextureFile(indexTableOffset, indexDataOffset));
+        byte[] textureBytes = readTextureFile(indexTableOffset, indexDataOffset);
+        if (readTextureZlib(indexTableOffset)) {
+            // 解压
+            textureBytes = decompressZlib(textureBytes);
+        }
+        texture.setTexture(textureBytes);
         return texture;
     }
 
