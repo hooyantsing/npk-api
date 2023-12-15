@@ -21,11 +21,11 @@ public final class ColorFactory {
         register(IndexConstant.TYPE_TEXTURE_ARGB8888, new Argb8888Strategy());
     }
 
-    public static void register(int type, AbstractColorStrategy strategy) {
+    private static void register(int type, AbstractColorStrategy strategy) {
         colorMap.put(type, strategy);
     }
 
-    public static AbstractColorStrategy get(int type) {
+    private static AbstractColorStrategy get(int type) {
         AbstractColorStrategy abstractColorStrategy = colorMap.get(type);
         if (abstractColorStrategy == null) {
             throw new UnsupportedOperationException(String.format("The current type is not supported %s", type));

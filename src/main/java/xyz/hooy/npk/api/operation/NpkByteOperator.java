@@ -106,9 +106,7 @@ public class NpkByteOperator {
         int imgDataOldOffset = bytesToInt(ArrayUtils.subarray(imgTableOldBytes, 0, 4));
         int imgDataOldLength = bytesToInt(ArrayUtils.subarray(imgTableOldBytes, 4, 8));
         byte[] imgDataNewLengthBytes = intToBytes(newImg.length);
-        for (int i = 0; i < 4; i++) {
-            imgTableOldBytes[i + 4] = imgDataNewLengthBytes[i];
-        }
+        System.arraycopy(imgDataNewLengthBytes, 0, imgTableOldBytes, 4, 4);
         refreshIndexTableOffset(imgTableAfterBytes, newImg.length - imgDataOldLength);
         imgTable = ArrayUtils.addAll(imgTableBeforeBytes, ArrayUtils.addAll(imgTableOldBytes, imgTableAfterBytes));
 
@@ -123,8 +121,8 @@ public class NpkByteOperator {
         // 修改索引表 IMG 文件名
         int imgTableOffset = index * IMG_TABLE_ITEM_BYTE_LENGTH + 8;
         byte[] encryptImgName = encryptImgName(stringToBytes(newImgName));
-        for (int i = 0; i < 256; i++) {
-            imgTable[imgTableOffset + i] = encryptImgName[i];
+        if (encryptImgName != null) {
+            System.arraycopy(encryptImgName, 0, imgTable, imgTableOffset, 256);
         }
     }
 
@@ -153,14 +151,12 @@ public class NpkByteOperator {
     protected void refreshIndexTableOffset(byte[] indexTableBytes, int moveLength) {
         for (int i = 0; i < indexTableBytes.length; i += IMG_TABLE_ITEM_BYTE_LENGTH) {
             byte[] newImgOffset = intToBytes(bytesToInt(ArrayUtils.subarray(indexTableBytes, i, i + 4)) + moveLength);
-            for (int j = 0; j < 4; j++) {
-                indexTableBytes[i + j] = newImgOffset[j];
-            }
+            System.arraycopy(newImgOffset, 0, indexTableBytes, i, 4);
         }
     }
 
     protected void refreshNpkValidation() {
-        int specimenLimit = new Double(Math.floor((8 + imgTable.length) / 17) * 17).intValue();
+        int specimenLimit = new Double(Math.floor((double) (8 + imgTable.length) / 17) * 17).intValue();
         byte[] specimenBytes = ArrayUtils.subarray(ArrayUtils.addAll(magicNumber, ArrayUtils.addAll(imgSize, imgTable)), 0, specimenLimit);
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
