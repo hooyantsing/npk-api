@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-class Argb1555Converter extends AbstractConverter {
+class Argb1555Converter extends AbstractColorConverter {
 
     @Override
     public BufferedImage decode(TextureEntity texture) {
@@ -35,7 +35,7 @@ class Argb1555Converter extends AbstractConverter {
     public TextureEntity encode(BufferedImage bufferedImage) {
         TextureEntity texture = new TextureEntity();
         TextureAttribute attribute = texture.getTextureAttribute();
-        attribute.setCompress(CompressModes.NON_ZLIB);
+        attribute.setCompress(CompressModes.NONE);
         attribute.setHeight(bufferedImage.getHeight());
         attribute.setWidth(bufferedImage.getWidth());
         byte[] textureBytes = new byte[bufferedImage.getHeight() * bufferedImage.getWidth() * 2];

@@ -12,9 +12,9 @@ import java.util.Objects;
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-public final class ColorConverter {
+public final class ImageConverter {
 
-    private static final Map<ColorLinkTypes, AbstractConverter> colorMap = new HashMap<>();
+    private static final Map<ColorLinkTypes, AbstractColorConverter> colorMap = new HashMap<>();
 
     static {
         register(ColorLinkTypes.ARGB1555, new Argb1555Converter());
@@ -22,16 +22,16 @@ public final class ColorConverter {
         register(ColorLinkTypes.ARGB8888, new Argb8888Converter());
     }
 
-    private static void register(ColorLinkTypes type, AbstractConverter strategy) {
+    private static void register(ColorLinkTypes type, AbstractColorConverter strategy) {
         colorMap.put(type, strategy);
     }
 
-    private static AbstractConverter get(ColorLinkTypes type) {
-        AbstractConverter abstractConverter = colorMap.get(type);
-        if (Objects.isNull(abstractConverter)) {
+    private static AbstractColorConverter get(ColorLinkTypes type) {
+        AbstractColorConverter abstractColorConverter = colorMap.get(type);
+        if (Objects.isNull(abstractColorConverter)) {
             throw new UnsupportedOperationException(String.format("The current type is not supported %s", type));
         }
-        return abstractConverter;
+        return abstractColorConverter;
     }
 
     public static BufferedImage decode(TextureEntity texture) {

@@ -1,5 +1,6 @@
 package xyz.hooy.npk.api.util;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -38,6 +39,13 @@ public final class ByteUtils {
         return src.getBytes(StandardCharsets.UTF_8);
     }
 
+    public static byte[] attributeToBytes(int... attributes) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        for (int attribute : attributes) {
+            stream.write(attribute);
+        }
+        return stream.toByteArray();
+    }
 
     public static byte[] mergeByteArrays(byte[]... arrays) {
         int sumLength = 0;

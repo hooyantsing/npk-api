@@ -1,17 +1,16 @@
 package xyz.hooy.npk.api.constant;
 
-public enum CompressModes {
+public enum ImgVersions {
 
-    ZLIB(0x05),
-    NONE(0x06);
+    VERSION_2(0x02);
 
     private Integer value;
 
-    CompressModes(int value) {
+    ImgVersions(int value) {
         this.value = value;
     }
 
-    public int getValue() {
+    public Integer getValue() {
         return value;
     }
 

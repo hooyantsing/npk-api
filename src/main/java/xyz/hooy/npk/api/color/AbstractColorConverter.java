@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-abstract class AbstractConverter {
+abstract class AbstractColorConverter {
 
     /**
      * 解码

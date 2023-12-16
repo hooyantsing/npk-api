@@ -12,7 +12,7 @@ import xyz.hooy.npk.api.constant.CompressModes;
 @EqualsAndHashCode(callSuper = true)
 public class TextureAttribute extends AbstractAttribute {
 
-    private CompressModes compress = CompressModes.NON_ZLIB;
+    private CompressModes compress = CompressModes.NONE;
     private Integer width = 0;
     private Integer height = 0;
     private Integer x = 0;
