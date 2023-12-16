@@ -9,8 +9,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TextureEntity extends AbstractEntity {
+public class LinkEntity extends AbstractEntity {
 
-    private final TextureAttribute textureAttribute = new TextureAttribute();
-    private byte[] texture = new byte[0];
+    private final LinkAttribute linkAttribute = new LinkAttribute();
 }

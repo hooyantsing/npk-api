@@ -1,6 +1,6 @@
 package xyz.hooy.npk.api.color;
 
-import xyz.hooy.npk.api.constant.IndexConstant;
+import xyz.hooy.npk.api.constant.CompressModes;
 import xyz.hooy.npk.api.entity.TextureAttribute;
 import xyz.hooy.npk.api.entity.TextureEntity;
 import xyz.hooy.npk.api.util.ByteUtils;
@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-class Argb8888Strategy extends AbstractColorStrategy {
+class Argb8888Converter extends AbstractConverter {
 
     @Override
     public BufferedImage decode(TextureEntity texture) {
@@ -35,7 +35,7 @@ class Argb8888Strategy extends AbstractColorStrategy {
     public TextureEntity encode(BufferedImage bufferedImage) {
         TextureEntity texture = new TextureEntity();
         TextureAttribute attribute = texture.getTextureAttribute();
-        attribute.setCompress(IndexConstant.TEXTURE_NON_ZLIB);
+        attribute.setCompress(CompressModes.NON_ZLIB);
         attribute.setHeight(bufferedImage.getHeight());
         attribute.setWidth(bufferedImage.getWidth());
         byte[] textureBytes = new byte[bufferedImage.getHeight() * bufferedImage.getWidth() * 4];
