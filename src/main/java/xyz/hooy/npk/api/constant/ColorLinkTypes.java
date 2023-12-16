@@ -1,5 +1,8 @@
 package xyz.hooy.npk.api.constant;
 
+import lombok.Getter;
+
+@Getter
 public enum ColorLinkTypes {
 
     ARGB1555(0x0E),
@@ -13,11 +16,16 @@ public enum ColorLinkTypes {
         this.value = value;
     }
 
-    public int getValue() {
-        return value;
-    }
-
     public void setValue(int value) {
         this.value = value;
+    }
+
+    public static ColorLinkTypes valueOf(int value) {
+        for (ColorLinkTypes type : ColorLinkTypes.values()) {
+            if (type.getValue().equals(value)) {
+                return type;
+            }
+        }
+        return null;
     }
 }

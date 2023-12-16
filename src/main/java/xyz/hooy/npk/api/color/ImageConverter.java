@@ -35,7 +35,7 @@ public final class ImageConverter {
     }
 
     public static BufferedImage decode(TextureEntity texture) {
-        return get(texture.getTextureAttribute().getType()).decode(texture);
+        return get(texture.getType()).decode(texture);
     }
 
     public static TextureEntity encode(BufferedImage bufferedImage, ColorLinkTypes type) {
