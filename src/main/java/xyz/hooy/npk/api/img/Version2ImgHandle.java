@@ -23,7 +23,7 @@ public class Version2ImgHandle extends AbstractImgHandle {
     @Override
     public void createFromBuffer(ByteBuffer buffer) {
         Map<TextureEntity, Integer> map = new HashMap<>();
-        int pos = buffer.position() + imgEntity.getIndexLength();
+        long pos = buffer.position() + imgEntity.getIndexLength();
         for (int i = 0; i < imgEntity.getCount(); i++) {
             TextureEntity texture = new TextureEntity(imgEntity);
             texture.setIndex(imgEntity.getTextureEntities().size());
@@ -63,7 +63,7 @@ public class Version2ImgHandle extends AbstractImgHandle {
                 continue;
             }
             if (texture.getCompress() == CompressModes.NONE) {
-                texture.setLength(texture.getWidth() * texture.getHeight() * (texture.getType() == ColorLinkTypes.ARGB8888 ? 4 : 2));
+                texture.setLength(texture.getWidth() * texture.getHeight() * (texture.getType() == ColorLinkTypes.ARGB_8888 ? 4 : 2));
             }
             byte[] data = new byte[texture.getLength()];
             buffer.get(data);
@@ -136,7 +136,7 @@ public class Version2ImgHandle extends AbstractImgHandle {
             buffer.putInt(textureEntity.getFrameWidth());
             buffer.putInt(textureEntity.getFrameHeight());
         }
-        imgEntity.setIndexLength(buffer.array().length);
+        imgEntity.setIndexLength((long) buffer.array().length);
         for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
             if (textureEntity.getType() == ColorLinkTypes.LINK) {
                 continue;
@@ -149,7 +149,7 @@ public class Version2ImgHandle extends AbstractImgHandle {
     @Override
     public void convertToVersion(ImgVersions version) {
         if (version == ImgVersions.VERSION_4 || version == ImgVersions.VERSION_6) {
-            imgEntity.getTextureEntities().forEach(item -> item.setType(ColorLinkTypes.ARGB1555));
+            imgEntity.getTextureEntities().forEach(item -> item.setType(ColorLinkTypes.ARGB_1555));
         }
     }
 }
