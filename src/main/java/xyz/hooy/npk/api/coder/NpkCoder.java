@@ -1,15 +1,21 @@
 package xyz.hooy.npk.api.coder;
 
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import xyz.hooy.npk.api.constant.ImgVersions;
 import xyz.hooy.npk.api.entity.ImgEntity;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class NpkCoder {
 
@@ -108,5 +114,35 @@ public class NpkCoder {
             }
             imgEntity.initHandle(buffer);
         }
+    }
+
+    @SneakyThrows
+    public static List<ImgEntity> load(boolean onlyPath, String file) {
+        List<ImgEntity> imgEntities = new ArrayList<>();
+        File path = new File(file);
+        if (path.isDirectory()) {
+            try (Stream<Path> walk = Files.walk(Paths.get(file))) {
+                String[] array = walk.filter(Files::isRegularFile).map(Path::toString).toArray(String[]::new);
+                return load(onlyPath, array);
+            }
+        }
+        if (!path.isFile()) {
+            return imgEntities;
+        }
+        byte[] fileBytes = Files.readAllBytes(Paths.get(file));
+        ByteBuffer buffer = ByteBuffer.allocate(fileBytes.length);
+        buffer.put(fileBytes);
+        if (onlyPath) {
+            return readInfo(buffer);
+        }
+        return readNpk(buffer, file);
+    }
+
+    public static List<ImgEntity> load(boolean onlyPath, String[] files) {
+        List<ImgEntity> imgEntities = new ArrayList<>();
+        for (String file : files) {
+            imgEntities.addAll(load(onlyPath, file));
+        }
+        return imgEntities;
     }
 }
