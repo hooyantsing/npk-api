@@ -2,6 +2,7 @@ package xyz.hooy.npk.api.img;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
+import xyz.hooy.npk.api.constant.ColorLinkTypes;
 import xyz.hooy.npk.api.constant.ImgVersions;
 import xyz.hooy.npk.api.entity.ImgEntity;
 import xyz.hooy.npk.api.entity.TextureEntity;
@@ -46,4 +47,7 @@ public abstract class AbstractImgHandle {
     public abstract BufferedImage convertToBufferedImage(TextureEntity textureEntity);
 
     public abstract byte[] convertToByte(TextureEntity textureEntity);
+
+    public void newImage(int count, ColorLinkTypes type, int index) {
+    }
 }

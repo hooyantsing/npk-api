@@ -90,4 +90,28 @@ public class Version2ImgHandle extends AbstractImgHandle {
         }
         return BufferedImageUtils.toArray(textureEntity.getPicture(), textureEntity.getType());
     }
+
+    @Override
+    public void newImage(int count, ColorLinkTypes type, int index) {
+        if (count < 1) {
+            return;
+        }
+        TextureEntity[] array = new TextureEntity[count];
+        array[0] = new TextureEntity(imgEntity);
+        array[0].setIndex(index);
+        if (type != ColorLinkTypes.LINK) {
+            array[0].setType(type);
+        }
+        for (int i = 1; i < count; i++) {
+            array[i] = new TextureEntity(imgEntity);
+            array[i].setType(type);
+            if (type == ColorLinkTypes.LINK) {
+                array[i].setTarget(array[0]);
+            }
+            array[i].setIndex(index + i);
+        }
+        for (int i = 0; i < array.length; i++) {
+            imgEntity.getTextureEntities().add(index + i, array[i]);
+        }
+    }
 }
