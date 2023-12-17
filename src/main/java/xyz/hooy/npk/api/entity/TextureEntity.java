@@ -1,8 +1,14 @@
 package xyz.hooy.npk.api.entity;
 
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import xyz.hooy.npk.api.constant.ColorLinkTypes;
 import xyz.hooy.npk.api.constant.CompressModes;
+
+import java.awt.image.BufferedImage;
+import java.util.Objects;
 
 /**
  * @author hooyantsing@gmail.com
@@ -10,6 +16,10 @@ import xyz.hooy.npk.api.constant.CompressModes;
  */
 @Data
 public class TextureEntity {
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private BufferedImage image;
 
     private ColorLinkTypes type;
     private CompressModes compress = CompressModes.NONE;
@@ -31,5 +41,28 @@ public class TextureEntity {
 
     public TextureEntity(ImgEntity parent) {
         this.parent = parent;
+    }
+
+    public boolean isOpen() {
+        return Objects.nonNull(image);
+    }
+
+    public BufferedImage getPicture() {
+        if (type == ColorLinkTypes.LINK) {
+            return target.getPicture();
+        }
+        if (isOpen()) {
+            return image;
+        }
+        image = parent.convertToBitmap(this);
+        return image;
+    }
+
+    public void setPicture(BufferedImage value) {
+        image = value;
+        if (value != null) {
+            width = value.getWidth();
+            height = value.getHeight();
+        }
     }
 }

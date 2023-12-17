@@ -4,7 +4,10 @@ import xyz.hooy.npk.api.constant.ColorLinkTypes;
 import xyz.hooy.npk.api.constant.CompressModes;
 import xyz.hooy.npk.api.entity.ImgEntity;
 import xyz.hooy.npk.api.entity.TextureEntity;
+import xyz.hooy.npk.api.util.BufferedImageUtils;
+import xyz.hooy.npk.api.util.CompressUtils;
 
+import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,5 +67,27 @@ public class Version2ImgHandle extends AbstractImgHandle {
             buffer.get(data);
             texture.setTextureData(data);
         }
+    }
+
+    @Override
+    public BufferedImage convertToBufferedImage(TextureEntity textureEntity) {
+        byte[] textureData = textureEntity.getTextureData();
+        if (textureEntity.getCompress() == CompressModes.ZLIB) {
+            textureData = CompressUtils.zlibDecompress(textureData);
+        }
+        return BufferedImageUtils.fromArray(textureData, textureEntity.getWidth(), textureEntity.getHeight(), textureEntity.getType());
+    }
+
+    @Override
+    public byte[] convertToByte(TextureEntity textureEntity) {
+        // TODO: 可能存在 Bug
+        if (textureEntity.getType().getValue() > ColorLinkTypes.LINK.getValue()) {
+            int value = textureEntity.getType().getValue() - 4;
+            textureEntity.setType(ColorLinkTypes.valueOf(value));
+        }
+        if (textureEntity.getCompress().getValue() > CompressModes.ZLIB.getValue()) {
+            textureEntity.setCompress(CompressModes.ZLIB);
+        }
+        return BufferedImageUtils.toArray(textureEntity.getPicture(), textureEntity.getType());
     }
 }

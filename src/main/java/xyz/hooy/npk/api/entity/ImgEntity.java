@@ -4,6 +4,7 @@ import lombok.Data;
 import xyz.hooy.npk.api.constant.ImgVersions;
 import xyz.hooy.npk.api.img.AbstractImgHandle;
 
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,5 +24,9 @@ public class ImgEntity {
 
     public ImgEntity() {
         this.imgHandle = AbstractImgHandle.newInstance(this);
+    }
+
+    public BufferedImage convertToBitmap(TextureEntity textureEntity) {
+        return imgHandle.convertToBufferedImage(textureEntity);
     }
 }

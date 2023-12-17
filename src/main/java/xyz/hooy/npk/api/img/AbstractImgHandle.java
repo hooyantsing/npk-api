@@ -4,7 +4,9 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import xyz.hooy.npk.api.constant.ImgVersions;
 import xyz.hooy.npk.api.entity.ImgEntity;
+import xyz.hooy.npk.api.entity.TextureEntity;
 
+import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,4 +42,8 @@ public abstract class AbstractImgHandle {
     }
 
     public abstract void createFromBuffer(ByteBuffer buffer);
+
+    public abstract BufferedImage convertToBufferedImage(TextureEntity textureEntity);
+
+    public abstract byte[] convertToByte(TextureEntity textureEntity);
 }
