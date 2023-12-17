@@ -29,4 +29,8 @@ public class ImgEntity {
     public BufferedImage convertToBitmap(TextureEntity textureEntity) {
         return imgHandle.convertToBufferedImage(textureEntity);
     }
+
+    public byte[] convertToByte(TextureEntity textureEntity) {
+        return imgHandle.convertToByte(textureEntity);
+    }
 }

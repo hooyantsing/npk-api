@@ -2,6 +2,7 @@ package xyz.hooy.npk.api.img;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
+import xyz.hooy.npk.api.coder.NpkCoder;
 import xyz.hooy.npk.api.constant.ColorLinkTypes;
 import xyz.hooy.npk.api.constant.ImgVersions;
 import xyz.hooy.npk.api.entity.ImgEntity;
@@ -9,6 +10,7 @@ import xyz.hooy.npk.api.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -49,5 +51,31 @@ public abstract class AbstractImgHandle {
     public abstract byte[] convertToByte(TextureEntity textureEntity);
 
     public void newImage(int count, ColorLinkTypes type, int index) {
+    }
+
+    public void adjust() {
+        for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
+            textureEntity.adjust();
+        }
+        imgEntity.setCount(imgEntity.getTextureEntities().size());
+        // TODO: 指定合适的大小
+        ByteBuffer buffer = ByteBuffer.allocate(128);
+        byte[] data = adjustData();
+        if (imgEntity.getImgVersion().getValue() > ImgVersions.VERSION_1.getValue()) {
+            buffer.put(NpkCoder.IMG_FLAG.getBytes(StandardCharsets.UTF_8));
+            buffer.putLong(imgEntity.getIndexLength());
+            buffer.putInt(imgEntity.getImgVersion().getValue());
+            buffer.putInt(imgEntity.getCount());
+        }
+        buffer.put(data);
+        imgEntity.setImgData(buffer.array());
+        imgEntity.setLength(imgEntity.getImgData().length);
+    }
+
+    public byte[] adjustData() {
+        return new byte[0];
+    }
+
+    public void convertToVersion(ImgVersions version) {
     }
 }

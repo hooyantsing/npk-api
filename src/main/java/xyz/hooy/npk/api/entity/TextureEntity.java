@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import xyz.hooy.npk.api.constant.ColorLinkTypes;
 import xyz.hooy.npk.api.constant.CompressModes;
+import xyz.hooy.npk.api.util.CompressUtils;
 
 import java.awt.image.BufferedImage;
 import java.util.Objects;
@@ -64,5 +65,20 @@ public class TextureEntity {
             width = value.getWidth();
             height = value.getHeight();
         }
+    }
+
+    public void adjust() {
+        if (type == ColorLinkTypes.LINK) {
+            length = 0;
+            return;
+        }
+        if (!isOpen()) {
+            return;
+        }
+        textureData = parent.convertToByte(this);
+        if (textureData.length > 0 && compress.getValue() >= CompressModes.ZLIB.getValue()) {
+            textureData = CompressUtils.zlibCompress(textureData);
+        }
+        length = textureData.length; //不压缩时，按原长度保存
     }
 }

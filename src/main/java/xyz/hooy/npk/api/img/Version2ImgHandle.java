@@ -2,6 +2,7 @@ package xyz.hooy.npk.api.img;
 
 import xyz.hooy.npk.api.constant.ColorLinkTypes;
 import xyz.hooy.npk.api.constant.CompressModes;
+import xyz.hooy.npk.api.constant.ImgVersions;
 import xyz.hooy.npk.api.entity.ImgEntity;
 import xyz.hooy.npk.api.entity.TextureEntity;
 import xyz.hooy.npk.api.util.BufferedImageUtils;
@@ -11,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class Version2ImgHandle extends AbstractImgHandle {
 
@@ -112,6 +114,42 @@ public class Version2ImgHandle extends AbstractImgHandle {
         }
         for (int i = 0; i < array.length; i++) {
             imgEntity.getTextureEntities().add(index + i, array[i]);
+        }
+    }
+
+    @Override
+    public byte[] adjustData() {
+        // TODO: 指定合适的大小
+        ByteBuffer buffer = ByteBuffer.allocate(128);
+        for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
+            buffer.putInt(textureEntity.getType().getValue());
+            if (textureEntity.getType() == ColorLinkTypes.LINK && Objects.nonNull(textureEntity.getTarget())) {
+                buffer.putInt(textureEntity.getTarget().getIndex());
+                continue;
+            }
+            buffer.putInt(textureEntity.getCompress().getValue());
+            buffer.putInt(textureEntity.getWidth());
+            buffer.putInt(textureEntity.getHeight());
+            buffer.putInt(textureEntity.getLength());
+            buffer.putInt(textureEntity.getX());
+            buffer.putInt(textureEntity.getY());
+            buffer.putInt(textureEntity.getFrameWidth());
+            buffer.putInt(textureEntity.getFrameHeight());
+        }
+        imgEntity.setIndexLength(buffer.array().length);
+        for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
+            if (textureEntity.getType() == ColorLinkTypes.LINK) {
+                continue;
+            }
+            buffer.put(textureEntity.getTextureData());
+        }
+        return buffer.array();
+    }
+
+    @Override
+    public void convertToVersion(ImgVersions version) {
+        if (version == ImgVersions.VERSION_4 || version == ImgVersions.VERSION_6) {
+            imgEntity.getTextureEntities().forEach(item -> item.setType(ColorLinkTypes.ARGB1555));
         }
     }
 }
