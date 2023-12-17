@@ -1,15 +1,16 @@
-package xyz.hooy.npk.api.img;
+package xyz.hooy.npkapi.img;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
-import xyz.hooy.npk.api.coder.NpkCoder;
-import xyz.hooy.npk.api.constant.ColorLinkTypes;
-import xyz.hooy.npk.api.constant.ImgVersions;
-import xyz.hooy.npk.api.entity.ImgEntity;
-import xyz.hooy.npk.api.entity.TextureEntity;
+import xyz.hooy.npkapi.coder.NpkCoder;
+import xyz.hooy.npkapi.constant.ColorLinkTypes;
+import xyz.hooy.npkapi.constant.ImgVersions;
+import xyz.hooy.npkapi.entity.ImgEntity;
+import xyz.hooy.npkapi.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +60,8 @@ public abstract class AbstractImgHandle {
         }
         imgEntity.setCount(imgEntity.getTextureEntities().size());
         // TODO: 指定合适的大小
-        ByteBuffer buffer = ByteBuffer.allocate(128);
+        ByteBuffer buffer = ByteBuffer.allocate(128).order(ByteOrder.LITTLE_ENDIAN);
+        ;
         byte[] data = adjustData();
         if (imgEntity.getImgVersion().getValue() > ImgVersions.VERSION_1.getValue()) {
             buffer.put(NpkCoder.IMG_FLAG.getBytes(StandardCharsets.UTF_8));

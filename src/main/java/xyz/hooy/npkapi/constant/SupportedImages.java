@@ -1,4 +1,4 @@
-package xyz.hooy.npk.api.constant;
+package xyz.hooy.npkapi.constant;
 
 public enum SupportedImages {
 

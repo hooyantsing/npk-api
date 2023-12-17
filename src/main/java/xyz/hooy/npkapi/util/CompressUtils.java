@@ -1,4 +1,4 @@
-package xyz.hooy.npk.api.util;
+package xyz.hooy.npkapi.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

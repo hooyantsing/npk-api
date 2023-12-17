@@ -1,7 +1,7 @@
-package xyz.hooy.npk.api.img;
+package xyz.hooy.npkapi.img;
 
-import xyz.hooy.npk.api.entity.ImgEntity;
-import xyz.hooy.npk.api.entity.TextureEntity;
+import xyz.hooy.npkapi.entity.ImgEntity;
+import xyz.hooy.npkapi.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;

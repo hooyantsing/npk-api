@@ -1,10 +1,10 @@
-package xyz.hooy.npk.api.entity;
+package xyz.hooy.npkapi.entity;
 
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
-import xyz.hooy.npk.api.constant.CompressModes;
-import xyz.hooy.npk.api.constant.ImgVersions;
-import xyz.hooy.npk.api.img.AbstractImgHandle;
+import xyz.hooy.npkapi.constant.CompressModes;
+import xyz.hooy.npkapi.constant.ImgVersions;
+import xyz.hooy.npkapi.img.AbstractImgHandle;
 
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
@@ -17,7 +17,7 @@ import java.util.Objects;
 public class ImgEntity {
 
     private Integer length;
-    private ImgVersions imgVersion;
+    private ImgVersions imgVersion = ImgVersions.VERSION_2;
     private Integer count;
     private byte[] imgData;
 

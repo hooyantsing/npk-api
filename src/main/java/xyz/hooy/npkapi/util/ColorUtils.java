@@ -1,6 +1,6 @@
-package xyz.hooy.npk.api.util;
+package xyz.hooy.npkapi.util;
 
-import xyz.hooy.npk.api.constant.ColorLinkTypes;
+import xyz.hooy.npkapi.constant.ColorLinkTypes;
 
 import java.nio.ByteBuffer;
 

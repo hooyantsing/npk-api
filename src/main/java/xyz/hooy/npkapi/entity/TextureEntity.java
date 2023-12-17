@@ -1,12 +1,12 @@
-package xyz.hooy.npk.api.entity;
+package xyz.hooy.npkapi.entity;
 
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import xyz.hooy.npk.api.constant.ColorLinkTypes;
-import xyz.hooy.npk.api.constant.CompressModes;
-import xyz.hooy.npk.api.util.CompressUtils;
+import xyz.hooy.npkapi.constant.ColorLinkTypes;
+import xyz.hooy.npkapi.constant.CompressModes;
+import xyz.hooy.npkapi.util.CompressUtils;
 
 import java.awt.image.BufferedImage;
 import java.util.Objects;

@@ -1,15 +1,16 @@
-package xyz.hooy.npk.api.img;
+package xyz.hooy.npkapi.img;
 
-import xyz.hooy.npk.api.constant.ColorLinkTypes;
-import xyz.hooy.npk.api.constant.CompressModes;
-import xyz.hooy.npk.api.constant.ImgVersions;
-import xyz.hooy.npk.api.entity.ImgEntity;
-import xyz.hooy.npk.api.entity.TextureEntity;
-import xyz.hooy.npk.api.util.BufferedImageUtils;
-import xyz.hooy.npk.api.util.CompressUtils;
+import xyz.hooy.npkapi.constant.ColorLinkTypes;
+import xyz.hooy.npkapi.constant.CompressModes;
+import xyz.hooy.npkapi.constant.ImgVersions;
+import xyz.hooy.npkapi.entity.ImgEntity;
+import xyz.hooy.npkapi.entity.TextureEntity;
+import xyz.hooy.npkapi.util.BufferedImageUtils;
+import xyz.hooy.npkapi.util.CompressUtils;
 
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -120,7 +121,8 @@ public class Version2ImgHandle extends AbstractImgHandle {
     @Override
     public byte[] adjustData() {
         // TODO: 指定合适的大小
-        ByteBuffer buffer = ByteBuffer.allocate(128);
+        ByteBuffer buffer = ByteBuffer.allocate(128).order(ByteOrder.LITTLE_ENDIAN);
+        ;
         for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
             buffer.putInt(textureEntity.getType().getValue());
             if (textureEntity.getType() == ColorLinkTypes.LINK && Objects.nonNull(textureEntity.getTarget())) {
