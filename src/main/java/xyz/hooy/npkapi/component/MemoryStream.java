@@ -1,5 +1,6 @@
 package xyz.hooy.npkapi.component;
 
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.ByteBuffer;
@@ -14,6 +15,7 @@ public class MemoryStream {
         Begin, Current, End
     }
 
+    @Getter
     private ByteBuffer buffer;
 
     private boolean writeFlip = true;
@@ -21,7 +23,7 @@ public class MemoryStream {
     private float expansionFactor = 1.5F;
 
     public MemoryStream() {
-        resize(16);
+        resize(128);
     }
 
     public MemoryStream(int initialCapacity) {
@@ -118,14 +120,14 @@ public class MemoryStream {
         return buffer.array();
     }
 
-    private void autoReadFlip() {
+    public void autoReadFlip() {
         if (writeFlip) {
             buffer.flip();
             writeFlip = false;
         }
     }
 
-    private void autoWriteFlip() {
+    public void autoWriteFlip() {
         if (!writeFlip) {
             buffer.flip();
             writeFlip = true;
@@ -135,6 +137,7 @@ public class MemoryStream {
     private void autoResize(int length) {
         if (buffer.remaining() < length) {
             resize((int) (buffer.capacity() * expansionFactor));
+            autoResize(length);
         }
     }
 

@@ -8,6 +8,9 @@ import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.entity.ImgEntity;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -115,36 +118,6 @@ public class NpkCoder {
         }
     }
 
-    @SneakyThrows
-    public static List<ImgEntity> load(boolean onlyPath, String file) {
-        List<ImgEntity> imgEntities = new ArrayList<>();
-        File path = new File(file);
-        if (path.isDirectory()) {
-            try (Stream<Path> walk = Files.walk(Paths.get(file))) {
-                String[] array = walk.filter(Files::isRegularFile).map(Path::toString).toArray(String[]::new);
-                return load(onlyPath, array);
-            }
-        }
-        if (!path.isFile()) {
-            return imgEntities;
-        }
-        byte[] fileBytes = Files.readAllBytes(Paths.get(file));
-        MemoryStream stream = new MemoryStream(fileBytes.length);
-        stream.write(fileBytes);
-        if (onlyPath) {
-            return readInfo(stream);
-        }
-        return readNpk(stream, file);
-    }
-
-    public static List<ImgEntity> load(boolean onlyPath, String[] files) {
-        List<ImgEntity> imgEntities = new ArrayList<>();
-        for (String file : files) {
-            imgEntities.addAll(load(onlyPath, file));
-        }
-        return imgEntities;
-    }
-
     public static void writeNpk(MemoryStream stream, List<ImgEntity> imgEntities) {
         int position = 52 + imgEntities.size() * 264;
         int length = 0;
@@ -165,7 +138,6 @@ public class NpkCoder {
                 ie.setLength(ie.getTarget().getLength());
             }
         });
-
         MemoryStream ms = new MemoryStream();
         ms.writeString(NPK_FlAG);
         ms.writeInt(imgEntities.size());
@@ -183,6 +155,55 @@ public class NpkCoder {
             }
         }
     }
+
+    @SneakyThrows
+    public static List<ImgEntity> load(boolean onlyPath, String path) {
+        List<ImgEntity> imgEntities = new ArrayList<>();
+        File file = new File(path);
+        if (file.isDirectory()) {
+            try (Stream<Path> walk = Files.walk(Paths.get(path))) {
+                String[] array = walk.filter(Files::isRegularFile).map(Path::toString).toArray(String[]::new);
+                return load(onlyPath, array);
+            }
+        }
+        if (!file.isFile()) {
+            return imgEntities;
+        }
+        byte[] fileBytes = Files.readAllBytes(Paths.get(path));
+        MemoryStream stream = new MemoryStream(fileBytes.length);
+        stream.write(fileBytes);
+        if (onlyPath) {
+            return readInfo(stream);
+        }
+        return readNpk(stream, path);
+    }
+
+    public static List<ImgEntity> load(boolean onlyPath, String[] files) {
+        List<ImgEntity> imgEntities = new ArrayList<>();
+        for (String file : files) {
+            imgEntities.addAll(load(onlyPath, file));
+        }
+        return imgEntities;
+    }
+
+    @SneakyThrows
+    public static void save(String path, List<ImgEntity> imgEntities) {
+        File file = new File(path);
+        if (!file.isFile()) {
+            file.createNewFile();
+        }
+        try (FileOutputStream fileOutputStream = new FileOutputStream(file);
+             FileChannel fileChannel = fileOutputStream.getChannel()) {
+            MemoryStream memoryStream = new MemoryStream();
+            writeNpk(memoryStream, imgEntities);
+            memoryStream.autoReadFlip();
+            ByteBuffer buffer = memoryStream.getBuffer();
+            while (buffer.hasRemaining()) {
+                fileChannel.write(buffer);
+            }
+        }
+    }
+
 
     private static String readPath(MemoryStream stream) {
         byte[] data = new byte[256];

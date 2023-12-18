@@ -13,7 +13,7 @@ public class NpkApiTest {
 
     @Test
     @Ignore
-    void test() {
+    void load() {
         List<ImgEntity> imgEntities = NpkCoder.load(false, "/Users/hooy/Project/NpkApi/input/sprite_map_act2_stoneimage.NPK");
         for (ImgEntity imgEntity : imgEntities) {
             List<TextureEntity> textureEntities = imgEntity.getTextureEntities();
@@ -21,6 +21,14 @@ public class NpkApiTest {
                 textureEntity.getPicture();
             }
         }
+        System.out.println("OK");
+    }
+
+    @Test
+    @Ignore
+    void save() {
+        List<ImgEntity> imgEntities = NpkCoder.load(false, "/Users/hooy/Project/NpkApi/input/sprite_map_act2_stoneimage.NPK");
+        NpkCoder.save("/Users/hooy/Project/NpkApi/input/save.NPK", imgEntities);
         System.out.println("OK");
     }
 }
