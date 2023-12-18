@@ -2,13 +2,11 @@ package xyz.hooy.npkapi.coder;
 
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
+import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.entity.ImgEntity;
 
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,15 +18,9 @@ import java.util.stream.Stream;
 
 public class NpkCoder {
 
-    public static Charset Encoding = StandardCharsets.UTF_8;
-
     public static final String NPK_FlAG = "NeoplePack_Bill";
 
-    public static final Integer NPK_FLAG_LENGTH = 16;
-
     public static final String IMG_FLAG = "Neople Img File";
-
-    public static final Integer IMG_FLAG_LENGTH = 16;
 
     public static final String IMAGE_FLAG = "Neople Image File";
 
@@ -46,23 +38,21 @@ public class NpkCoder {
             "DNFDNFDNFDNFDNFDNFDNFDNFDNFDNF" +
             "DNFDNFDNFDNFDNFDNFDNFDNFDNFDNF" +
             "DNFDNFDNFDNFDNFDNFDNFDNFDNFDNF" +
-            "DNFDNFDNF\0").getBytes(Encoding);
+            "DNFDNFDNF\0").getBytes(StandardCharsets.UTF_8);
 
-    public static List<ImgEntity> readNpk(ByteBuffer buffer) {
-        return readNpk(buffer, null);
+    public static List<ImgEntity> readNpk(MemoryStream stream) {
+        return readNpk(stream, null);
     }
 
-    public static List<ImgEntity> readNpk(ByteBuffer buffer, String file) {
+    public static List<ImgEntity> readNpk(MemoryStream stream, String file) {
         List<ImgEntity> imgEntities = new ArrayList<>();
-        byte[] flagBytes = new byte[NPK_FLAG_LENGTH];
-        buffer.get(flagBytes);
-        String flag = StringUtils.toEncodedString(flagBytes, Encoding).trim();
+        String flag = stream.readString();
         if (StringUtils.equals(NPK_FlAG, flag)) {
             // 当文件是NPK时
-            buffer.position(0);
-            imgEntities.addAll(readInfo(buffer));
+            stream.seek(0, MemoryStream.SeekOrigin.Begin);
+            imgEntities.addAll(readInfo(stream));
             if (!imgEntities.isEmpty()) {
-                buffer.position(32);
+                stream.seek(32, MemoryStream.SeekOrigin.Begin);
             }
         } else {
             ImgEntity imgEntity = new ImgEntity();
@@ -73,56 +63,52 @@ public class NpkCoder {
             imgEntities.add(imgEntity);
         }
         for (int i = 0; i < imgEntities.size(); i++) {
-            int length = i < imgEntities.size() - 1 ? imgEntities.get(i + 1).getOffset() : buffer.array().length;
-            readImg(buffer, imgEntities.get(i), length);
+            int length = i < imgEntities.size() - 1 ? imgEntities.get(i + 1).getOffset() : stream.length();
+            readImg(stream, imgEntities.get(i), length);
         }
         return imgEntities;
     }
 
-    public static List<ImgEntity> readInfo(ByteBuffer buffer) {
-        byte[] flagBytes = new byte[NPK_FLAG_LENGTH];
-        buffer.get(flagBytes);
-        String flag = StringUtils.toEncodedString(flagBytes, Encoding).trim();
+    public static List<ImgEntity> readInfo(MemoryStream stream) {
+        String flag = stream.readString();
         List<ImgEntity> imgEntities = new ArrayList<>();
         if (!StringUtils.equals(NPK_FlAG, flag)) {
             return imgEntities;
         }
-        int count = buffer.getInt();
+        int count = stream.readInt();
         for (int i = 0; i < count; i++) {
             ImgEntity imgEntity = new ImgEntity();
-            imgEntity.setOffset(buffer.getInt());
-            imgEntity.setLength(buffer.getInt());
-            imgEntity.setPath(readPath(buffer));
+            imgEntity.setOffset(stream.readInt());
+            imgEntity.setLength(stream.readInt());
+            imgEntity.setPath(readPath(stream));
             imgEntities.add(imgEntity);
         }
         return imgEntities;
     }
 
-    public static void readImg(ByteBuffer buffer, ImgEntity imgEntity, long length) {
-        buffer.position(imgEntity.getOffset());
-        byte[] albumFlagBytes = new byte[IMG_FLAG_LENGTH];
-        buffer.get(albumFlagBytes);
-        String albumFlag = StringUtils.toEncodedString(albumFlagBytes, Encoding).trim();
+    public static void readImg(MemoryStream stream, ImgEntity imgEntity, long length) {
+        stream.seek(imgEntity.getOffset(), MemoryStream.SeekOrigin.Begin);
+        String albumFlag = stream.readString();
         if (StringUtils.equals(IMG_FLAG, albumFlag)) {
-            imgEntity.setIndexLength(buffer.getLong());
-            imgEntity.setImgVersion(ImgVersions.valueOf(buffer.getInt()));
-            imgEntity.setCount(buffer.getInt());
-            imgEntity.initHandle(buffer);
+            imgEntity.setIndexLength(stream.readLong());
+            imgEntity.setImgVersion(ImgVersions.valueOf(stream.readInt()));
+            imgEntity.setCount(stream.readInt());
+            imgEntity.initHandle(stream);
         } else {
             if (StringUtils.equals(IMAGE_FLAG, albumFlag)) {
                 imgEntity.setImgVersion(ImgVersions.VERSION_1);
             } else {
                 if (length < 0) {
-                    length = buffer.array().length;
+                    length = stream.length();
                 }
                 imgEntity.setImgVersion(ImgVersions.OTHER);
-                buffer.position(imgEntity.getOffset());
+                stream.seek(imgEntity.getOffset(), MemoryStream.SeekOrigin.Begin);
                 if (StringUtils.endsWith(StringUtils.lowerCase(imgEntity.getName()), "ogg")) {
                     imgEntity.setImgVersion(ImgVersions.OTHER);
-                    imgEntity.setIndexLength(length - buffer.position());
+                    imgEntity.setIndexLength(length - stream.position());
                 }
             }
-            imgEntity.initHandle(buffer);
+            imgEntity.initHandle(stream);
         }
     }
 
@@ -140,13 +126,12 @@ public class NpkCoder {
             return imgEntities;
         }
         byte[] fileBytes = Files.readAllBytes(Paths.get(file));
-        ByteBuffer buffer = ByteBuffer.allocate(fileBytes.length).order(ByteOrder.LITTLE_ENDIAN);
-        buffer.put(fileBytes);
-        buffer.flip();
+        MemoryStream stream = new MemoryStream(fileBytes.length);
+        stream.write(fileBytes);
         if (onlyPath) {
-            return readInfo(buffer);
+            return readInfo(stream);
         }
-        return readNpk(buffer, file);
+        return readNpk(stream, file);
     }
 
     public static List<ImgEntity> load(boolean onlyPath, String[] files) {
@@ -157,13 +142,13 @@ public class NpkCoder {
         return imgEntities;
     }
 
-    private static String readPath(ByteBuffer buffer) {
+    private static String readPath(MemoryStream stream) {
         byte[] data = new byte[256];
         int i = 0;
         while (i < 256) {
-            data[i] = (byte) (buffer.get() ^ Key[i]);
+            data[i] = (byte) (stream.readByte() ^ Key[i]);
             i++;
         }
-        return StringUtils.toEncodedString(data, Encoding).trim();
+        return StringUtils.toEncodedString(data, StandardCharsets.UTF_8).trim();
     }
 }

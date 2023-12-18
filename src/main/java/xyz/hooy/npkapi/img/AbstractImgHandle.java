@@ -3,14 +3,13 @@ package xyz.hooy.npkapi.img;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import xyz.hooy.npkapi.coder.NpkCoder;
+import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.entity.ImgEntity;
 import xyz.hooy.npkapi.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,7 +44,7 @@ public abstract class AbstractImgHandle {
         this.imgEntity = imgEntity;
     }
 
-    public abstract void createFromBuffer(ByteBuffer buffer);
+    public abstract void createFromStream(MemoryStream stream);
 
     public abstract BufferedImage convertToBufferedImage(TextureEntity textureEntity);
 
@@ -60,17 +59,17 @@ public abstract class AbstractImgHandle {
         }
         imgEntity.setCount(imgEntity.getTextureEntities().size());
         // TODO: 指定合适的大小
-        ByteBuffer buffer = ByteBuffer.allocate(128).order(ByteOrder.LITTLE_ENDIAN);
+        MemoryStream stream = new MemoryStream(128);
         ;
         byte[] data = adjustData();
         if (imgEntity.getImgVersion().getValue() > ImgVersions.VERSION_1.getValue()) {
-            buffer.put(NpkCoder.IMG_FLAG.getBytes(StandardCharsets.UTF_8));
-            buffer.putLong(imgEntity.getIndexLength());
-            buffer.putInt(imgEntity.getImgVersion().getValue());
-            buffer.putInt(imgEntity.getCount());
+            stream.write(NpkCoder.IMG_FLAG.getBytes(StandardCharsets.UTF_8));
+            stream.writeLong(imgEntity.getIndexLength());
+            stream.writeInt(imgEntity.getImgVersion().getValue());
+            stream.writeInt(imgEntity.getCount());
         }
-        buffer.put(data);
-        imgEntity.setImgData(buffer.array());
+        stream.write(data);
+        imgEntity.setImgData(stream.toArray());
         imgEntity.setLength(imgEntity.getImgData().length);
     }
 

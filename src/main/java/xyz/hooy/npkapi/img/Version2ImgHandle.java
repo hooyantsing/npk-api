@@ -1,5 +1,6 @@
 package xyz.hooy.npkapi.img;
 
+import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
 import xyz.hooy.npkapi.constant.CompressModes;
 import xyz.hooy.npkapi.constant.ImgVersions;
@@ -9,8 +10,6 @@ import xyz.hooy.npkapi.util.BufferedImageUtils;
 import xyz.hooy.npkapi.util.CompressUtils;
 
 import java.awt.image.BufferedImage;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -22,28 +21,28 @@ public class Version2ImgHandle extends AbstractImgHandle {
     }
 
     @Override
-    public void createFromBuffer(ByteBuffer buffer) {
+    public void createFromStream(MemoryStream stream) {
         Map<TextureEntity, Integer> map = new HashMap<>();
-        long pos = buffer.position() + imgEntity.getIndexLength();
+        long pos = stream.position() + imgEntity.getIndexLength();
         for (int i = 0; i < imgEntity.getCount(); i++) {
             TextureEntity texture = new TextureEntity(imgEntity);
             texture.setIndex(imgEntity.getTextureEntities().size());
-            texture.setType(ColorLinkTypes.valueOf(buffer.getInt()));
+            texture.setType(ColorLinkTypes.valueOf(stream.readInt()));
             imgEntity.getTextureEntities().add(texture);
             if (texture.getType() == ColorLinkTypes.LINK) {
-                map.put(texture, buffer.getInt());
+                map.put(texture, stream.readInt());
                 continue;
             }
-            texture.setCompress(CompressModes.valueOf(buffer.getInt()));
-            texture.setWidth(buffer.getInt());
-            texture.setHeight(buffer.getInt());
-            texture.setLength(buffer.getInt());
-            texture.setX(buffer.getInt());
-            texture.setY(buffer.getInt());
-            texture.setFrameWidth(buffer.getInt());
-            texture.setFrameHeight(buffer.getInt());
+            texture.setCompress(CompressModes.valueOf(stream.readInt()));
+            texture.setWidth(stream.readInt());
+            texture.setHeight(stream.readInt());
+            texture.setLength(stream.readInt());
+            texture.setX(stream.readInt());
+            texture.setY(stream.readInt());
+            texture.setFrameWidth(stream.readInt());
+            texture.setFrameHeight(stream.readInt());
         }
-        if (buffer.position() < pos) {
+        if (stream.position() < pos) {
             imgEntity.getTextureEntities().clear();
             return;
         }
@@ -67,7 +66,7 @@ public class Version2ImgHandle extends AbstractImgHandle {
                 texture.setLength(texture.getWidth() * texture.getHeight() * (texture.getType() == ColorLinkTypes.ARGB_8888 ? 4 : 2));
             }
             byte[] data = new byte[texture.getLength()];
-            buffer.get(data);
+            stream.read(data);
             texture.setTextureData(data);
         }
     }
@@ -121,31 +120,30 @@ public class Version2ImgHandle extends AbstractImgHandle {
     @Override
     public byte[] adjustData() {
         // TODO: 指定合适的大小
-        ByteBuffer buffer = ByteBuffer.allocate(128).order(ByteOrder.LITTLE_ENDIAN);
-        ;
+        MemoryStream stream = new MemoryStream(128);
         for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
-            buffer.putInt(textureEntity.getType().getValue());
+            stream.writeInt(textureEntity.getType().getValue());
             if (textureEntity.getType() == ColorLinkTypes.LINK && Objects.nonNull(textureEntity.getTarget())) {
-                buffer.putInt(textureEntity.getTarget().getIndex());
+                stream.writeInt(textureEntity.getTarget().getIndex());
                 continue;
             }
-            buffer.putInt(textureEntity.getCompress().getValue());
-            buffer.putInt(textureEntity.getWidth());
-            buffer.putInt(textureEntity.getHeight());
-            buffer.putInt(textureEntity.getLength());
-            buffer.putInt(textureEntity.getX());
-            buffer.putInt(textureEntity.getY());
-            buffer.putInt(textureEntity.getFrameWidth());
-            buffer.putInt(textureEntity.getFrameHeight());
+            stream.writeInt(textureEntity.getCompress().getValue());
+            stream.writeInt(textureEntity.getWidth());
+            stream.writeInt(textureEntity.getHeight());
+            stream.writeInt(textureEntity.getLength());
+            stream.writeInt(textureEntity.getX());
+            stream.writeInt(textureEntity.getY());
+            stream.writeInt(textureEntity.getFrameWidth());
+            stream.writeInt(textureEntity.getFrameHeight());
         }
-        imgEntity.setIndexLength((long) buffer.array().length);
+        imgEntity.setIndexLength((long) stream.length());
         for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
             if (textureEntity.getType() == ColorLinkTypes.LINK) {
                 continue;
             }
-            buffer.put(textureEntity.getTextureData());
+            stream.write(textureEntity.getTextureData());
         }
-        return buffer.array();
+        return stream.toArray();
     }
 
     @Override

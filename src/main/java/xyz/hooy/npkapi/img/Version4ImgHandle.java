@@ -1,10 +1,10 @@
 package xyz.hooy.npkapi.img;
 
+import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.entity.ImgEntity;
 import xyz.hooy.npkapi.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
-import java.nio.ByteBuffer;
 
 public class Version4ImgHandle extends AbstractImgHandle {
 
@@ -13,7 +13,7 @@ public class Version4ImgHandle extends AbstractImgHandle {
     }
 
     @Override
-    public void createFromBuffer(ByteBuffer buffer) {
+    public void createFromStream(MemoryStream stream) {
         throw new UnsupportedOperationException();
     }
 

@@ -1,16 +1,15 @@
 package xyz.hooy.npkapi.util;
 
+import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
 
-import java.nio.ByteBuffer;
+public final class ColorLinkUtils {
 
-public final class ColorUtils {
-
-    public static void readColor(ByteBuffer buffer, ColorLinkTypes type, byte[] target, int offset) {
+    public static void readColor(MemoryStream stream, ColorLinkTypes type, byte[] target, int offset) {
         byte[] bs;
         if (type == ColorLinkTypes.ARGB_8888) {
             bs = new byte[4];
-            buffer.get(bs);
+            stream.read(bs);
             System.arraycopy(bs, 0, target, offset, bs.length);
             return;
         }
@@ -19,7 +18,7 @@ public final class ColorUtils {
         byte r = 0;
         byte g = 0;
         byte b = 0;
-        buffer.get(bs);
+        stream.read(bs);
         if (type == ColorLinkTypes.ARGB_1555) {
             b = (byte) ((bs[0] & 0x003F) << 3);
             g = (byte) ((((bs[1] & 0x0003) << 3) | ((bs[0] >> 5) & 0x0007)) << 3);
@@ -37,9 +36,9 @@ public final class ColorUtils {
         target[offset + 3] = a;
     }
 
-    public static void writeColor(ByteBuffer buffer, byte[] data, ColorLinkTypes type) {
+    public static void writeColor(MemoryStream stream, byte[] data, ColorLinkTypes type) {
         if (type == ColorLinkTypes.ARGB_8888) {
-            buffer.put(data);
+            stream.write(data);
             return;
         }
         byte a = data[3];
@@ -59,7 +58,7 @@ public final class ColorUtils {
             left = (byte) (g | (b >> 4));
             right = (byte) (a | (r >> 4));
         }
-        buffer.put(left);
-        buffer.put(right);
+        stream.writeByte(left);
+        stream.writeByte(right);
     }
 }

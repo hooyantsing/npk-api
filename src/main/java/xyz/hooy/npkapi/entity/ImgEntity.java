@@ -3,12 +3,12 @@ package xyz.hooy.npkapi.entity;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
+import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.CompressModes;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.img.AbstractImgHandle;
 
 import java.awt.image.BufferedImage;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -51,10 +51,10 @@ public class ImgEntity {
         adjust();
     }
 
-    public void initHandle(ByteBuffer buffer) {
+    public void initHandle(MemoryStream stream) {
         imgHandle = AbstractImgHandle.newInstance(this);
-        if (Objects.nonNull(imgHandle) && Objects.nonNull(buffer)) {
-            imgHandle.createFromBuffer(buffer);
+        if (Objects.nonNull(imgHandle) && Objects.nonNull(stream)) {
+            imgHandle.createFromStream(stream);
         }
     }
 
