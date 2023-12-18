@@ -1,7 +1,6 @@
 package xyz.hooy.npkapi.entity;
 
 import lombok.AccessLevel;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
@@ -15,7 +14,8 @@ import java.util.Objects;
  * @author hooyantsing@gmail.com
  * @since 2023-05-04
  */
-@Data
+@Getter
+@Setter
 public class TextureEntity {
 
     @Getter(AccessLevel.NONE)
@@ -55,7 +55,7 @@ public class TextureEntity {
         if (isOpen()) {
             return image;
         }
-        image = parent.convertToBitmap(this);
+        image = parent.convertToBufferedImage(this);
         return image;
     }
 
@@ -80,5 +80,22 @@ public class TextureEntity {
             textureData = CompressUtils.zlibCompress(textureData);
         }
         length = textureData.length; //不压缩时，按原长度保存
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        TextureEntity that = (TextureEntity) o;
+        return Objects.equals(index, that.index) && Objects.equals(parent, that.parent);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index, parent);
     }
 }

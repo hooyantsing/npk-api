@@ -5,8 +5,8 @@ import lombok.Getter;
 @Getter
 public enum CompressModes {
 
-    ZLIB(0x05),
-    NONE(0x06);
+    NONE(0x05),
+    ZLIB(0x06);
 
     private Integer value;
 

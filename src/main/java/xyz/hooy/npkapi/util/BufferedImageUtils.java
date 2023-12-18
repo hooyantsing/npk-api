@@ -36,21 +36,22 @@ public final class BufferedImageUtils {
 
     public static BufferedImage fromArray(byte[] data, int width, int height, ColorLinkTypes type) {
         ByteBuffer buffer = ByteBuffer.allocate(data.length).order(ByteOrder.LITTLE_ENDIAN);
-        ;
+        buffer.put(data);
+        buffer.flip();
         byte[] bufferedImageData = new byte[width * height * 4];
-        for (int i = 0; i < data.length; i += 4) {
+        for (int i = 0; i < bufferedImageData.length; i += 4) {
             ColorUtils.readColor(buffer, type, bufferedImageData, i);
         }
         return fromArray(bufferedImageData, width, height);
     }
 
     public static BufferedImage fromArray(byte[] data, int width, int height) {
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR_PRE);
-        ByteBuffer buffer = ByteBuffer.allocate(data.length).order(ByteOrder.LITTLE_ENDIAN);
-        ;
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR);
+        ByteBuffer buffer = ByteBuffer.allocate(data.length);
         buffer.put(data);
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
+        buffer.flip();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
                 int argb = buffer.getInt();
                 bufferedImage.setRGB(x, y, argb);
             }

@@ -1,6 +1,7 @@
 package xyz.hooy.npkapi.entity;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import xyz.hooy.npkapi.constant.CompressModes;
 import xyz.hooy.npkapi.constant.ImgVersions;
@@ -13,7 +14,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-@Data
+@Getter
+@Setter
 public class ImgEntity {
 
     private Integer length;
@@ -71,7 +73,7 @@ public class ImgEntity {
         }
     }
 
-    public BufferedImage convertToBitmap(TextureEntity textureEntity) {
+    public BufferedImage convertToBufferedImage(TextureEntity textureEntity) {
         return imgHandle.convertToBufferedImage(textureEntity);
     }
 
@@ -81,5 +83,22 @@ public class ImgEntity {
 
     public String getName() {
         return StringUtils.substringAfterLast(path, ".");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ImgEntity imgEntity = (ImgEntity) o;
+        return Objects.equals(path, imgEntity.path);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(path);
     }
 }
