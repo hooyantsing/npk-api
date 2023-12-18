@@ -5,19 +5,32 @@ import org.apache.commons.lang3.StringUtils;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
+// AutoFlip + AutoResize
 public class MemoryStream {
 
     public enum SeekOrigin {
         Begin, Current, End
     }
 
-    private final ByteBuffer buffer;
+    private ByteBuffer buffer;
 
     private boolean writeFlip = true;
 
-    public MemoryStream(int capacity) {
-        this.buffer = ByteBuffer.allocate(capacity).order(ByteOrder.LITTLE_ENDIAN);
+    private float expansionFactor = 1.5F;
+
+    public MemoryStream() {
+        resize(16);
+    }
+
+    public MemoryStream(int initialCapacity) {
+        resize(initialCapacity);
+    }
+
+    public MemoryStream(int initialCapacity, float expansionFactor) {
+        resize(initialCapacity);
+        this.expansionFactor = expansionFactor;
     }
 
     public void seek(int position, SeekOrigin origin) {
@@ -68,21 +81,25 @@ public class MemoryStream {
     }
 
     public void writeByte(byte b) {
+        autoResize(1);
         autoWriteFlip();
         buffer.put(b);
     }
 
     public void write(byte[] bytes) {
+        autoResize(bytes.length);
         autoWriteFlip();
         buffer.put(bytes);
     }
 
     public void writeInt(int value) {
+        autoResize(4);
         autoWriteFlip();
         buffer.putInt(value);
     }
 
     public void writeLong(long value) {
+        autoResize(8);
         autoWriteFlip();
         buffer.putLong(value);
     }
@@ -111,5 +128,20 @@ public class MemoryStream {
             buffer.flip();
             writeFlip = true;
         }
+    }
+
+    private void autoResize(int length) {
+        if (buffer.remaining() < length) {
+            resize((int) (buffer.capacity() * expansionFactor));
+        }
+    }
+
+    private void resize(int newSize) {
+        ByteBuffer newByteBuffer = ByteBuffer.allocate(newSize).order(ByteOrder.LITTLE_ENDIAN);
+        if (Objects.nonNull(buffer)) {
+            autoReadFlip();
+            newByteBuffer.put(buffer);
+        }
+        buffer = newByteBuffer;
     }
 }

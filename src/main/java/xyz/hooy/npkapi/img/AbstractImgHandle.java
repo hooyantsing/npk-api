@@ -58,9 +58,7 @@ public abstract class AbstractImgHandle {
             textureEntity.adjust();
         }
         imgEntity.setCount(imgEntity.getTextureEntities().size());
-        // TODO: 指定合适的大小
-        MemoryStream stream = new MemoryStream(128);
-        ;
+        MemoryStream stream = new MemoryStream();
         byte[] data = adjustData();
         if (imgEntity.getImgVersion().getValue() > ImgVersions.VERSION_1.getValue()) {
             stream.write(NpkCoder.IMG_FLAG.getBytes(StandardCharsets.UTF_8));

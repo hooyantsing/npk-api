@@ -119,8 +119,7 @@ public class Version2ImgHandle extends AbstractImgHandle {
 
     @Override
     public byte[] adjustData() {
-        // TODO: 指定合适的大小
-        MemoryStream stream = new MemoryStream(128);
+        MemoryStream stream = new MemoryStream();
         for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
             stream.writeInt(textureEntity.getType().getValue());
             if (textureEntity.getType() == ColorLinkTypes.LINK && Objects.nonNull(textureEntity.getTarget())) {
