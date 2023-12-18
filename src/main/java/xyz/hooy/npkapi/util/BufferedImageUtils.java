@@ -24,9 +24,8 @@ public final class BufferedImageUtils {
         int width = bufferedImage.getWidth();
         int height = bufferedImage.getHeight();
         ByteBuffer buffer = ByteBuffer.allocate(width * height * 4).order(ByteOrder.LITTLE_ENDIAN);
-        ;
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
                 int argb = bufferedImage.getRGB(x, y);
                 buffer.putInt(argb);
             }
@@ -47,7 +46,7 @@ public final class BufferedImageUtils {
 
     public static BufferedImage fromArray(byte[] data, int width, int height) {
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR);
-        ByteBuffer buffer = ByteBuffer.allocate(data.length);
+        ByteBuffer buffer = ByteBuffer.allocate(data.length).order(ByteOrder.LITTLE_ENDIAN);
         buffer.put(data);
         buffer.flip();
         for (int y = 0; y < height; y++) {

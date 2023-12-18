@@ -21,19 +21,15 @@ public final class ColorUtils {
         byte b = 0;
         buffer.get(bs);
         if (type == ColorLinkTypes.ARGB_1555) {
-            a = (byte) (bs[1] >> 7);
-            r = (byte) ((bs[1] >> 2) & 0x1f);
-            g = (byte) ((bs[0] >> 5) | ((bs[1] & 3) << 3));
-            b = (byte) (bs[0] & 0x1f);
-            a = (byte) (a * 0xff);
-            r = (byte) ((r << 3) | (r >> 2));
-            g = (byte) ((g << 3) | (g >> 2));
-            b = (byte) ((b << 3) | (b >> 2));
+            b = (byte) ((bs[0] & 0x003F) << 3);
+            g = (byte) ((((bs[1] & 0x0003) << 3) | ((bs[0] >> 5) & 0x0007)) << 3);
+            r = (byte) (((bs[1] & 127) >> 2) << 3);
+            a = (byte) ((bs[1] >> 7) == 0 ? 0 : 255);
         } else if (type == ColorLinkTypes.ARGB_4444) {
-            a = (byte) (bs[1] & 0xf0);
-            r = (byte) ((bs[1] & 0xf) << 4);
-            g = (byte) (bs[0] & 0xf0);
-            b = (byte) ((bs[0] & 0xf) << 4);
+            b = (byte) ((bs[0] & 0x0F) << 4);
+            g = (byte) (((bs[0] & 0xF0) >> 4) << 4);
+            r = (byte) ((bs[1] & 0x0F) << 4);
+            a = (byte) (((bs[1] & 0xF0) >> 4) << 4);
         }
         target[offset] = b;
         target[offset + 1] = g;
