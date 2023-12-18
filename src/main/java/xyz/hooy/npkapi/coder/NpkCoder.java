@@ -1,6 +1,7 @@
 package xyz.hooy.npkapi.coder;
 
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ImgVersions;
@@ -11,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -142,13 +145,74 @@ public class NpkCoder {
         return imgEntities;
     }
 
+    public static void writeNpk(MemoryStream stream, List<ImgEntity> imgEntities) {
+        int position = 52 + imgEntities.size() * 264;
+        int length = 0;
+        for (int i = 0; i < imgEntities.size(); i++) {
+            imgEntities.get(i).adjust();
+            if (i > 0) {
+                if (Objects.nonNull(imgEntities.get(i).getTarget())) {
+                    continue;
+                }
+                position += length;
+            }
+            imgEntities.get(i).setOffset(position);
+            length = imgEntities.get(i).getLength();
+        }
+        imgEntities.forEach(ie -> {
+            if (Objects.nonNull(ie.getTarget())) {
+                ie.setOffset(ie.getTarget().getOffset());
+                ie.setLength(ie.getTarget().getLength());
+            }
+        });
+
+        MemoryStream ms = new MemoryStream();
+        ms.writeString(NPK_FlAG);
+        ms.writeInt(imgEntities.size());
+        for (ImgEntity imgEntity : imgEntities) {
+            ms.writeInt(imgEntity.getOffset());
+            ms.writeInt(imgEntity.getLength());
+            writePath(ms, imgEntity.getPath());
+        }
+        byte[] data = ms.toArray();
+        stream.write(data);
+        stream.write(compileHash(data));
+        for (ImgEntity imgEntity : imgEntities) {
+            if (Objects.isNull(imgEntity.getTarget())) {
+                stream.write(imgEntity.getImgData());
+            }
+        }
+    }
+
     private static String readPath(MemoryStream stream) {
         byte[] data = new byte[256];
-        int i = 0;
-        while (i < 256) {
+        for (int i = 0; i < data.length; i++) {
             data[i] = (byte) (stream.readByte() ^ Key[i]);
-            i++;
         }
         return StringUtils.toEncodedString(data, StandardCharsets.UTF_8).trim();
+    }
+
+    private static void writePath(MemoryStream stream, String str) {
+        byte[] data = new byte[256];
+        byte[] valueBytes = str.getBytes(StandardCharsets.UTF_8);
+        System.arraycopy(valueBytes, 0, data, 0, data.length);
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) (data[i] ^ Key[i]);
+        }
+        stream.write(data);
+    }
+
+    private static byte[] compileHash(byte[] data) {
+        if (data.length == 0) {
+            return new byte[0];
+        }
+        try {
+            byte[] specimenBytes = ArrayUtils.subarray(data, 0, data.length / 17 * 17);
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            messageDigest.update(specimenBytes);
+            return messageDigest.digest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

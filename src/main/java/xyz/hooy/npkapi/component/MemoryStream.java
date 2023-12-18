@@ -68,15 +68,10 @@ public class MemoryStream {
         return readString(16);
     }
 
-    public String readPath() {
-        autoReadFlip();
-        return readString(256);
-    }
-
     public String readString(int length) {
         autoReadFlip();
         byte[] bytes = new byte[length];
-        read(bytes);
+        buffer.get(bytes);
         return StringUtils.toEncodedString(bytes, StandardCharsets.UTF_8).trim();
     }
 
@@ -102,6 +97,13 @@ public class MemoryStream {
         autoResize(8);
         autoWriteFlip();
         buffer.putLong(value);
+    }
+
+    public void writeString(String value) {
+        byte[] bytes = value.getBytes();
+        autoResize(bytes.length);
+        autoWriteFlip();
+        buffer.put(bytes);
     }
 
     public int length() {
