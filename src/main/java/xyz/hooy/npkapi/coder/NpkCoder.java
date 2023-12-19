@@ -216,7 +216,7 @@ public class NpkCoder {
     private static void writePath(MemoryStream stream, String str) {
         byte[] data = new byte[256];
         byte[] valueBytes = str.getBytes(StandardCharsets.UTF_8);
-        System.arraycopy(valueBytes, 0, data, 0, data.length);
+        System.arraycopy(valueBytes, 0, data, 0, valueBytes.length);
         for (int i = 0; i < data.length; i++) {
             data[i] = (byte) (data[i] ^ Key[i]);
         }

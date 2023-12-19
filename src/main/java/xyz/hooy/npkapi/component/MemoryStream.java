@@ -109,7 +109,10 @@ public class MemoryStream {
     }
 
     public int length() {
-        return buffer.array().length;
+        autoReadFlip();
+        ByteBuffer duplicate = buffer.duplicate();
+        duplicate.position(0);
+        return duplicate.remaining();
     }
 
     public int position() {
@@ -117,7 +120,13 @@ public class MemoryStream {
     }
 
     public byte[] toArray() {
-        return buffer.array();
+        autoReadFlip();
+        ByteBuffer duplicate = buffer.duplicate();
+        duplicate.position(0);
+        int length = duplicate.remaining();
+        byte[] bytes = new byte[length];
+        duplicate.get(bytes);
+        return bytes;
     }
 
     public void autoReadFlip() {
@@ -135,6 +144,7 @@ public class MemoryStream {
     }
 
     private void autoResize(int length) {
+        autoWriteFlip();
         if (buffer.remaining() < length) {
             resize((int) (buffer.capacity() * expansionFactor));
             autoResize(length);
@@ -146,6 +156,7 @@ public class MemoryStream {
         if (Objects.nonNull(buffer)) {
             autoReadFlip();
             newByteBuffer.put(buffer);
+            writeFlip = true;
         }
         buffer = newByteBuffer;
     }
