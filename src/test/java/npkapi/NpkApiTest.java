@@ -18,7 +18,7 @@ public class NpkApiTest {
     @Test
     @Ignore
     void load() {
-        List<ImgEntity> imgEntities = NpkCoder.load(false, "/Users/hooy/Project/NpkApi/input/sprite_map_act2_stoneimage.NPK");
+        List<ImgEntity> imgEntities = NpkCoder.load(false, "/Users/hooy/Project/NpkApi/input/sprite_map_npc_chn_knight.NPK");
         for (ImgEntity imgEntity : imgEntities) {
             List<TextureEntity> textureEntities = imgEntity.getTextureEntities();
             for (TextureEntity textureEntity : textureEntities) {

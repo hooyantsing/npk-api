@@ -1,8 +1,6 @@
 package xyz.hooy.npkapi.coder;
 
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.entity.ImgEntity;
@@ -51,7 +49,7 @@ public class NpkCoder {
     public static List<ImgEntity> readNpk(MemoryStream stream, String file) {
         List<ImgEntity> imgEntities = new ArrayList<>();
         String flag = stream.readString();
-        if (StringUtils.equals(NPK_FlAG, flag)) {
+        if (NPK_FlAG.equals(flag)) {
             // 当文件是NPK时
             stream.seek(0, MemoryStream.SeekOrigin.Begin);
             imgEntities.addAll(readInfo(stream));
@@ -61,7 +59,7 @@ public class NpkCoder {
         } else {
             ImgEntity imgEntity = new ImgEntity();
             if (Objects.nonNull(file)) {
-                String suffix = StringUtils.substringAfterLast(file, ".");
+                String suffix = file.substring(file.lastIndexOf(".") + 1);
                 imgEntity.setPath(suffix);
             }
             imgEntities.add(imgEntity);
@@ -76,7 +74,7 @@ public class NpkCoder {
     public static List<ImgEntity> readInfo(MemoryStream stream) {
         String flag = stream.readString();
         List<ImgEntity> imgEntities = new ArrayList<>();
-        if (!StringUtils.equals(NPK_FlAG, flag)) {
+        if (!NPK_FlAG.equals(flag)) {
             return imgEntities;
         }
         int count = stream.readInt();
@@ -93,13 +91,13 @@ public class NpkCoder {
     public static void readImg(MemoryStream stream, ImgEntity imgEntity, long length) {
         stream.seek(imgEntity.getOffset(), MemoryStream.SeekOrigin.Begin);
         String albumFlag = stream.readString();
-        if (StringUtils.equals(IMG_FLAG, albumFlag)) {
+        if (IMG_FLAG.equals(albumFlag)) {
             imgEntity.setIndexLength(stream.readLong());
             imgEntity.setImgVersion(ImgVersions.valueOf(stream.readInt()));
             imgEntity.setCount(stream.readInt());
             imgEntity.initHandle(stream);
         } else {
-            if (StringUtils.equals(IMAGE_FLAG, albumFlag)) {
+            if (IMAGE_FLAG.equals(albumFlag)) {
                 imgEntity.setImgVersion(ImgVersions.VERSION_1);
             } else {
                 if (length < 0) {
@@ -107,7 +105,7 @@ public class NpkCoder {
                 }
                 imgEntity.setImgVersion(ImgVersions.OTHER);
                 stream.seek(imgEntity.getOffset(), MemoryStream.SeekOrigin.Begin);
-                if (StringUtils.endsWith(StringUtils.lowerCase(imgEntity.getName()), "ogg")) {
+                if (imgEntity.getName().toLowerCase().endsWith("ogg")) {
                     imgEntity.setImgVersion(ImgVersions.OTHER);
                     imgEntity.setIndexLength(length - stream.position());
                 }
@@ -206,7 +204,7 @@ public class NpkCoder {
         for (int i = 0; i < data.length; i++) {
             data[i] = (byte) (stream.readByte() ^ Key[i]);
         }
-        return StringUtils.toEncodedString(data, StandardCharsets.UTF_8).trim();
+        return new String(data).trim();
     }
 
     private static void writePath(MemoryStream stream, String str) {
@@ -224,9 +222,10 @@ public class NpkCoder {
         if (data.length == 0) {
             return new byte[0];
         }
-            byte[] specimenBytes = ArrayUtils.subarray(data, 0, data.length / 17 * 17);
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(specimenBytes);
-            return messageDigest.digest();
+        byte[] specimenBytes = new byte[data.length / 17 * 17];
+        System.arraycopy(data, 0, specimenBytes, 0, specimenBytes.length);
+        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+        messageDigest.update(specimenBytes);
+        return messageDigest.digest();
     }
 }

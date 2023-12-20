@@ -2,7 +2,6 @@ package xyz.hooy.npkapi.entity;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.CompressModes;
 import xyz.hooy.npkapi.constant.ImgVersions;
@@ -82,7 +81,7 @@ public class ImgEntity {
     }
 
     public String getName() {
-        return StringUtils.substringAfterLast(path, ".");
+        return path.substring(path.indexOf("." + 1));
     }
 
     @Override

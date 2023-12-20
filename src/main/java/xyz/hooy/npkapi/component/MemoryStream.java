@@ -1,10 +1,8 @@
 package xyz.hooy.npkapi.component;
 
-import org.apache.commons.lang3.StringUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public class MemoryStream {
@@ -71,7 +69,7 @@ public class MemoryStream {
         readFlip();
         byte[] bytes = new byte[length];
         buffer.get(bytes);
-        return StringUtils.toEncodedString(bytes, StandardCharsets.UTF_8);
+        return new String(bytes);
     }
 
     public void writeByte(byte b) {
