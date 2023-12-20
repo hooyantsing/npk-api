@@ -24,9 +24,9 @@ import java.util.stream.Stream;
 
 public class NpkCoder {
 
-    public static final String NPK_FlAG = "NeoplePack_Bill";
+    public static final String NPK_FlAG = "NeoplePack_Bill\0";
 
-    public static final String IMG_FLAG = "Neople Img File";
+    public static final String IMG_FLAG = "Neople Img File\0";
 
     public static final String IMAGE_FLAG = "Neople Image File";
 

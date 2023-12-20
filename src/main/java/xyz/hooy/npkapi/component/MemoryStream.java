@@ -74,7 +74,7 @@ public class MemoryStream {
         autoReadFlip();
         byte[] bytes = new byte[length];
         buffer.get(bytes);
-        return StringUtils.toEncodedString(bytes, StandardCharsets.UTF_8).trim();
+        return StringUtils.toEncodedString(bytes, StandardCharsets.UTF_8);
     }
 
     public void writeByte(byte b) {
