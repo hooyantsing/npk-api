@@ -1,7 +1,8 @@
 package xyz.hooy.npkapi.util;
 
+import lombok.SneakyThrows;
+
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
@@ -14,6 +15,7 @@ public final class CompressUtils {
     /**
      * zlib 解压
      */
+    @SneakyThrows
     public static byte[] zlibDecompress(byte[] data) {
         Inflater inflater = new Inflater();
         inflater.reset();
@@ -26,14 +28,13 @@ public final class CompressUtils {
             }
             inflater.end();
             return o.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 
     /**
      * zlib 压缩
      */
+    @SneakyThrows
     public static byte[] zlibCompress(byte[] data) {
         Deflater deflater = new Deflater();
         deflater.reset();
@@ -47,8 +48,6 @@ public final class CompressUtils {
             }
             outputStream.close();
             return outputStream.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 }

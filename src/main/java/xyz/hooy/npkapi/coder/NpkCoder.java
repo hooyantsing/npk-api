@@ -16,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -223,17 +222,14 @@ public class NpkCoder {
         stream.write(data);
     }
 
+    @SneakyThrows
     private static byte[] compileHash(byte[] data) {
         if (data.length == 0) {
             return new byte[0];
         }
-        try {
             byte[] specimenBytes = ArrayUtils.subarray(data, 0, data.length / 17 * 17);
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
             messageDigest.update(specimenBytes);
             return messageDigest.digest();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

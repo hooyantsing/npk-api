@@ -48,12 +48,9 @@ public final class ColorLinkUtils {
         byte left = 0;
         byte right = 0;
         if (type == ColorLinkTypes.ARGB_1555) {
-            a = (byte) (a >> 7);
-            r = (byte) (r >> 3);
-            g = (byte) (g >> 3);
-            b = (byte) (b >> 3);
-            left = (byte) (((g & 7) << 5) | b);
-            right = (byte) ((a << 7) | (r << 2) | (g >> 3));
+            int argb1555 = ((a >> 7) << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+            left = (byte) (argb1555 & 0xFF);
+            right = (byte) ((argb1555 >> 8) & 0xFF);
         } else if (type == ColorLinkTypes.ARGB_4444) {
             left = (byte) (g | (b >> 4));
             right = (byte) (a | (r >> 4));
