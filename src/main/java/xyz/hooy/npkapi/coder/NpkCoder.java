@@ -7,7 +7,6 @@ import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.entity.ImgEntity;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -158,17 +157,17 @@ public class NpkCoder {
     @SneakyThrows
     public static List<ImgEntity> load(boolean onlyPath, String path) {
         List<ImgEntity> imgEntities = new ArrayList<>();
-        File file = new File(path);
-        if (file.isDirectory()) {
-            try (Stream<Path> walk = Files.walk(Paths.get(path))) {
+        Path file = Paths.get(path);
+        if (Files.isDirectory(file)) {
+            try (Stream<Path> walk = Files.walk(file)) {
                 String[] array = walk.filter(Files::isRegularFile).map(Path::toString).toArray(String[]::new);
                 return load(onlyPath, array);
             }
         }
-        if (!file.isFile()) {
+        if (!Files.isRegularFile(file)) {
             return imgEntities;
         }
-        byte[] fileBytes = Files.readAllBytes(Paths.get(path));
+        byte[] fileBytes = Files.readAllBytes(file);
         MemoryStream stream = new MemoryStream(fileBytes.length);
         stream.write(fileBytes);
         if (onlyPath) {
@@ -187,11 +186,11 @@ public class NpkCoder {
 
     @SneakyThrows
     public static void save(String path, List<ImgEntity> imgEntities) {
-        File file = new File(path);
-        if (!file.isFile()) {
-            file.createNewFile();
+        Path file = Paths.get(path);
+        if (!Files.isRegularFile(file)) {
+            Files.createFile(file);
         }
-        try (FileOutputStream fileOutputStream = new FileOutputStream(file);
+        try (FileOutputStream fileOutputStream = new FileOutputStream(file.toFile());
              FileChannel fileChannel = fileOutputStream.getChannel()) {
             MemoryStream memoryStream = new MemoryStream();
             writeNpk(memoryStream, imgEntities);
@@ -201,7 +200,6 @@ public class NpkCoder {
             }
         }
     }
-
 
     private static String readPath(MemoryStream stream) {
         byte[] data = new byte[256];
