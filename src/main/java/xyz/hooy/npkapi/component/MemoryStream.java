@@ -1,6 +1,5 @@
 package xyz.hooy.npkapi.component;
 
-import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.ByteBuffer;
@@ -8,17 +7,15 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-// AutoFlip + AutoResize
 public class MemoryStream {
 
     public enum SeekOrigin {
         Begin, Current, End
     }
 
-    @Getter
     private ByteBuffer buffer;
 
-    private boolean writeFlip = true;
+    private boolean onlyRead = false;
 
     private float expansionFactor = 1.5F;
 
@@ -46,32 +43,32 @@ public class MemoryStream {
     }
 
     public void read(byte[] bytes) {
-        autoReadFlip();
+        readFlip();
         buffer.get(bytes);
     }
 
     public byte readByte() {
-        autoReadFlip();
+        readFlip();
         return buffer.get();
     }
 
     public int readInt() {
-        autoReadFlip();
+        readFlip();
         return buffer.getInt();
     }
 
     public long readLong() {
-        autoReadFlip();
+        readFlip();
         return buffer.getLong();
     }
 
     public String readString() {
-        autoReadFlip();
+        readFlip();
         return readString(16);
     }
 
     public String readString(int length) {
-        autoReadFlip();
+        readFlip();
         byte[] bytes = new byte[length];
         buffer.get(bytes);
         return StringUtils.toEncodedString(bytes, StandardCharsets.UTF_8);
@@ -79,49 +76,40 @@ public class MemoryStream {
 
     public void writeByte(byte b) {
         autoResize(1);
-        autoWriteFlip();
         buffer.put(b);
     }
 
     public void write(byte[] bytes) {
         autoResize(bytes.length);
-        autoWriteFlip();
         buffer.put(bytes);
     }
 
     public void writeInt(int value) {
         autoResize(4);
-        autoWriteFlip();
         buffer.putInt(value);
     }
 
     public void writeLong(long value) {
         autoResize(8);
-        autoWriteFlip();
         buffer.putLong(value);
     }
 
     public void writeString(String value) {
         byte[] bytes = value.getBytes();
         autoResize(bytes.length);
-        autoWriteFlip();
         buffer.put(bytes);
     }
 
     public int length() {
-        autoReadFlip();
         ByteBuffer duplicate = buffer.duplicate();
+        duplicate.flip();
         duplicate.position(0);
         return duplicate.remaining();
     }
 
-    public int position() {
-        return buffer.position();
-    }
-
     public byte[] toArray() {
-        autoReadFlip();
         ByteBuffer duplicate = buffer.duplicate();
+        duplicate.flip();
         duplicate.position(0);
         int length = duplicate.remaining();
         byte[] bytes = new byte[length];
@@ -129,22 +117,27 @@ public class MemoryStream {
         return bytes;
     }
 
-    public void autoReadFlip() {
-        if (writeFlip) {
-            buffer.flip();
-            writeFlip = false;
-        }
+    public int position() {
+        return buffer.position();
     }
 
-    public void autoWriteFlip() {
-        if (!writeFlip) {
+    public ByteBuffer getOnlyReadBuffer() {
+        readFlip();
+        return buffer;
+    }
+
+    public ByteBuffer getWriteableBuffer() {
+        return buffer;
+    }
+
+    private void readFlip() {
+        if (!onlyRead) {
             buffer.flip();
-            writeFlip = true;
+            onlyRead = true;
         }
     }
 
     private void autoResize(int length) {
-        autoWriteFlip();
         if (buffer.remaining() < length) {
             resize((int) (buffer.capacity() * expansionFactor));
             autoResize(length);
@@ -154,9 +147,8 @@ public class MemoryStream {
     private void resize(int newSize) {
         ByteBuffer newByteBuffer = ByteBuffer.allocate(newSize).order(ByteOrder.LITTLE_ENDIAN);
         if (Objects.nonNull(buffer)) {
-            autoReadFlip();
+            buffer.flip();
             newByteBuffer.put(buffer);
-            writeFlip = true;
         }
         buffer = newByteBuffer;
     }

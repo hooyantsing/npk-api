@@ -46,7 +46,7 @@ public final class CompressUtils {
                 int count = deflater.deflate(buffer);
                 outputStream.write(buffer, 0, count);
             }
-            outputStream.close();
+            deflater.end();
             return outputStream.toByteArray();
         }
     }

@@ -195,8 +195,7 @@ public class NpkCoder {
              FileChannel fileChannel = fileOutputStream.getChannel()) {
             MemoryStream memoryStream = new MemoryStream();
             writeNpk(memoryStream, imgEntities);
-            memoryStream.autoReadFlip();
-            ByteBuffer buffer = memoryStream.getBuffer();
+            ByteBuffer buffer = memoryStream.getOnlyReadBuffer();
             while (buffer.hasRemaining()) {
                 fileChannel.write(buffer);
             }
