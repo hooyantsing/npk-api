@@ -14,21 +14,22 @@ public final class ColorLinkUtils {
             return;
         }
         bs = new byte[2];
-        byte a = 0;
-        byte r = 0;
-        byte g = 0;
-        byte b = 0;
+        byte a, r, g, b;
         stream.read(bs);
         if (type == ColorLinkTypes.ARGB_1555) {
-            b = (byte) ((bs[0] & 0x003F) << 3);
-            g = (byte) ((((bs[1] & 0x0003) << 3) | ((bs[0] >> 5) & 0x0007)) << 3);
-            r = (byte) (((bs[1] & 127) >> 2) << 3);
-            a = (byte) ((bs[1] >> 7) == 0 ? 0 : 255);
+            short argb1555 = (short) ((bs[1] & 0xFF) << 8 | (bs[0] & 0xFF));
+            a = (byte) ((argb1555 >> 15 & 0x1) * 255);
+            r = (byte) ((argb1555 >> 10 & 0x1F) << 3);
+            g = (byte) ((argb1555 >> 5 & 0x1F) << 3);
+            b = (byte) ((argb1555 & 0x1F) << 3);
         } else if (type == ColorLinkTypes.ARGB_4444) {
-            b = (byte) ((bs[0] & 0x0F) << 4);
-            g = (byte) (((bs[0] & 0xF0) >> 4) << 4);
-            r = (byte) ((bs[1] & 0x0F) << 4);
-            a = (byte) (((bs[1] & 0xF0) >> 4) << 4);
+            short argb4444 = (short) ((bs[1] & 0xFF) << 8 | (bs[0] & 0xFF));
+            a = (byte) (((argb4444 >> 12) & 0xF) << 4);
+            r = (byte) (((argb4444 >> 8) & 0xF) << 4);
+            g = (byte) (((argb4444 >> 4) & 0xF) << 4);
+            b = (byte) ((argb4444 & 0xF) << 4);
+        } else {
+            throw new UnsupportedOperationException(String.format("The current color is not supported %s", type));
         }
         target[offset] = b;
         target[offset + 1] = g;
@@ -45,15 +46,16 @@ public final class ColorLinkUtils {
         byte r = data[2];
         byte g = data[1];
         byte b = data[0];
-        byte left = 0;
-        byte right = 0;
+        byte left, right;
         if (type == ColorLinkTypes.ARGB_1555) {
-            int argb1555 = ((a >> 7) << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+            short argb1555 = (short) (((a >> 7 & 0xFF) << 15) | ((r >> 3 & 0xFF) << 10) | ((g >> 3 & 0xFF) << 5) | (b >> 3 & 0xFF));
             left = (byte) (argb1555 & 0xFF);
-            right = (byte) ((argb1555 >> 8) & 0xFF);
+            right = (byte) (argb1555 >> 8 & 0xFF);
         } else if (type == ColorLinkTypes.ARGB_4444) {
-            left = (byte) (g | (b >> 4));
-            right = (byte) (a | (r >> 4));
+            left = (byte) (g | (b >> 4 & 0xFF));
+            right = (byte) (a | (r >> 4 & 0xFF));
+        } else {
+            throw new UnsupportedOperationException(String.format("The current color is not supported %s", type));
         }
         stream.writeByte(left);
         stream.writeByte(right);
