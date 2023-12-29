@@ -6,7 +6,7 @@
 
     <groupId>xyz.hooy</groupId>
     <artifactId>npk-api</artifactId>
-    <version>dev-8.0.0</version>
+    <version>8-dev-1.0.0</version>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

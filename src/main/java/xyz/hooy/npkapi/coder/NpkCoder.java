@@ -114,6 +114,41 @@ public class NpkCoder {
         }
     }
 
+    public static void readImg(MemoryStream stream, ImgEntity imgEntity) {
+        readImg(stream, imgEntity, -1);
+    }
+
+    public static ImgEntity readImg(MemoryStream stream, String path) {
+        return readImg(stream, path, -1);
+    }
+
+
+    public static ImgEntity readImg(MemoryStream stream, String path, long length) {
+        ImgEntity imgEntity = new ImgEntity();
+        imgEntity.setPath(path);
+        readImg(stream, imgEntity, length);
+        return imgEntity;
+    }
+
+
+    public static void readImg(byte[] data, ImgEntity imgEntity) {
+        readImg(data, imgEntity, -1);
+    }
+
+    public static ImgEntity readImg(byte[] data, String path) {
+        return readImg(data, path, -1);
+    }
+
+    public static void readImg(byte[] data, ImgEntity imgEntity, long length) {
+        MemoryStream ms = new MemoryStream(data.length);
+        readImg(ms, imgEntity, length);
+    }
+
+    public static ImgEntity readImg(byte[] data, String path, long length) {
+        MemoryStream ms = new MemoryStream(data.length);
+        return readImg(ms, path, length);
+    }
+
     public static void writeNpk(MemoryStream stream, List<ImgEntity> imgEntities) {
         int position = 52 + imgEntities.size() * 264;
         int length = 0;
@@ -150,6 +185,14 @@ public class NpkCoder {
                 stream.write(imgEntity.getImgData());
             }
         }
+    }
+
+    public static List<ImgEntity> load(String file) {
+        return load(false, file);
+    }
+
+    public static List<ImgEntity> load(String[] files) {
+        return load(false, files);
     }
 
     @SneakyThrows
