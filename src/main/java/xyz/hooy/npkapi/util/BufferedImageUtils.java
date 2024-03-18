@@ -1,5 +1,6 @@
 package xyz.hooy.npkapi.util;
 
+import xyz.hooy.npkapi.component.IIOMetadataExpansion;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
 import xyz.hooy.npkapi.constant.SupportedImages;
@@ -101,14 +102,14 @@ public final class BufferedImageUtils {
         ImageWriter writer = writers.next();
         try (ImageOutputStream output = ImageIO.createImageOutputStream(imageFile)) {
             writer.setOutput(output);
-            ImageWriteParam writeParam = writer.getDefaultWriteParam();
-            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            writeParam.setCompressionQuality(1);
             if (writer.canWriteSequence()) {
+                ImageWriteParam defaultWriteParam = writer.getDefaultWriteParam();
+                IIOMetadata defaultImageMetadata = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(bufferedImages.get(0)), defaultWriteParam);
+                defaultImageMetadata = new IIOMetadataExpansion(defaultImageMetadata).setDisposalMethod(IIOMetadataExpansion.DisposalMethod.RESTORE_TO_BACKGROUND_COLOR).apply();
+                writer.prepareWriteSequence(defaultImageMetadata);
                 for (BufferedImage bufferedImage : bufferedImages) {
-                    IIOMetadata metadata = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(bufferedImage), writeParam);
-                    IIOImage iioImage = new IIOImage(bufferedImage, null, metadata);
-                    writer.writeToSequence(iioImage, writeParam);
+                    IIOImage iioImage = new IIOImage(bufferedImage, null, defaultImageMetadata);
+                    writer.writeToSequence(iioImage, defaultWriteParam);
                 }
                 writer.endWriteSequence();
             } else {

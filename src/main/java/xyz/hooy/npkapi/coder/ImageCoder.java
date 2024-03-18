@@ -5,7 +5,6 @@ import xyz.hooy.npkapi.constant.SupportedImages;
 import xyz.hooy.npkapi.entity.ImgEntity;
 import xyz.hooy.npkapi.entity.TextureEntity;
 import xyz.hooy.npkapi.util.BufferedImageUtils;
-import xyz.hooy.npkapi.util.StringUtils;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -45,13 +44,15 @@ public final class ImageCoder {
     @SneakyThrows
     public static void save(String path, TextureEntity textureEntity, SupportedImages supportedImage) {
         BufferedImage bufferedImage = textureEntity.getPicture();
-        String imageName = StringUtils.hyphenToPascalCase(textureEntity.getParent().getPath(), "/") + "_" + textureEntity.getIndex();
+        String pathName = textureEntity.getParent().getPath();
+        String imageName = pathName.substring(0, pathName.indexOf('.')).replace("/", "_") + "_" + textureEntity.getIndex() + "." + supportedImage.name().toLowerCase();
         BufferedImageUtils.writeImage(Paths.get(path, imageName).toString(), bufferedImage, supportedImage);
     }
 
     private static void saveGif(String path, ImgEntity imgEntity) throws IOException {
         List<BufferedImage> bufferedImages = imgEntity.getTextureEntities().stream().map(TextureEntity::getPicture).collect(Collectors.toList());
-        String imageName = StringUtils.hyphenToPascalCase(imgEntity.getPath(), "/");
+        String pathName = imgEntity.getPath();
+        String imageName = pathName.substring(0, pathName.indexOf('.')).replace("/", "_") + "." + SupportedImages.GIF.name().toLowerCase();
         BufferedImageUtils.writeImage(Paths.get(path, imageName).toString(), bufferedImages, SupportedImages.GIF);
     }
 }
