@@ -12,6 +12,9 @@ import java.util.zip.Inflater;
  */
 public final class CompressUtils {
 
+    private CompressUtils() {
+    }
+
     /**
      * zlib 解压
      */

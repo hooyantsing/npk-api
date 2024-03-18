@@ -18,7 +18,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-public class NpkCoder {
+public final class NpkCoder {
+
+    private NpkCoder() {
+    }
 
     public static final String NPK_FlAG = "NeoplePack_Bill\0";
 

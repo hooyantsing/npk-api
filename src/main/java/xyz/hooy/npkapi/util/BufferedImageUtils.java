@@ -15,6 +15,9 @@ import java.util.*;
 
 public final class BufferedImageUtils {
 
+    private BufferedImageUtils() {
+    }
+
     public static byte[] toArray(BufferedImage bufferedImage, ColorLinkTypes type) {
         byte[] data = toArray(bufferedImage);
         MemoryStream stream = new MemoryStream(data.length);

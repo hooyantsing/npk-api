@@ -33,21 +33,25 @@ public class ImgEntity {
         this.imgHandle = AbstractImgHandle.newInstance(this);
     }
 
-    public ImgEntity(BufferedImage[] array) {
+    public ImgEntity(List<BufferedImage> bufferedImages) {
         this();
-        TextureEntity[] textures = new TextureEntity[array.length];
-        for (int i = 0; i < array.length; i++) {
-            textures[i] = new TextureEntity(this);
-            textures[i].setIndex(i);
-            textures[i].setPicture(array[i]);
-            textures[i].setCompress(CompressModes.ZLIB);
-            textures[i].setX(array[i].getWidth());
-            textures[i].setY(array[i].getHeight());
-            textures[i].setFrameWidth(array[i].getWidth());
-            textures[i].setFrameHeight(array[i].getHeight());
+        for (int i = 0; i < bufferedImages.size(); i++) {
+            BufferedImage bufferedImage = bufferedImages.get(i);
+            TextureEntity textureEntity = new TextureEntity(this);
+            textureEntity.setIndex(i);
+            textureEntity.setPicture(bufferedImage);
+            textureEntity.setCompress(CompressModes.ZLIB);
+            textureEntity.setX(bufferedImage.getWidth());
+            textureEntity.setY(bufferedImage.getHeight());
+            textureEntity.setFrameWidth(bufferedImage.getWidth());
+            textureEntity.setFrameHeight(bufferedImage.getHeight());
+            textureEntities.add(textureEntity);
         }
-        textureEntities.addAll(Arrays.asList(textures));
         adjust();
+    }
+
+    public ImgEntity(BufferedImage[] array) {
+        this(Arrays.asList(array));
     }
 
     public void initHandle(MemoryStream stream) {

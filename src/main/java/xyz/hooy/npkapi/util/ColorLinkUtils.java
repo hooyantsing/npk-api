@@ -5,6 +5,9 @@ import xyz.hooy.npkapi.constant.ColorLinkTypes;
 
 public final class ColorLinkUtils {
 
+    private ColorLinkUtils() {
+    }
+
     public static void readColor(MemoryStream stream, ColorLinkTypes type, byte[] target, int offset) {
         byte[] bs;
         if (type == ColorLinkTypes.ARGB_8888) {
