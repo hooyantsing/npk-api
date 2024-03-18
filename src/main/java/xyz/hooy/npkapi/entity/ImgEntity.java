@@ -35,24 +35,24 @@ public class ImgEntity {
 
     public ImgEntity(BufferedImage[] array) {
         this();
-        TextureEntity[] sprites = new TextureEntity[array.length];
+        TextureEntity[] textures = new TextureEntity[array.length];
         for (int i = 0; i < array.length; i++) {
-            sprites[i] = new TextureEntity(this);
-            sprites[i].setIndex(i);
-            sprites[i].setPicture(array[i]);
-            sprites[i].setCompress(CompressModes.ZLIB);
-            sprites[i].setX(array[i].getWidth());
-            sprites[i].setY(array[i].getHeight());
-            sprites[i].setFrameWidth(array[i].getWidth());
-            sprites[i].setFrameHeight(array[i].getHeight());
+            textures[i] = new TextureEntity(this);
+            textures[i].setIndex(i);
+            textures[i].setPicture(array[i]);
+            textures[i].setCompress(CompressModes.ZLIB);
+            textures[i].setX(array[i].getWidth());
+            textures[i].setY(array[i].getHeight());
+            textures[i].setFrameWidth(array[i].getWidth());
+            textures[i].setFrameHeight(array[i].getHeight());
         }
-        textureEntities.addAll(Arrays.asList(sprites));
+        textureEntities.addAll(Arrays.asList(textures));
         adjust();
     }
 
     public void initHandle(MemoryStream stream) {
         imgHandle = AbstractImgHandle.newInstance(this);
-        if (Objects.nonNull(imgHandle) && Objects.nonNull(stream)) {
+        if (Objects.nonNull(stream)) {
             imgHandle.createFromStream(stream);
         }
     }

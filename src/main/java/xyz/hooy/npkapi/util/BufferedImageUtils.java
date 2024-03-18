@@ -2,8 +2,16 @@ package xyz.hooy.npkapi.util;
 
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
+import xyz.hooy.npkapi.constant.SupportedImages;
 
+import javax.imageio.*;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public final class BufferedImageUtils {
 
@@ -52,5 +60,61 @@ public final class BufferedImageUtils {
             }
         }
         return bufferedImage;
+    }
+
+    public static List<BufferedImage> readImage(String imagePath) throws IOException {
+        ImageReader reader = null;
+        try (ImageInputStream in = ImageIO.createImageInputStream(new File(imagePath))) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
+            if (!readers.hasNext()) {
+                throw new IOException("No suitable reader found for image file!");
+            }
+            reader = readers.next();
+            reader.setInput(in);
+            int framesLength = reader.getNumImages(true);
+            List<BufferedImage> bufferedImages = new ArrayList<>(framesLength);
+            for (int i = 0; i < framesLength; i++) {
+                BufferedImage frame = reader.read(i);
+                bufferedImages.add(frame);
+            }
+            return bufferedImages;
+        } finally {
+            if (Objects.nonNull(reader)) {
+                reader.dispose();
+            }
+        }
+    }
+
+    public static void writeImage(String imagePath, BufferedImage bufferedImage, SupportedImages supportedImage) throws IOException {
+        writeImage(imagePath, Collections.singletonList(bufferedImage), supportedImage);
+    }
+
+    public static void writeImage(String imagePath, List<BufferedImage> bufferedImages, SupportedImages supportedImage) throws IOException {
+        File imageFile = new File(imagePath);
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(supportedImage.name());
+        if (!writers.hasNext()) {
+            throw new IOException("No " + supportedImage + " writer found!");
+        }
+        ImageWriter writer = writers.next();
+        try (ImageOutputStream output = ImageIO.createImageOutputStream(imageFile)) {
+            writer.setOutput(output);
+            ImageWriteParam writeParam = writer.getDefaultWriteParam();
+            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            writeParam.setCompressionQuality(1);
+            if (writer.canWriteSequence()) {
+                for (BufferedImage bufferedImage : bufferedImages) {
+                    IIOMetadata metadata = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(bufferedImage), writeParam);
+                    IIOImage iioImage = new IIOImage(bufferedImage, null, metadata);
+                    writer.writeToSequence(iioImage, writeParam);
+                }
+                writer.endWriteSequence();
+            } else {
+                writer.write(bufferedImages.get(0));
+            }
+        } finally {
+            if (Objects.nonNull(writer)) {
+                writer.dispose();
+            }
+        }
     }
 }
