@@ -19,7 +19,7 @@ public class NpkCoder implements Coder {
         for (String loadPath : loadPaths) {
             List<ImgEntity> load = NpkUtils.load(loadPath);
             imgEntities.addAll(load);
-            log.info("Loaded file: {}", loadPath);
+            log.info("Loaded file: {}.", loadPath);
         }
         return imgEntities;
     }
@@ -27,10 +27,10 @@ public class NpkCoder implements Coder {
     @Override
     public void save(String savePath, List<ImgEntity> imgEntities) throws IOException {
         try {
-            String npkName = UUID.randomUUID() + ".npk";
+            String npkName = UUID.randomUUID() + "." + getSuffix();
             String savedName = Paths.get(savePath, npkName).toString();
             NpkUtils.save(savedName, imgEntities);
-            log.info("Saved file: {}", savedName);
+            log.info("Saved file: {}.", savedName);
         } catch (NoSuchAlgorithmException e) {
             throw new IOException(e);
         }

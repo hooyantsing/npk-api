@@ -24,7 +24,7 @@ public class PngCoder implements Coder {
             BufferedImage bufferedImage = BufferedImageUtils.readImage(loadPath).get(0);
             List<BufferedImage> bufferedImages = imgBufferedImages.computeIfAbsent(imgPath, img -> new ArrayList<>());
             bufferedImages.add(bufferedImage);
-            log.info("Loaded file: {}", loadPath);
+            log.info("Loaded file: {}.", loadPath);
         }
         List<ImgEntity> imgs = new ArrayList<>();
         for (Map.Entry<String, List<BufferedImage>> imgBufferedImage : imgBufferedImages.entrySet()) {
@@ -43,10 +43,10 @@ public class PngCoder implements Coder {
             for (TextureEntity textureEntity : textureEntities) {
                 BufferedImage bufferedImage = textureEntity.getPicture();
                 String pathName = textureEntity.getParent().getPath();
-                String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + "-" + textureEntity.getIndex() + ".png";
+                String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + "-" + textureEntity.getIndex() + "." + getSuffix();
                 String savedPath = Paths.get(savePath, imageName).toString();
                 BufferedImageUtils.writeImage(savedPath, bufferedImage, getSuffix());
-                log.info("Saved file: {}", savedPath);
+                log.info("Saved file: {}.", savedPath);
             }
         }
     }

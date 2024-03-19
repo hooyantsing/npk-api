@@ -8,10 +8,12 @@ import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
 
 public final class BufferedImageUtils {
 
@@ -70,7 +72,7 @@ public final class BufferedImageUtils {
         try (ImageInputStream in = ImageIO.createImageInputStream(new File(imagePath))) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
             if (!readers.hasNext()) {
-                throw new IOException("No suitable reader found for image file!");
+                throw new IOException("No suitable reader found for image file.");
             }
             reader = readers.next();
             reader.setInput(in);
@@ -96,12 +98,12 @@ public final class BufferedImageUtils {
         File imageFile = new File(imagePath);
         Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(supportedImage);
         if (!writers.hasNext()) {
-            throw new IOException("No " + supportedImage + " writer found!");
+            throw new IOException("No " + supportedImage + " writer found.");
         }
         ImageWriter writer = writers.next();
         try (ImageOutputStream output = ImageIO.createImageOutputStream(imageFile)) {
             writer.setOutput(output);
-            if (writer.canWriteSequence()) {
+            if ("gif".equals(supportedImage)) {
                 ImageWriteParam defaultWriteParam = writer.getDefaultWriteParam();
                 IIOMetadata defaultImageMetadata = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(bufferedImages.get(0)), defaultWriteParam);
                 defaultImageMetadata = new IIOMetadataExpansion(defaultImageMetadata).setDisposalMethod(IIOMetadataExpansion.DisposalMethod.RESTORE_TO_BACKGROUND_COLOR).apply();
@@ -111,8 +113,16 @@ public final class BufferedImageUtils {
                     writer.writeToSequence(iioImage, defaultWriteParam);
                 }
                 writer.endWriteSequence();
+            } else if ("jpg".equals(supportedImage) || "jpeg".equals(supportedImage)) {
+                BufferedImage bufferedImage = bufferedImages.get(0);
+                BufferedImage imageWithoutAlpha = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = imageWithoutAlpha.createGraphics();
+                g.drawImage(bufferedImage, 0, 0, null);
+                g.dispose();
+                writer.write(imageWithoutAlpha);
             } else {
-                writer.write(bufferedImages.get(0));
+                BufferedImage bufferedImage = bufferedImages.get(0);
+                writer.write(bufferedImage);
             }
         } finally {
             if (Objects.nonNull(writer)) {

@@ -23,7 +23,7 @@ public class GifCoder implements Coder {
             String path = loadPath.substring(0, loadPath.lastIndexOf('.')).replace('_', '/') + ".img";
             imgEntity.setPath(path);
             imgs.add(imgEntity);
-            log.info("Loaded file: {}", loadPath);
+            log.info("Loaded file: {}.", loadPath);
         }
         return imgs;
     }
@@ -33,10 +33,10 @@ public class GifCoder implements Coder {
         for (ImgEntity imgEntity : imgEntities) {
             List<BufferedImage> bufferedImages = imgEntity.getTextureEntities().stream().map(TextureEntity::getPicture).collect(Collectors.toList());
             String pathName = imgEntity.getPath();
-            String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + ".gif";
+            String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + "." + getSuffix();
             String savedPath = Paths.get(savePath, imageName).toString();
             BufferedImageUtils.writeImage(savedPath, bufferedImages, getSuffix());
-            log.info("Saved file: {}", savedPath);
+            log.info("Saved file: {}.", savedPath);
         }
     }
 

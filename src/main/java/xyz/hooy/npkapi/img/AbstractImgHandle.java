@@ -29,14 +29,14 @@ public abstract class AbstractImgHandle {
 
     private static void register(ImgVersions version, Class<? extends AbstractImgHandle> handle) {
         versionMap.put(version, handle);
-        log.info("Support npk version: {}", version.name());
+        log.info("Support npk version: {}.", version.name());
     }
 
     @SneakyThrows
     public static AbstractImgHandle newInstance(ImgEntity imgEntity) {
         Class<? extends AbstractImgHandle> abstractImgHandle = versionMap.get(imgEntity.getImgVersion());
         if (Objects.isNull(abstractImgHandle)) {
-            throw new UnsupportedOperationException(String.format("The current handle is not supported %s", imgEntity.getImgVersion()));
+            throw new UnsupportedOperationException(String.format("The current handle is not supported %s.", imgEntity.getImgVersion()));
         }
         return abstractImgHandle.getConstructor(ImgEntity.class).newInstance(imgEntity);
     }

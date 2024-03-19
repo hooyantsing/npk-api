@@ -1,10 +1,7 @@
 package xyz.hooy.npkapi;
 
 import lombok.extern.slf4j.Slf4j;
-import xyz.hooy.npkapi.coder.Coder;
-import xyz.hooy.npkapi.coder.GifCoder;
-import xyz.hooy.npkapi.coder.NpkCoder;
-import xyz.hooy.npkapi.coder.PngCoder;
+import xyz.hooy.npkapi.coder.*;
 import xyz.hooy.npkapi.entity.ImgEntity;
 
 import java.io.IOException;
@@ -22,7 +19,7 @@ public class NpkApi {
     private static final Map<String, Coder> coderMap = new HashMap<>();
 
     static {
-        List<Coder> coders = Arrays.asList(new GifCoder(), new PngCoder(), new NpkCoder());
+        List<Coder> coders = Arrays.asList(new NpkCoder(), new GifCoder(), new PngCoder(), new JpgCoder());
         for (Coder coder : coders) {
             register(coder.getSuffix(), coder);
         }
@@ -30,7 +27,7 @@ public class NpkApi {
 
     private static void register(String suffix, Coder coder) {
         coderMap.put(suffix, coder);
-        log.info("Register coder: {}, support suffix file: {}", coder.getClass().getName(), suffix);
+        log.info("Register coder: {}, support suffix file: {}.", coder.getClass().getName(), suffix);
     }
 
     public static List<ImgEntity> load(String loadPath) throws IOException {
@@ -53,7 +50,7 @@ public class NpkApi {
                         List<ImgEntity> loadImgEntities = coder.load(suffixPath);
                         imgEntities.addAll(loadImgEntities);
                     } else {
-                        throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath);
+                        throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath +".");
                     }
                 }
                 return imgEntities;
@@ -65,22 +62,22 @@ public class NpkApi {
                 List<String> suffixPath = Collections.singletonList(loadPath);
                 return coder.load(suffixPath);
             } else {
-                throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath);
+                throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath+".");
             }
         } else {
-            throw new IllegalArgumentException(loadPath + ", it's not a file or a directory");
+            throw new IllegalArgumentException(loadPath + ", it's not a file or a directory.");
         }
     }
 
     public static void save(String savePath, List<ImgEntity> imgEntities, String format) throws IOException {
         Path path = Paths.get(savePath);
         if (Files.isRegularFile(path)) {
-            throw new IllegalArgumentException("The save path must be a directory");
+            throw new IllegalArgumentException("The save path must be a directory.");
         } else if (Files.isDirectory(path)) {
             format = format.toLowerCase();
             Coder coder = coderMap.get(format);
             if (Objects.isNull(coder)) {
-                throw new UnsupportedEncodingException("Not found " + format + " coder");
+                throw new UnsupportedEncodingException("Not found " + format + " coder.");
             } else {
                 coder.save(savePath, imgEntities);
             }
