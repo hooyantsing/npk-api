@@ -22,7 +22,7 @@ public class TextureEntity {
     @Setter(AccessLevel.NONE)
     private BufferedImage image;
 
-    private ColorLinkTypes type;
+    private ColorLinkTypes type = ColorLinkTypes.ARGB_8888;
     private CompressModes compress = CompressModes.NONE;
     private Integer length = 0;
     private Integer width = 0;
