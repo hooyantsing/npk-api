@@ -1,6 +1,6 @@
 package xyz.hooy.npkapi.util;
 
-import xyz.hooy.npkapi.component.IIOMetadataExpansion;
+import xyz.hooy.npkapi.component.GIFMetadataExpansion;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
 
@@ -8,7 +8,6 @@ import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -103,23 +102,20 @@ public final class BufferedImageUtils {
         ImageWriter writer = writers.next();
         try (ImageOutputStream output = ImageIO.createImageOutputStream(imageFile)) {
             writer.setOutput(output);
-            if ("gif".equals(supportedImage)) {
+            if (writer.canWriteSequence() && !"jpg".equals(supportedImage)) {
                 ImageWriteParam defaultWriteParam = writer.getDefaultWriteParam();
                 IIOMetadata defaultImageMetadata = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(bufferedImages.get(0)), defaultWriteParam);
-                defaultImageMetadata = new IIOMetadataExpansion(defaultImageMetadata).setDisposalMethod(IIOMetadataExpansion.DisposalMethod.RESTORE_TO_BACKGROUND_COLOR).apply();
+                if ("gif".equals(supportedImage)) {
+                    defaultImageMetadata = new GIFMetadataExpansion(defaultImageMetadata)
+                            .setDisposalMethod(GIFMetadataExpansion.DisposalMethod.RESTORE_TO_BACKGROUND_COLOR)
+                            .apply();
+                }
                 writer.prepareWriteSequence(defaultImageMetadata);
                 for (BufferedImage bufferedImage : bufferedImages) {
                     IIOImage iioImage = new IIOImage(bufferedImage, null, defaultImageMetadata);
                     writer.writeToSequence(iioImage, defaultWriteParam);
                 }
                 writer.endWriteSequence();
-            } else if ("jpg".equals(supportedImage) || "jpeg".equals(supportedImage)) {
-                BufferedImage bufferedImage = bufferedImages.get(0);
-                BufferedImage imageWithoutAlpha = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
-                Graphics2D g = imageWithoutAlpha.createGraphics();
-                g.drawImage(bufferedImage, 0, 0, null);
-                g.dispose();
-                writer.write(imageWithoutAlpha);
             } else {
                 BufferedImage bufferedImage = bufferedImages.get(0);
                 writer.write(bufferedImage);
