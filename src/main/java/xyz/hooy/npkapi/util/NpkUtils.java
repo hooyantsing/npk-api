@@ -1,11 +1,11 @@
-package xyz.hooy.npkapi.coder;
+package xyz.hooy.npkapi.util;
 
-import lombok.SneakyThrows;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.entity.ImgEntity;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -13,14 +13,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-public final class NpkCoder {
+public final class NpkUtils {
 
-    private NpkCoder() {
+    private NpkUtils() {
     }
 
     public static final String NPK_FlAG = "NeoplePack_Bill\0";
@@ -152,7 +153,7 @@ public final class NpkCoder {
         return readImg(ms, path, length);
     }
 
-    public static void writeNpk(MemoryStream stream, List<ImgEntity> imgEntities) {
+    public static void writeNpk(MemoryStream stream, List<ImgEntity> imgEntities) throws NoSuchAlgorithmException {
         int position = 52 + imgEntities.size() * 264;
         int length = 0;
         for (int i = 0; i < imgEntities.size(); i++) {
@@ -190,16 +191,15 @@ public final class NpkCoder {
         }
     }
 
-    public static List<ImgEntity> load(String file) {
+    public static List<ImgEntity> load(String file) throws IOException {
         return load(false, file);
     }
 
-    public static List<ImgEntity> load(String[] files) {
+    public static List<ImgEntity> load(String[] files) throws IOException {
         return load(false, files);
     }
 
-    @SneakyThrows
-    public static List<ImgEntity> load(boolean onlyPath, String path) {
+    public static List<ImgEntity> load(boolean onlyPath, String path) throws IOException {
         List<ImgEntity> imgEntities = new ArrayList<>();
         Path file = Paths.get(path);
         if (Files.isDirectory(file)) {
@@ -220,7 +220,7 @@ public final class NpkCoder {
         return readNpk(stream, path);
     }
 
-    public static List<ImgEntity> load(boolean onlyPath, String[] files) {
+    public static List<ImgEntity> load(boolean onlyPath, String[] files) throws IOException {
         List<ImgEntity> imgEntities = new ArrayList<>();
         for (String file : files) {
             imgEntities.addAll(load(onlyPath, file));
@@ -228,8 +228,7 @@ public final class NpkCoder {
         return imgEntities;
     }
 
-    @SneakyThrows
-    public static void save(String path, List<ImgEntity> imgEntities) {
+    public static void save(String path, List<ImgEntity> imgEntities) throws IOException, NoSuchAlgorithmException {
         Path file = Paths.get(path);
         if (!Files.isRegularFile(file)) {
             Files.createFile(file);
@@ -263,8 +262,7 @@ public final class NpkCoder {
         stream.write(data);
     }
 
-    @SneakyThrows
-    private static byte[] compileHash(byte[] data) {
+    private static byte[] compileHash(byte[] data) throws NoSuchAlgorithmException {
         if (data.length == 0) {
             return new byte[0];
         }

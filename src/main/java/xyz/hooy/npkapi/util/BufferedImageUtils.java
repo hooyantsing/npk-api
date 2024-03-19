@@ -3,7 +3,6 @@ package xyz.hooy.npkapi.util;
 import xyz.hooy.npkapi.component.IIOMetadataExpansion;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
-import xyz.hooy.npkapi.constant.SupportedImages;
 
 import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
@@ -89,13 +88,13 @@ public final class BufferedImageUtils {
         }
     }
 
-    public static void writeImage(String imagePath, BufferedImage bufferedImage, SupportedImages supportedImage) throws IOException {
+    public static void writeImage(String imagePath, BufferedImage bufferedImage, String supportedImage) throws IOException {
         writeImage(imagePath, Collections.singletonList(bufferedImage), supportedImage);
     }
 
-    public static void writeImage(String imagePath, List<BufferedImage> bufferedImages, SupportedImages supportedImage) throws IOException {
+    public static void writeImage(String imagePath, List<BufferedImage> bufferedImages, String supportedImage) throws IOException {
         File imageFile = new File(imagePath);
-        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(supportedImage.name());
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(supportedImage);
         if (!writers.hasNext()) {
             throw new IOException("No " + supportedImage + " writer found!");
         }

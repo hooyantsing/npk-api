@@ -2,12 +2,13 @@ package xyz.hooy.npkapi.img;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
-import xyz.hooy.npkapi.coder.NpkCoder;
+import lombok.extern.slf4j.Slf4j;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.ColorLinkTypes;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.entity.ImgEntity;
 import xyz.hooy.npkapi.entity.TextureEntity;
+import xyz.hooy.npkapi.util.NpkUtils;
 
 import java.awt.image.BufferedImage;
 import java.nio.charset.StandardCharsets;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 @Getter
 public abstract class AbstractImgHandle {
 
@@ -27,6 +29,7 @@ public abstract class AbstractImgHandle {
 
     private static void register(ImgVersions version, Class<? extends AbstractImgHandle> handle) {
         versionMap.put(version, handle);
+        log.info("Support npk version: {}", version.name());
     }
 
     @SneakyThrows
@@ -61,7 +64,7 @@ public abstract class AbstractImgHandle {
         MemoryStream stream = new MemoryStream();
         byte[] data = adjustData();
         if (imgEntity.getImgVersion().getValue() > ImgVersions.VERSION_1.getValue()) {
-            stream.write(NpkCoder.IMG_FLAG.getBytes(StandardCharsets.UTF_8));
+            stream.write(NpkUtils.IMG_FLAG.getBytes(StandardCharsets.UTF_8));
             stream.writeLong(imgEntity.getIndexLength());
             stream.writeInt(imgEntity.getImgVersion().getValue());
             stream.writeInt(imgEntity.getCount());
