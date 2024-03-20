@@ -47,10 +47,11 @@ public class NpkApi {
                     List<String> suffixPath = suffixFile.getValue();
                     Coder coder = coderMap.get(suffix);
                     if (Objects.nonNull(coder)) {
+                        Collections.sort(suffixPath);
                         List<ImgEntity> loadImgEntities = coder.load(suffixPath);
                         imgEntities.addAll(loadImgEntities);
                     } else {
-                        throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath +".");
+                        throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath + ".");
                     }
                 }
                 return imgEntities;
@@ -62,7 +63,7 @@ public class NpkApi {
                 List<String> suffixPath = Collections.singletonList(loadPath);
                 return coder.load(suffixPath);
             } else {
-                throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath+".");
+                throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + loadPath + ".");
             }
         } else {
             throw new IllegalArgumentException(loadPath + ", it's not a file or a directory.");

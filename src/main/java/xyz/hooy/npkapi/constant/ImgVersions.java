@@ -4,7 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum ImgVersions {
-    OTHER(0x00),
+
+    OGG(0x00),
     VERSION_1(0x01),
     VERSION_2(0x02),
     VERSION_3(0x03),

@@ -18,23 +18,24 @@ import java.util.Objects;
 
 @Slf4j
 @Getter
-public abstract class AbstractImgHandle {
+public abstract class AbstractHandle {
 
-    private static final Map<ImgVersions, Class<? extends AbstractImgHandle>> versionMap = new HashMap<>();
+    private static final Map<ImgVersions, Class<? extends AbstractHandle>> versionMap = new HashMap<>();
 
     static {
         register(ImgVersions.VERSION_2, Version2ImgHandle.class);
         register(ImgVersions.VERSION_4, Version4ImgHandle.class);
+        register(ImgVersions.OGG, OggHandle.class);
     }
 
-    private static void register(ImgVersions version, Class<? extends AbstractImgHandle> handle) {
+    private static void register(ImgVersions version, Class<? extends AbstractHandle> handle) {
         versionMap.put(version, handle);
         log.info("Support npk version: {}.", version.name());
     }
 
     @SneakyThrows
-    public static AbstractImgHandle newInstance(ImgEntity imgEntity) {
-        Class<? extends AbstractImgHandle> abstractImgHandle = versionMap.get(imgEntity.getImgVersion());
+    public static AbstractHandle newInstance(ImgEntity imgEntity) {
+        Class<? extends AbstractHandle> abstractImgHandle = versionMap.get(imgEntity.getImgVersion());
         if (Objects.isNull(abstractImgHandle)) {
             throw new UnsupportedOperationException(String.format("The current handle is not supported %s.", imgEntity.getImgVersion()));
         }
@@ -43,7 +44,7 @@ public abstract class AbstractImgHandle {
 
     protected ImgEntity imgEntity;
 
-    public AbstractImgHandle(ImgEntity imgEntity) {
+    public AbstractHandle(ImgEntity imgEntity) {
         this.imgEntity = imgEntity;
     }
 

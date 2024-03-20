@@ -6,24 +6,32 @@ import xyz.hooy.npkapi.entity.TextureEntity;
 
 import java.awt.image.BufferedImage;
 
-public class Version4ImgHandle extends AbstractHandle {
+public class OggHandle extends AbstractHandle {
 
-    public Version4ImgHandle(ImgEntity imgEntity) {
+    private byte[] data = new byte[0];
+
+    public OggHandle(ImgEntity imgEntity) {
         super(imgEntity);
     }
 
     @Override
     public void createFromStream(MemoryStream stream) {
-        throw new UnsupportedOperationException();
+        int length = Math.toIntExact(imgEntity.getIndexLength());
+        data = stream.read(length);
     }
 
     @Override
     public BufferedImage convertToBufferedImage(TextureEntity textureEntity) {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     @Override
     public byte[] convertToByte(TextureEntity textureEntity) {
-        throw new UnsupportedOperationException();
+        return new byte[0];
+    }
+
+    @Override
+    public byte[] adjustData() {
+        return data;
     }
 }

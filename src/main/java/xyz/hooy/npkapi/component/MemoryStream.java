@@ -40,6 +40,13 @@ public class MemoryStream {
         }
     }
 
+    public byte[] read(int length) {
+        byte[] bytes = new byte[length];
+        readFlip();
+        buffer.get(bytes);
+        return bytes;
+    }
+
     public void read(byte[] bytes) {
         readFlip();
         buffer.get(bytes);

@@ -107,10 +107,10 @@ public final class NpkUtils {
                 if (length < 0) {
                     length = stream.length();
                 }
-                imgEntity.setImgVersion(ImgVersions.OTHER);
+                imgEntity.setImgVersion(ImgVersions.OGG);
                 stream.seek(imgEntity.getOffset(), MemoryStream.SeekOrigin.Begin);
                 if (imgEntity.getName().toLowerCase().endsWith("ogg")) {
-                    imgEntity.setImgVersion(ImgVersions.OTHER);
+                    imgEntity.setImgVersion(ImgVersions.OGG);
                     imgEntity.setIndexLength(length - stream.position());
                 }
             }

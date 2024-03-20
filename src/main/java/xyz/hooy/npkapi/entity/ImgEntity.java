@@ -5,7 +5,7 @@ import lombok.Setter;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.CompressModes;
 import xyz.hooy.npkapi.constant.ImgVersions;
-import xyz.hooy.npkapi.img.AbstractImgHandle;
+import xyz.hooy.npkapi.img.AbstractHandle;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -25,12 +25,12 @@ public class ImgEntity {
     private String path;
     private Integer offset;
     private Long indexLength;
-    private AbstractImgHandle imgHandle;
+    private AbstractHandle handle;
     private List<TextureEntity> textureEntities = new ArrayList<>();
     private ImgEntity target;
 
     public ImgEntity() {
-        this.imgHandle = AbstractImgHandle.newInstance(this);
+        this.handle = AbstractHandle.newInstance(this);
     }
 
     public ImgEntity(List<BufferedImage> bufferedImages) {
@@ -55,9 +55,9 @@ public class ImgEntity {
     }
 
     public void initHandle(MemoryStream stream) {
-        imgHandle = AbstractImgHandle.newInstance(this);
+        handle = AbstractHandle.newInstance(this);
         if (Objects.nonNull(stream)) {
-            imgHandle.createFromStream(stream);
+            handle.createFromStream(stream);
         }
     }
 
@@ -66,7 +66,7 @@ public class ImgEntity {
             return;
         }
         adjustIndex();
-        imgHandle.adjust();
+        handle.adjust();
     }
 
     public void adjustIndex() {
@@ -77,11 +77,11 @@ public class ImgEntity {
     }
 
     public BufferedImage convertToBufferedImage(TextureEntity textureEntity) {
-        return imgHandle.convertToBufferedImage(textureEntity);
+        return handle.convertToBufferedImage(textureEntity);
     }
 
     public byte[] convertToByte(TextureEntity textureEntity) {
-        return imgHandle.convertToByte(textureEntity);
+        return handle.convertToByte(textureEntity);
     }
 
     public String getName() {
