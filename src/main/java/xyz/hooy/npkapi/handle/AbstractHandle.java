@@ -1,4 +1,4 @@
-package xyz.hooy.npkapi.img;
+package xyz.hooy.npkapi.handle;
 
 import lombok.Getter;
 import lombok.SneakyThrows;

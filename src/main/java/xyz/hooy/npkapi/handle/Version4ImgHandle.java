@@ -1,4 +1,4 @@
-package xyz.hooy.npkapi.img;
+package xyz.hooy.npkapi.handle;
 
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.entity.Album;

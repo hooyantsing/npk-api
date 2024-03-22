@@ -51,13 +51,13 @@ public final class NpkUtils {
     }
 
     public static List<Album> readNpk(MemoryStream stream, String file) {
-        List<Album> imgEntities = new ArrayList<>();
+        List<Album> albums = new ArrayList<>();
         String flag = stream.readString();
         if (NPK_FlAG.equals(flag)) {
             // 当文件是NPK时
             stream.seek(0, MemoryStream.SeekOrigin.Begin);
-            imgEntities.addAll(readInfo(stream));
-            if (!imgEntities.isEmpty()) {
+            albums.addAll(readInfo(stream));
+            if (!albums.isEmpty()) {
                 stream.seek(32, MemoryStream.SeekOrigin.Begin);
             }
         } else {
@@ -66,20 +66,20 @@ public final class NpkUtils {
                 String suffix = file.substring(file.lastIndexOf(".") + 1);
                 album.setPath(suffix);
             }
-            imgEntities.add(album);
+            albums.add(album);
         }
-        for (int i = 0; i < imgEntities.size(); i++) {
-            int length = i < imgEntities.size() - 1 ? imgEntities.get(i + 1).getOffset() : stream.length();
-            readImg(stream, imgEntities.get(i), length);
+        for (int i = 0; i < albums.size(); i++) {
+            int length = i < albums.size() - 1 ? albums.get(i + 1).getOffset() : stream.length();
+            readImg(stream, albums.get(i), length);
         }
-        return imgEntities;
+        return albums;
     }
 
     public static List<Album> readInfo(MemoryStream stream) {
         String flag = stream.readString();
-        List<Album> imgEntities = new ArrayList<>();
+        List<Album> albums = new ArrayList<>();
         if (!NPK_FlAG.equals(flag)) {
-            return imgEntities;
+            return albums;
         }
         int count = stream.readInt();
         for (int i = 0; i < count; i++) {
@@ -87,9 +87,9 @@ public final class NpkUtils {
             album.setOffset(stream.readInt());
             album.setLength(stream.readInt());
             album.setPath(readPath(stream));
-            imgEntities.add(album);
+            albums.add(album);
         }
-        return imgEntities;
+        return albums;
     }
 
     public static void readImg(MemoryStream stream, Album album, long length) {
@@ -153,21 +153,21 @@ public final class NpkUtils {
         return readImg(ms, path, length);
     }
 
-    public static void writeNpk(MemoryStream stream, List<Album> imgEntities) throws NoSuchAlgorithmException {
-        int position = 52 + imgEntities.size() * 264;
+    public static void writeNpk(MemoryStream stream, List<Album> albums) throws NoSuchAlgorithmException {
+        int position = 52 + albums.size() * 264;
         int length = 0;
-        for (int i = 0; i < imgEntities.size(); i++) {
-            imgEntities.get(i).adjust();
+        for (int i = 0; i < albums.size(); i++) {
+            albums.get(i).adjust();
             if (i > 0) {
-                if (Objects.nonNull(imgEntities.get(i).getTarget())) {
+                if (Objects.nonNull(albums.get(i).getTarget())) {
                     continue;
                 }
                 position += length;
             }
-            imgEntities.get(i).setOffset(position);
-            length = imgEntities.get(i).getLength();
+            albums.get(i).setOffset(position);
+            length = albums.get(i).getLength();
         }
-        imgEntities.forEach(ie -> {
+        albums.forEach(ie -> {
             if (Objects.nonNull(ie.getTarget())) {
                 ie.setOffset(ie.getTarget().getOffset());
                 ie.setLength(ie.getTarget().getLength());
@@ -175,8 +175,8 @@ public final class NpkUtils {
         });
         MemoryStream ms = new MemoryStream();
         ms.writeString(NPK_FlAG);
-        ms.writeInt(imgEntities.size());
-        for (Album album : imgEntities) {
+        ms.writeInt(albums.size());
+        for (Album album : albums) {
             ms.writeInt(album.getOffset());
             ms.writeInt(album.getLength());
             writePath(ms, album.getPath());
@@ -184,7 +184,7 @@ public final class NpkUtils {
         byte[] data = ms.toArray();
         stream.write(data);
         stream.write(compileHash(data));
-        for (Album album : imgEntities) {
+        for (Album album : albums) {
             if (Objects.isNull(album.getTarget())) {
                 stream.write(album.getData());
             }
@@ -200,7 +200,7 @@ public final class NpkUtils {
     }
 
     public static List<Album> load(boolean onlyPath, String path) throws IOException {
-        List<Album> imgEntities = new ArrayList<>();
+        List<Album> albums = new ArrayList<>();
         Path file = Paths.get(path);
         if (Files.isDirectory(file)) {
             try (Stream<Path> walk = Files.walk(file)) {
@@ -209,7 +209,7 @@ public final class NpkUtils {
             }
         }
         if (!Files.isRegularFile(file)) {
-            return imgEntities;
+            return albums;
         }
         byte[] fileBytes = Files.readAllBytes(file);
         MemoryStream stream = new MemoryStream(fileBytes.length);
@@ -221,14 +221,14 @@ public final class NpkUtils {
     }
 
     public static List<Album> load(boolean onlyPath, String[] files) throws IOException {
-        List<Album> imgEntities = new ArrayList<>();
+        List<Album> albums = new ArrayList<>();
         for (String file : files) {
-            imgEntities.addAll(load(onlyPath, file));
+            albums.addAll(load(onlyPath, file));
         }
-        return imgEntities;
+        return albums;
     }
 
-    public static void save(String path, List<Album> imgEntities) throws IOException, NoSuchAlgorithmException {
+    public static void save(String path, List<Album> albums) throws IOException, NoSuchAlgorithmException {
         Path file = Paths.get(path);
         if (!Files.isRegularFile(file)) {
             Files.createFile(file);
@@ -236,7 +236,7 @@ public final class NpkUtils {
         try (FileOutputStream fileOutputStream = new FileOutputStream(file.toFile());
              FileChannel fileChannel = fileOutputStream.getChannel()) {
             MemoryStream memoryStream = new MemoryStream();
-            writeNpk(memoryStream, imgEntities);
+            writeNpk(memoryStream, albums);
             ByteBuffer buffer = memoryStream.getOnlyReadBuffer();
             while (buffer.hasRemaining()) {
                 fileChannel.write(buffer);

@@ -6,7 +6,7 @@ import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.AlbumModes;
 import xyz.hooy.npkapi.constant.AlbumSuffixModes;
 import xyz.hooy.npkapi.constant.CompressModes;
-import xyz.hooy.npkapi.img.AbstractHandle;
+import xyz.hooy.npkapi.handle.AbstractHandle;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;

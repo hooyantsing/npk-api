@@ -30,8 +30,8 @@ public class GifAlbumCoder implements AlbumCoder {
     }
 
     @Override
-    public boolean match(AlbumSuffixModes albumSuffixModes) {
-        return AlbumSuffixModes.IMAGE == albumSuffixModes;
+    public AlbumSuffixModes support() {
+        return AlbumSuffixModes.IMAGE;
     }
 
     @Override

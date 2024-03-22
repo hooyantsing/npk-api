@@ -2,6 +2,7 @@ package xyz.hooy.npkapi;
 
 import lombok.extern.slf4j.Slf4j;
 import xyz.hooy.npkapi.coder.*;
+import xyz.hooy.npkapi.constant.AlbumSuffixModes;
 import xyz.hooy.npkapi.entity.Album;
 import xyz.hooy.npkapi.entity.Sprite;
 
@@ -34,19 +35,19 @@ public class NpkApi {
     public static List<Album> load(String loadPath) throws IOException {
         Path path = Paths.get(loadPath);
         if (Files.isRegularFile(path)) {
-            return loadImg(Collections.singletonList(loadPath));
+            return loadAlbums(Collections.singletonList(loadPath));
         } else if (Files.isDirectory(path)) {
             try (Stream<Path> walk = Files.walk(path)) {
                 List<String> filePaths = walk.filter(Files::isRegularFile).map(Path::toString).sorted().collect(Collectors.toList());
-                return loadImg(filePaths);
+                return loadAlbums(filePaths);
             }
         } else {
             throw new IllegalArgumentException(loadPath + ", it's not a file or a directory.");
         }
     }
 
-    private static List<Album> loadImg(List<String> filePaths) throws IOException {
-        List<Album> imgEntities = new ArrayList<>();
+    private static List<Album> loadAlbums(List<String> filePaths) throws IOException {
+        List<Album> albums = new ArrayList<>();
         Map<String, Album> thirdCoderPathEntityMap = new LinkedHashMap<>();
         for (String filePath : filePaths) {
             String suffix = filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase();
@@ -55,52 +56,49 @@ public class NpkApi {
                 if (coder instanceof NpkCoder) {
                     NpkCoder npkCoder = (NpkCoder) coder;
                     List<Album> entities = npkCoder.load(filePath);
-                    imgEntities.addAll(entities);
+                    albums.addAll(entities);
                 } else if (coder instanceof AlbumCoder) {
                     AlbumCoder albumCoder = (AlbumCoder) coder;
-                    Album img = albumCoder.load(filePath);
-                    String imgPath = filePath.replace('_', '/') + ".img";
-                    img.setPath(imgPath);
-                    imgEntities.add(img);
+                    Album album = albumCoder.load(filePath);
+                    String albumSuffix = albumCoder.support() == AlbumSuffixModes.IMAGE ? ".img" : ".ogg";
+                    String albumPath = filePath.replace('_', '/') + albumSuffix;
+                    album.setPath(albumPath);
+                    albums.add(album);
                 } else if (coder instanceof SpriteCoder) {
                     SpriteCoder spriteCoder = (SpriteCoder) coder;
-                    Sprite texture = spriteCoder.load(filePath);
-                    String imgPath = filePath.replace('_', '/').substring(0, filePath.lastIndexOf('-')) + ".img";
-                    Album album = thirdCoderPathEntityMap.get(imgPath);
+                    Sprite sprite = spriteCoder.load(filePath);
+                    String albumPath = filePath.replace('_', '/').substring(0, filePath.lastIndexOf('-')) + ".img";
+                    Album album = thirdCoderPathEntityMap.get(albumPath);
                     if (Objects.isNull(album)) {
-                        Album newAlbum = new Album(Collections.singletonList(texture.getPicture()));
-                        newAlbum.setPath(imgPath);
-                        thirdCoderPathEntityMap.put(imgPath, newAlbum);
+                        Album newAlbum = new Album(Collections.singletonList(sprite.getPicture()));
+                        newAlbum.setPath(albumPath);
+                        thirdCoderPathEntityMap.put(albumPath, newAlbum);
                     } else {
-                        album.addSprite(texture);
+                        album.addSprite(sprite);
                     }
                 }
             } else {
                 throw new UnsupportedEncodingException("Not found " + suffix + " coder, not loaded " + filePath + ".");
             }
         }
-        imgEntities.addAll(thirdCoderPathEntityMap.values());
-        return imgEntities;
+        albums.addAll(thirdCoderPathEntityMap.values());
+        return albums;
     }
 
-    public static void save(String savePath, List<Album> imgEntities, String format) throws IOException {
+    public static void save(String savePath, List<Album> albums, String format) throws IOException {
         Path path = Paths.get(savePath);
-        if (Files.isRegularFile(path)) {
-            throw new IllegalArgumentException("The save path must be a directory.");
-        } else if (Files.isDirectory(path)) {
+        if (Files.isDirectory(path)) {
             format = format.toLowerCase();
             Coder coder = coderMap.get(format);
-            if (Objects.isNull(coder)) {
-                throw new UnsupportedEncodingException("Not found " + format + " coder.");
-            } else {
+            if (Objects.nonNull(coder)) {
                 if (coder instanceof NpkCoder) {
                     NpkCoder npkCoder = ((NpkCoder) coder);
                     String fileName = UUID.randomUUID() + "." + npkCoder.suffix();
-                    npkCoder.save(Paths.get(savePath, fileName).toString(), imgEntities);
+                    npkCoder.save(Paths.get(savePath, fileName).toString(), albums);
                 } else if (coder instanceof AlbumCoder) {
                     AlbumCoder albumCoder = ((AlbumCoder) coder);
-                    for (Album album : imgEntities) {
-                        if (albumCoder.match(album.getAlbumSuffixMode())) {
+                    for (Album album : albums) {
+                        if (albumCoder.support() == album.getAlbumSuffixMode()) {
                             String pathName = album.getPath();
                             String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + "." + albumCoder.suffix();
                             albumCoder.save(Paths.get(savePath, imageName).toString(), album);
@@ -108,7 +106,7 @@ public class NpkApi {
                     }
                 } else if (coder instanceof SpriteCoder) {
                     SpriteCoder spriteCoder = ((SpriteCoder) coder);
-                    for (Album album : imgEntities) {
+                    for (Album album : albums) {
                         for (Sprite sprite : album.getSprites()) {
                             String pathName = sprite.getParent().getPath();
                             String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + "-" + sprite.getIndex() + "." + spriteCoder.suffix();
@@ -116,7 +114,11 @@ public class NpkApi {
                         }
                     }
                 }
+            } else {
+                throw new UnsupportedEncodingException("Not found " + format + " coder.");
             }
+        } else {
+            throw new IllegalArgumentException("The save path must be a directory.");
         }
     }
 }

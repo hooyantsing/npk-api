@@ -12,14 +12,14 @@ import java.util.List;
 public class NpkCoder implements Coder {
 
     public List<Album> load(String loadPath) throws IOException {
-        List<Album> load = NpkUtils.load(loadPath);
+        List<Album> albums = NpkUtils.load(loadPath);
         log.info("Loaded file: {}.", loadPath);
-        return load;
+        return albums;
     }
 
-    public void save(String savePath, List<Album> imgEntities) throws IOException {
+    public void save(String savePath, List<Album> albums) throws IOException {
         try {
-            NpkUtils.save(savePath, imgEntities);
+            NpkUtils.save(savePath, albums);
             log.info("Saved file: {}.", savePath);
         } catch (NoSuchAlgorithmException e) {
             throw new IOException(e);

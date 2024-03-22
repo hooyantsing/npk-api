@@ -15,10 +15,10 @@ public class NpkApiTest {
     @Test
     @Ignore
     void load() throws IOException {
-        List<Album> imgEntities = NpkApi.load("/Users/hooy/Project/NpkApi/input/sprite_map_npc_chn_knight.NPK");
-        for (Album album : imgEntities) {
-            List<Sprite> textureEntities = album.getSprites();
-            for (Sprite sprite : textureEntities) {
+        List<Album> albums = NpkApi.load("/Users/hooy/Project/NpkApi/input/sprite_map_npc_chn_knight.NPK");
+        for (Album album : albums) {
+            List<Sprite> sprites = album.getSprites();
+            for (Sprite sprite : sprites) {
                 sprite.getPicture();
             }
         }
@@ -28,14 +28,14 @@ public class NpkApiTest {
     @Test
     @Ignore
     void save() throws IOException {
-        List<Album> imgEntities = NpkApi.load("/Users/hooy/Project/NpkApi/input/sprite_map_npc_chn_knight.NPK");
-        for (Album album : imgEntities) {
-            List<Sprite> textureEntities = album.getSprites();
-            for (Sprite sprite : textureEntities) {
+        List<Album> albums = NpkApi.load("/Users/hooy/Project/NpkApi/input/sprite_map_npc_chn_knight.NPK");
+        for (Album album : albums) {
+            List<Sprite> sprites = album.getSprites();
+            for (Sprite sprite : sprites) {
                 sprite.getPicture();
             }
         }
-        NpkApi.save("/Users/hooy/Project/NpkApi/input/save.NPK", imgEntities, "png");
+        NpkApi.save("/Users/hooy/Project/NpkApi/input/save.NPK", albums, "png");
         System.out.println("OK");
     }
 }

@@ -1,4 +1,4 @@
-package xyz.hooy.npkapi.img;
+package xyz.hooy.npkapi.handle;
 
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.AlbumModes;
@@ -25,49 +25,49 @@ public class Version2ImgHandle extends AbstractHandle {
         Map<Sprite, Integer> map = new HashMap<>();
         long pos = stream.position() + album.getIndexLength();
         for (int i = 0; i < album.getCount(); i++) {
-            Sprite texture = new Sprite(album);
-            texture.setIndex(album.getSprites().size());
-            texture.setColorLink(ColorLinkModes.valueOf(stream.readInt()));
-            album.getSprites().add(texture);
-            if (texture.getColorLink() == ColorLinkModes.LINK) {
-                map.put(texture, stream.readInt());
+            Sprite sprite = new Sprite(album);
+            sprite.setIndex(album.getSprites().size());
+            sprite.setColorLink(ColorLinkModes.valueOf(stream.readInt()));
+            album.getSprites().add(sprite);
+            if (sprite.getColorLink() == ColorLinkModes.LINK) {
+                map.put(sprite, stream.readInt());
                 continue;
             }
-            texture.setCompress(CompressModes.valueOf(stream.readInt()));
-            texture.setWidth(stream.readInt());
-            texture.setHeight(stream.readInt());
-            texture.setLength(stream.readInt());
-            texture.setX(stream.readInt());
-            texture.setY(stream.readInt());
-            texture.setFrameWidth(stream.readInt());
-            texture.setFrameHeight(stream.readInt());
+            sprite.setCompress(CompressModes.valueOf(stream.readInt()));
+            sprite.setWidth(stream.readInt());
+            sprite.setHeight(stream.readInt());
+            sprite.setLength(stream.readInt());
+            sprite.setX(stream.readInt());
+            sprite.setY(stream.readInt());
+            sprite.setFrameWidth(stream.readInt());
+            sprite.setFrameHeight(stream.readInt());
         }
         if (stream.position() < pos) {
             album.getSprites().clear();
             return;
         }
-        for (Sprite texture : album.getSprites()) {
-            if (texture.getColorLink() == ColorLinkModes.LINK) {
-                if (map.containsKey(texture) && map.get(texture) < album.getSprites().size() && map.get(texture) > -1 && map.get(texture).equals(texture.getIndex())) {
-                    texture.setTarget(album.getSprites().get(map.get(texture)));
-                    texture.setWidth(texture.getTarget().getWidth());
-                    texture.setHeight(texture.getTarget().getHeight());
-                    texture.setFrameWidth(texture.getTarget().getFrameWidth());
-                    texture.setFrameHeight(texture.getTarget().getFrameHeight());
-                    texture.setX(texture.getTarget().getX());
-                    texture.setY(texture.getTarget().getY());
+        for (Sprite sprite : album.getSprites()) {
+            if (sprite.getColorLink() == ColorLinkModes.LINK) {
+                if (map.containsKey(sprite) && map.get(sprite) < album.getSprites().size() && map.get(sprite) > -1 && map.get(sprite).equals(sprite.getIndex())) {
+                    sprite.setTarget(album.getSprites().get(map.get(sprite)));
+                    sprite.setWidth(sprite.getTarget().getWidth());
+                    sprite.setHeight(sprite.getTarget().getHeight());
+                    sprite.setFrameWidth(sprite.getTarget().getFrameWidth());
+                    sprite.setFrameHeight(sprite.getTarget().getFrameHeight());
+                    sprite.setX(sprite.getTarget().getX());
+                    sprite.setY(sprite.getTarget().getY());
                 } else {
                     album.getSprites().clear();
                     return;
                 }
                 continue;
             }
-            if (texture.getCompress() == CompressModes.NONE) {
-                texture.setLength(texture.getWidth() * texture.getHeight() * (texture.getColorLink() == ColorLinkModes.ARGB_8888 ? 4 : 2));
+            if (sprite.getCompress() == CompressModes.NONE) {
+                sprite.setLength(sprite.getWidth() * sprite.getHeight() * (sprite.getColorLink() == ColorLinkModes.ARGB_8888 ? 4 : 2));
             }
-            byte[] data = new byte[texture.getLength()];
+            byte[] data = new byte[sprite.getLength()];
             stream.read(data);
-            texture.setData(data);
+            sprite.setData(data);
         }
     }
 

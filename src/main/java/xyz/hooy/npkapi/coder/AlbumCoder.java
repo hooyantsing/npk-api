@@ -11,5 +11,5 @@ public interface AlbumCoder extends Coder {
 
     void save(String savePath, Album album) throws IOException;
 
-    boolean match(AlbumSuffixModes albumSuffixModes);
+    AlbumSuffixModes support();
 }
