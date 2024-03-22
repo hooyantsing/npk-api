@@ -5,39 +5,29 @@ import xyz.hooy.npkapi.entity.ImgEntity;
 import xyz.hooy.npkapi.util.NpkUtils;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 public class NpkCoder implements Coder {
-    @Override
-    public List<ImgEntity> load(List<String> loadPaths) throws IOException {
-        List<ImgEntity> imgEntities = new ArrayList<>();
-        for (String loadPath : loadPaths) {
-            List<ImgEntity> load = NpkUtils.load(loadPath);
-            imgEntities.addAll(load);
-            log.info("Loaded file: {}.", loadPath);
-        }
-        return imgEntities;
+
+    public List<ImgEntity> load(String loadPath) throws IOException {
+        List<ImgEntity> load = NpkUtils.load(loadPath);
+        log.info("Loaded file: {}.", loadPath);
+        return load;
     }
 
-    @Override
     public void save(String savePath, List<ImgEntity> imgEntities) throws IOException {
         try {
-            String npkName = UUID.randomUUID() + "." + getSuffix();
-            String savedName = Paths.get(savePath, npkName).toString();
-            NpkUtils.save(savedName, imgEntities);
-            log.info("Saved file: {}.", savedName);
+            NpkUtils.save(savePath, imgEntities);
+            log.info("Saved file: {}.", savePath);
         } catch (NoSuchAlgorithmException e) {
             throw new IOException(e);
         }
     }
 
     @Override
-    public String getSuffix() {
+    public String suffix() {
         return "npk";
     }
 }

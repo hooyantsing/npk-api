@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.CompressModes;
+import xyz.hooy.npkapi.constant.ImgType;
 import xyz.hooy.npkapi.constant.ImgVersions;
 import xyz.hooy.npkapi.img.AbstractHandle;
 
@@ -86,6 +87,15 @@ public class ImgEntity {
 
     public String getName() {
         return path.substring(path.indexOf("." + 1));
+    }
+
+    public ImgType getImgType() {
+        return getName().endsWith("img") ? ImgType.IMAGE : ImgType.AUDIO;
+    }
+
+    public void addTextureEntities(TextureEntity textureEntity) {
+        textureEntities.add(textureEntity);
+        adjust();
     }
 
     @Override
