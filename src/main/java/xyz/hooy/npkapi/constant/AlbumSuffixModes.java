@@ -1,6 +1,6 @@
 package xyz.hooy.npkapi.constant;
 
-public enum ImgType {
+public enum AlbumSuffixModes {
 
     IMAGE, AUDIO
 }

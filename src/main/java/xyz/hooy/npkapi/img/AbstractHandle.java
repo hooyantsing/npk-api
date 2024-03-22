@@ -4,10 +4,10 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import xyz.hooy.npkapi.component.MemoryStream;
-import xyz.hooy.npkapi.constant.ColorLinkTypes;
-import xyz.hooy.npkapi.constant.ImgVersions;
-import xyz.hooy.npkapi.entity.ImgEntity;
-import xyz.hooy.npkapi.entity.TextureEntity;
+import xyz.hooy.npkapi.constant.AlbumModes;
+import xyz.hooy.npkapi.constant.ColorLinkModes;
+import xyz.hooy.npkapi.entity.Album;
+import xyz.hooy.npkapi.entity.Sprite;
 import xyz.hooy.npkapi.util.NpkUtils;
 
 import java.awt.image.BufferedImage;
@@ -20,65 +20,65 @@ import java.util.Objects;
 @Getter
 public abstract class AbstractHandle {
 
-    private static final Map<ImgVersions, Class<? extends AbstractHandle>> versionMap = new HashMap<>();
+    private static final Map<AlbumModes, Class<? extends AbstractHandle>> versionMap = new HashMap<>();
 
     static {
-        register(ImgVersions.VERSION_2, Version2ImgHandle.class);
-        register(ImgVersions.VERSION_4, Version4ImgHandle.class);
-        register(ImgVersions.OGG, OggHandle.class);
+        register(AlbumModes.VERSION_2, Version2ImgHandle.class);
+        register(AlbumModes.VERSION_4, Version4ImgHandle.class);
+        register(AlbumModes.OGG, OggHandle.class);
     }
 
-    private static void register(ImgVersions version, Class<? extends AbstractHandle> handle) {
+    private static void register(AlbumModes version, Class<? extends AbstractHandle> handle) {
         versionMap.put(version, handle);
         log.info("Support npk version: {}.", version.name());
     }
 
     @SneakyThrows
-    public static AbstractHandle newInstance(ImgEntity imgEntity) {
-        Class<? extends AbstractHandle> abstractImgHandle = versionMap.get(imgEntity.getImgVersion());
+    public static AbstractHandle newInstance(Album album) {
+        Class<? extends AbstractHandle> abstractImgHandle = versionMap.get(album.getAlbumModes());
         if (Objects.isNull(abstractImgHandle)) {
-            throw new UnsupportedOperationException(String.format("The current handle is not supported %s.", imgEntity.getImgVersion()));
+            throw new UnsupportedOperationException(String.format("The current handle is not supported %s.", album.getAlbumModes()));
         }
-        return abstractImgHandle.getConstructor(ImgEntity.class).newInstance(imgEntity);
+        return abstractImgHandle.getConstructor(Album.class).newInstance(album);
     }
 
-    protected ImgEntity imgEntity;
+    protected Album album;
 
-    public AbstractHandle(ImgEntity imgEntity) {
-        this.imgEntity = imgEntity;
+    public AbstractHandle(Album album) {
+        this.album = album;
     }
 
     public abstract void createFromStream(MemoryStream stream);
 
-    public abstract BufferedImage convertToBufferedImage(TextureEntity textureEntity);
+    public abstract BufferedImage convertToBufferedImage(Sprite sprite);
 
-    public abstract byte[] convertToByte(TextureEntity textureEntity);
+    public abstract byte[] convertToByte(Sprite sprite);
 
-    public void newImage(int count, ColorLinkTypes type, int index) {
+    public void newImage(int count, ColorLinkModes type, int index) {
     }
 
     public void adjust() {
-        for (TextureEntity textureEntity : imgEntity.getTextureEntities()) {
-            textureEntity.adjust();
+        for (Sprite sprite : album.getSprites()) {
+            sprite.adjust();
         }
-        imgEntity.setCount(imgEntity.getTextureEntities().size());
+        album.setCount(album.getSprites().size());
         MemoryStream stream = new MemoryStream();
         byte[] data = adjustData();
-        if (imgEntity.getImgVersion().getValue() > ImgVersions.VERSION_1.getValue()) {
+        if (album.getAlbumModes().getValue() > AlbumModes.VERSION_1.getValue()) {
             stream.write(NpkUtils.IMG_FLAG.getBytes(StandardCharsets.UTF_8));
-            stream.writeLong(imgEntity.getIndexLength());
-            stream.writeInt(imgEntity.getImgVersion().getValue());
-            stream.writeInt(imgEntity.getCount());
+            stream.writeLong(album.getIndexLength());
+            stream.writeInt(album.getAlbumModes().getValue());
+            stream.writeInt(album.getCount());
         }
         stream.write(data);
-        imgEntity.setImgData(stream.toArray());
-        imgEntity.setLength(imgEntity.getImgData().length);
+        album.setData(stream.toArray());
+        album.setLength(album.getData().length);
     }
 
     public byte[] adjustData() {
         return new byte[0];
     }
 
-    public void convertToVersion(ImgVersions version) {
+    public void convertToVersion(AlbumModes version) {
     }
 }

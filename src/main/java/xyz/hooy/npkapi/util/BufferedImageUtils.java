@@ -2,7 +2,7 @@ package xyz.hooy.npkapi.util;
 
 import xyz.hooy.npkapi.component.GIFMetadataExpansion;
 import xyz.hooy.npkapi.component.MemoryStream;
-import xyz.hooy.npkapi.constant.ColorLinkTypes;
+import xyz.hooy.npkapi.constant.ColorLinkModes;
 
 import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
@@ -12,14 +12,13 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.List;
 
 public final class BufferedImageUtils {
 
     private BufferedImageUtils() {
     }
 
-    public static byte[] toArray(BufferedImage bufferedImage, ColorLinkTypes type) {
+    public static byte[] toArray(BufferedImage bufferedImage, ColorLinkModes type) {
         byte[] data = toArray(bufferedImage);
         MemoryStream stream = new MemoryStream(data.length);
         for (int i = 0; i < data.length; i += 4) {
@@ -43,7 +42,7 @@ public final class BufferedImageUtils {
         return stream.toArray();
     }
 
-    public static BufferedImage fromArray(byte[] data, int width, int height, ColorLinkTypes type) {
+    public static BufferedImage fromArray(byte[] data, int width, int height, ColorLinkModes type) {
         MemoryStream stream = new MemoryStream(data.length);
         stream.write(data);
         byte[] bufferedImageData = new byte[width * height * 4];

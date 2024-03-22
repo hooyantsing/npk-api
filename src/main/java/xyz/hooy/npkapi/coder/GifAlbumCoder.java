@@ -1,9 +1,9 @@
 package xyz.hooy.npkapi.coder;
 
 import lombok.extern.slf4j.Slf4j;
-import xyz.hooy.npkapi.constant.ImgType;
-import xyz.hooy.npkapi.entity.ImgEntity;
-import xyz.hooy.npkapi.entity.TextureEntity;
+import xyz.hooy.npkapi.constant.AlbumSuffixModes;
+import xyz.hooy.npkapi.entity.Album;
+import xyz.hooy.npkapi.entity.Sprite;
 import xyz.hooy.npkapi.util.BufferedImageUtils;
 
 import java.awt.image.BufferedImage;
@@ -12,26 +12,26 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class GifCoder implements SecondCoder {
+public class GifAlbumCoder implements AlbumCoder {
 
     @Override
-    public ImgEntity load(String loadPath) throws IOException {
+    public Album load(String loadPath) throws IOException {
         List<BufferedImage> bufferedImages = BufferedImageUtils.readImage(loadPath);
-        ImgEntity imgEntity = new ImgEntity(bufferedImages);
+        Album album = new Album(bufferedImages);
         log.info("Loaded file: {}.", loadPath);
-        return imgEntity;
+        return album;
     }
 
     @Override
-    public void save(String savePath, ImgEntity imgEntity) throws IOException {
-        List<BufferedImage> bufferedImages = imgEntity.getTextureEntities().stream().map(TextureEntity::getPicture).collect(Collectors.toList());
+    public void save(String savePath, Album album) throws IOException {
+        List<BufferedImage> bufferedImages = album.getSprites().stream().map(Sprite::getPicture).collect(Collectors.toList());
         BufferedImageUtils.writeImage(savePath, bufferedImages, suffix());
         log.info("Saved file: {}.", savePath);
     }
 
     @Override
-    public boolean match(ImgType imgType) {
-        return ImgType.IMAGE == imgType;
+    public boolean match(AlbumSuffixModes albumSuffixModes) {
+        return AlbumSuffixModes.IMAGE == albumSuffixModes;
     }
 
     @Override

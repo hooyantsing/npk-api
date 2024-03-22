@@ -1,8 +1,8 @@
 package xyz.hooy.npkapi.util;
 
 import xyz.hooy.npkapi.component.MemoryStream;
-import xyz.hooy.npkapi.constant.ImgVersions;
-import xyz.hooy.npkapi.entity.ImgEntity;
+import xyz.hooy.npkapi.constant.AlbumModes;
+import xyz.hooy.npkapi.entity.Album;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,12 +46,12 @@ public final class NpkUtils {
             "DNFDNFDNFDNFDNFDNFDNFDNFDNFDNF" +
             "DNFDNFDNF\0").getBytes(StandardCharsets.UTF_8);
 
-    public static List<ImgEntity> readNpk(MemoryStream stream) {
+    public static List<Album> readNpk(MemoryStream stream) {
         return readNpk(stream, null);
     }
 
-    public static List<ImgEntity> readNpk(MemoryStream stream, String file) {
-        List<ImgEntity> imgEntities = new ArrayList<>();
+    public static List<Album> readNpk(MemoryStream stream, String file) {
+        List<Album> imgEntities = new ArrayList<>();
         String flag = stream.readString();
         if (NPK_FlAG.equals(flag)) {
             // 当文件是NPK时
@@ -61,12 +61,12 @@ public final class NpkUtils {
                 stream.seek(32, MemoryStream.SeekOrigin.Begin);
             }
         } else {
-            ImgEntity imgEntity = new ImgEntity();
+            Album album = new Album();
             if (Objects.nonNull(file)) {
                 String suffix = file.substring(file.lastIndexOf(".") + 1);
-                imgEntity.setPath(suffix);
+                album.setPath(suffix);
             }
-            imgEntities.add(imgEntity);
+            imgEntities.add(album);
         }
         for (int i = 0; i < imgEntities.size(); i++) {
             int length = i < imgEntities.size() - 1 ? imgEntities.get(i + 1).getOffset() : stream.length();
@@ -75,85 +75,85 @@ public final class NpkUtils {
         return imgEntities;
     }
 
-    public static List<ImgEntity> readInfo(MemoryStream stream) {
+    public static List<Album> readInfo(MemoryStream stream) {
         String flag = stream.readString();
-        List<ImgEntity> imgEntities = new ArrayList<>();
+        List<Album> imgEntities = new ArrayList<>();
         if (!NPK_FlAG.equals(flag)) {
             return imgEntities;
         }
         int count = stream.readInt();
         for (int i = 0; i < count; i++) {
-            ImgEntity imgEntity = new ImgEntity();
-            imgEntity.setOffset(stream.readInt());
-            imgEntity.setLength(stream.readInt());
-            imgEntity.setPath(readPath(stream));
-            imgEntities.add(imgEntity);
+            Album album = new Album();
+            album.setOffset(stream.readInt());
+            album.setLength(stream.readInt());
+            album.setPath(readPath(stream));
+            imgEntities.add(album);
         }
         return imgEntities;
     }
 
-    public static void readImg(MemoryStream stream, ImgEntity imgEntity, long length) {
-        stream.seek(imgEntity.getOffset(), MemoryStream.SeekOrigin.Begin);
+    public static void readImg(MemoryStream stream, Album album, long length) {
+        stream.seek(album.getOffset(), MemoryStream.SeekOrigin.Begin);
         String albumFlag = stream.readString();
         if (IMG_FLAG.equals(albumFlag)) {
-            imgEntity.setIndexLength(stream.readLong());
-            imgEntity.setImgVersion(ImgVersions.valueOf(stream.readInt()));
-            imgEntity.setCount(stream.readInt());
-            imgEntity.initHandle(stream);
+            album.setIndexLength(stream.readLong());
+            album.setAlbumModes(AlbumModes.valueOf(stream.readInt()));
+            album.setCount(stream.readInt());
+            album.initHandle(stream);
         } else {
             if (IMAGE_FLAG.equals(albumFlag)) {
-                imgEntity.setImgVersion(ImgVersions.VERSION_1);
+                album.setAlbumModes(AlbumModes.VERSION_1);
             } else {
                 if (length < 0) {
                     length = stream.length();
                 }
-                imgEntity.setImgVersion(ImgVersions.OGG);
-                stream.seek(imgEntity.getOffset(), MemoryStream.SeekOrigin.Begin);
-                if (imgEntity.getName().toLowerCase().endsWith("ogg")) {
-                    imgEntity.setImgVersion(ImgVersions.OGG);
-                    imgEntity.setIndexLength(length - stream.position());
+                album.setAlbumModes(AlbumModes.OGG);
+                stream.seek(album.getOffset(), MemoryStream.SeekOrigin.Begin);
+                if (album.getName().toLowerCase().endsWith("ogg")) {
+                    album.setAlbumModes(AlbumModes.OGG);
+                    album.setIndexLength(length - stream.position());
                 }
             }
-            imgEntity.initHandle(stream);
+            album.initHandle(stream);
         }
     }
 
-    public static void readImg(MemoryStream stream, ImgEntity imgEntity) {
-        readImg(stream, imgEntity, -1);
+    public static void readImg(MemoryStream stream, Album album) {
+        readImg(stream, album, -1);
     }
 
-    public static ImgEntity readImg(MemoryStream stream, String path) {
+    public static Album readImg(MemoryStream stream, String path) {
         return readImg(stream, path, -1);
     }
 
 
-    public static ImgEntity readImg(MemoryStream stream, String path, long length) {
-        ImgEntity imgEntity = new ImgEntity();
-        imgEntity.setPath(path);
-        readImg(stream, imgEntity, length);
-        return imgEntity;
+    public static Album readImg(MemoryStream stream, String path, long length) {
+        Album album = new Album();
+        album.setPath(path);
+        readImg(stream, album, length);
+        return album;
     }
 
 
-    public static void readImg(byte[] data, ImgEntity imgEntity) {
-        readImg(data, imgEntity, -1);
+    public static void readImg(byte[] data, Album album) {
+        readImg(data, album, -1);
     }
 
-    public static ImgEntity readImg(byte[] data, String path) {
+    public static Album readImg(byte[] data, String path) {
         return readImg(data, path, -1);
     }
 
-    public static void readImg(byte[] data, ImgEntity imgEntity, long length) {
+    public static void readImg(byte[] data, Album album, long length) {
         MemoryStream ms = new MemoryStream(data.length);
-        readImg(ms, imgEntity, length);
+        readImg(ms, album, length);
     }
 
-    public static ImgEntity readImg(byte[] data, String path, long length) {
+    public static Album readImg(byte[] data, String path, long length) {
         MemoryStream ms = new MemoryStream(data.length);
         return readImg(ms, path, length);
     }
 
-    public static void writeNpk(MemoryStream stream, List<ImgEntity> imgEntities) throws NoSuchAlgorithmException {
+    public static void writeNpk(MemoryStream stream, List<Album> imgEntities) throws NoSuchAlgorithmException {
         int position = 52 + imgEntities.size() * 264;
         int length = 0;
         for (int i = 0; i < imgEntities.size(); i++) {
@@ -176,31 +176,31 @@ public final class NpkUtils {
         MemoryStream ms = new MemoryStream();
         ms.writeString(NPK_FlAG);
         ms.writeInt(imgEntities.size());
-        for (ImgEntity imgEntity : imgEntities) {
-            ms.writeInt(imgEntity.getOffset());
-            ms.writeInt(imgEntity.getLength());
-            writePath(ms, imgEntity.getPath());
+        for (Album album : imgEntities) {
+            ms.writeInt(album.getOffset());
+            ms.writeInt(album.getLength());
+            writePath(ms, album.getPath());
         }
         byte[] data = ms.toArray();
         stream.write(data);
         stream.write(compileHash(data));
-        for (ImgEntity imgEntity : imgEntities) {
-            if (Objects.isNull(imgEntity.getTarget())) {
-                stream.write(imgEntity.getImgData());
+        for (Album album : imgEntities) {
+            if (Objects.isNull(album.getTarget())) {
+                stream.write(album.getData());
             }
         }
     }
 
-    public static List<ImgEntity> load(String file) throws IOException {
+    public static List<Album> load(String file) throws IOException {
         return load(false, file);
     }
 
-    public static List<ImgEntity> load(String[] files) throws IOException {
+    public static List<Album> load(String[] files) throws IOException {
         return load(false, files);
     }
 
-    public static List<ImgEntity> load(boolean onlyPath, String path) throws IOException {
-        List<ImgEntity> imgEntities = new ArrayList<>();
+    public static List<Album> load(boolean onlyPath, String path) throws IOException {
+        List<Album> imgEntities = new ArrayList<>();
         Path file = Paths.get(path);
         if (Files.isDirectory(file)) {
             try (Stream<Path> walk = Files.walk(file)) {
@@ -220,15 +220,15 @@ public final class NpkUtils {
         return readNpk(stream, path);
     }
 
-    public static List<ImgEntity> load(boolean onlyPath, String[] files) throws IOException {
-        List<ImgEntity> imgEntities = new ArrayList<>();
+    public static List<Album> load(boolean onlyPath, String[] files) throws IOException {
+        List<Album> imgEntities = new ArrayList<>();
         for (String file : files) {
             imgEntities.addAll(load(onlyPath, file));
         }
         return imgEntities;
     }
 
-    public static void save(String path, List<ImgEntity> imgEntities) throws IOException, NoSuchAlgorithmException {
+    public static void save(String path, List<Album> imgEntities) throws IOException, NoSuchAlgorithmException {
         Path file = Paths.get(path);
         if (!Files.isRegularFile(file)) {
             Files.createFile(file);

@@ -1,15 +1,15 @@
 package xyz.hooy.npkapi.img;
 
 import xyz.hooy.npkapi.component.MemoryStream;
-import xyz.hooy.npkapi.entity.ImgEntity;
-import xyz.hooy.npkapi.entity.TextureEntity;
+import xyz.hooy.npkapi.entity.Album;
+import xyz.hooy.npkapi.entity.Sprite;
 
 import java.awt.image.BufferedImage;
 
 public class Version4ImgHandle extends AbstractHandle {
 
-    public Version4ImgHandle(ImgEntity imgEntity) {
-        super(imgEntity);
+    public Version4ImgHandle(Album album) {
+        super(album);
     }
 
     @Override
@@ -18,12 +18,12 @@ public class Version4ImgHandle extends AbstractHandle {
     }
 
     @Override
-    public BufferedImage convertToBufferedImage(TextureEntity textureEntity) {
+    public BufferedImage convertToBufferedImage(Sprite sprite) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public byte[] convertToByte(TextureEntity textureEntity) {
+    public byte[] convertToByte(Sprite sprite) {
         throw new UnsupportedOperationException();
     }
 }

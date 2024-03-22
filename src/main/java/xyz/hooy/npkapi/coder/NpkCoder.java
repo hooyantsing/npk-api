@@ -1,7 +1,7 @@
 package xyz.hooy.npkapi.coder;
 
 import lombok.extern.slf4j.Slf4j;
-import xyz.hooy.npkapi.entity.ImgEntity;
+import xyz.hooy.npkapi.entity.Album;
 import xyz.hooy.npkapi.util.NpkUtils;
 
 import java.io.IOException;
@@ -11,13 +11,13 @@ import java.util.List;
 @Slf4j
 public class NpkCoder implements Coder {
 
-    public List<ImgEntity> load(String loadPath) throws IOException {
-        List<ImgEntity> load = NpkUtils.load(loadPath);
+    public List<Album> load(String loadPath) throws IOException {
+        List<Album> load = NpkUtils.load(loadPath);
         log.info("Loaded file: {}.", loadPath);
         return load;
     }
 
-    public void save(String savePath, List<ImgEntity> imgEntities) throws IOException {
+    public void save(String savePath, List<Album> imgEntities) throws IOException {
         try {
             NpkUtils.save(savePath, imgEntities);
             log.info("Saved file: {}.", savePath);

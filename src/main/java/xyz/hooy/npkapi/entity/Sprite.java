@@ -3,7 +3,7 @@ package xyz.hooy.npkapi.entity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import xyz.hooy.npkapi.constant.ColorLinkTypes;
+import xyz.hooy.npkapi.constant.ColorLinkModes;
 import xyz.hooy.npkapi.constant.CompressModes;
 import xyz.hooy.npkapi.util.CompressUtils;
 
@@ -16,13 +16,13 @@ import java.util.Objects;
  */
 @Getter
 @Setter
-public class TextureEntity {
+public class Sprite {
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private BufferedImage image;
 
-    private ColorLinkTypes type = ColorLinkTypes.ARGB_8888;
+    private ColorLinkModes colorLink = ColorLinkModes.ARGB_8888;
     private CompressModes compress = CompressModes.NONE;
     private Integer length = 0;
     private Integer width = 0;
@@ -31,16 +31,16 @@ public class TextureEntity {
     private Integer y = 0;
     private Integer frameWidth = 0;
     private Integer frameHeight = 0;
-    private byte[] textureData = new byte[0];
+    private byte[] data = new byte[0];
 
     private Integer index;
-    private ImgEntity parent;
-    private TextureEntity target;
+    private Album parent;
+    private Sprite target;
 
-    public TextureEntity() {
+    public Sprite() {
     }
 
-    public TextureEntity(ImgEntity parent) {
+    public Sprite(Album parent) {
         this.parent = parent;
     }
 
@@ -49,7 +49,7 @@ public class TextureEntity {
     }
 
     public BufferedImage getPicture() {
-        if (type == ColorLinkTypes.LINK) {
+        if (colorLink == ColorLinkModes.LINK) {
             return target.getPicture();
         }
         if (isOpen()) {
@@ -68,18 +68,18 @@ public class TextureEntity {
     }
 
     public void adjust() {
-        if (type == ColorLinkTypes.LINK) {
+        if (colorLink == ColorLinkModes.LINK) {
             length = 0;
             return;
         }
         if (!isOpen()) {
             return;
         }
-        textureData = parent.convertToByte(this);
-        if (textureData.length > 0 && compress.getValue() >= CompressModes.ZLIB.getValue()) {
-            textureData = CompressUtils.zlibCompress(textureData);
+        data = parent.convertToByte(this);
+        if (data.length > 0 && compress.getValue() >= CompressModes.ZLIB.getValue()) {
+            data = CompressUtils.zlibCompress(data);
         }
-        length = textureData.length; //不压缩时，按原长度保存
+        length = data.length; //不压缩时，按原长度保存
     }
 
     @Override
@@ -90,7 +90,7 @@ public class TextureEntity {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TextureEntity that = (TextureEntity) o;
+        Sprite that = (Sprite) o;
         return Objects.equals(index, that.index) && Objects.equals(parent, that.parent);
     }
 

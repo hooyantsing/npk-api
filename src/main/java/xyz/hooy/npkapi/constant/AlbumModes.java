@@ -3,7 +3,7 @@ package xyz.hooy.npkapi.constant;
 import lombok.Getter;
 
 @Getter
-public enum ImgVersions {
+public enum AlbumModes {
 
     OGG(0x00),
     VERSION_1(0x01),
@@ -14,7 +14,7 @@ public enum ImgVersions {
 
     private Integer value;
 
-    ImgVersions(int value) {
+    AlbumModes(int value) {
         this.value = value;
     }
 
@@ -22,8 +22,8 @@ public enum ImgVersions {
         this.value = value;
     }
 
-    public static ImgVersions valueOf(int value) {
-        for (ImgVersions version : ImgVersions.values()) {
+    public static AlbumModes valueOf(int value) {
+        for (AlbumModes version : AlbumModes.values()) {
             if (version.getValue().equals(value)) {
                 return version;
             }

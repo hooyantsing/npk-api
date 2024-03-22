@@ -3,7 +3,7 @@ package xyz.hooy.npkapi.constant;
 import lombok.Getter;
 
 @Getter
-public enum ColorLinkTypes {
+public enum ColorLinkModes {
 
     ARGB_1555(0x0E),
     ARGB_4444(0x0F),
@@ -12,7 +12,7 @@ public enum ColorLinkTypes {
 
     private Integer value;
 
-    ColorLinkTypes(int value) {
+    ColorLinkModes(int value) {
         this.value = value;
     }
 
@@ -20,8 +20,8 @@ public enum ColorLinkTypes {
         this.value = value;
     }
 
-    public static ColorLinkTypes valueOf(int value) {
-        for (ColorLinkTypes type : ColorLinkTypes.values()) {
+    public static ColorLinkModes valueOf(int value) {
+        for (ColorLinkModes type : ColorLinkModes.values()) {
             if (type.getValue().equals(value)) {
                 return type;
             }
