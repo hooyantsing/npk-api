@@ -61,18 +61,20 @@ public class NpkApi {
                     AlbumCoder albumCoder = (AlbumCoder) coder;
                     Album album = albumCoder.load(filePath);
                     String albumSuffix = albumCoder.support() == AlbumSuffixModes.IMAGE ? ".img" : ".ogg";
-                    String albumPath = filePath.replace('_', '/') + albumSuffix;
-                    album.setPath(albumPath);
+                    String fileName = Paths.get(filePath).getFileName().toString();
+                    String pathName = fileName.substring(0, fileName.lastIndexOf('.')).replace('-', '/') + albumSuffix;
+                    album.setPath(pathName);
                     albums.add(album);
                 } else if (coder instanceof SpriteCoder) {
                     SpriteCoder spriteCoder = (SpriteCoder) coder;
                     Sprite sprite = spriteCoder.load(filePath);
-                    String albumPath = filePath.replace('_', '/').substring(0, filePath.lastIndexOf('-')) + ".img";
-                    Album album = thirdCoderPathEntityMap.get(albumPath);
+                    String fileName = Paths.get(filePath).getFileName().toString();
+                    String pathName = fileName.substring(0, fileName.lastIndexOf('-')).replace('-', '/') + ".img";
+                    Album album = thirdCoderPathEntityMap.get(pathName);
                     if (Objects.isNull(album)) {
                         Album newAlbum = new Album(Collections.singletonList(sprite.getPicture()));
-                        newAlbum.setPath(albumPath);
-                        thirdCoderPathEntityMap.put(albumPath, newAlbum);
+                        newAlbum.setPath(pathName);
+                        thirdCoderPathEntityMap.put(pathName, newAlbum);
                     } else {
                         album.addSprite(sprite);
                     }
@@ -87,38 +89,37 @@ public class NpkApi {
 
     public static void save(String savePath, List<Album> albums, String format) throws IOException {
         Path path = Paths.get(savePath);
-        if (Files.isDirectory(path)) {
-            format = format.toLowerCase();
-            Coder coder = coderMap.get(format);
-            if (Objects.nonNull(coder)) {
-                if (coder instanceof NpkCoder) {
-                    NpkCoder npkCoder = ((NpkCoder) coder);
-                    String fileName = UUID.randomUUID() + "." + npkCoder.suffix();
-                    npkCoder.save(Paths.get(savePath, fileName).toString(), albums);
-                } else if (coder instanceof AlbumCoder) {
-                    AlbumCoder albumCoder = ((AlbumCoder) coder);
-                    for (Album album : albums) {
-                        if (albumCoder.support() == album.getAlbumSuffixMode()) {
-                            String pathName = album.getPath();
-                            String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + "." + albumCoder.suffix();
-                            albumCoder.save(Paths.get(savePath, imageName).toString(), album);
-                        }
-                    }
-                } else if (coder instanceof SpriteCoder) {
-                    SpriteCoder spriteCoder = ((SpriteCoder) coder);
-                    for (Album album : albums) {
-                        for (Sprite sprite : album.getSprites()) {
-                            String pathName = sprite.getParent().getPath();
-                            String imageName = pathName.substring(0, pathName.indexOf('.')).replace('/', '_') + "-" + sprite.getIndex() + "." + spriteCoder.suffix();
-                            spriteCoder.save(Paths.get(savePath, imageName).toString(), sprite);
-                        }
+        if (!Files.isDirectory(path)) {
+            Files.createDirectories(path);
+        }
+        format = format.toLowerCase();
+        Coder coder = coderMap.get(format);
+        if (Objects.nonNull(coder)) {
+            if (coder instanceof NpkCoder) {
+                NpkCoder npkCoder = ((NpkCoder) coder);
+                String fileName = UUID.randomUUID() + "." + npkCoder.suffix();
+                npkCoder.save(Paths.get(savePath, fileName).toString(), albums);
+            } else if (coder instanceof AlbumCoder) {
+                AlbumCoder albumCoder = ((AlbumCoder) coder);
+                for (Album album : albums) {
+                    if (albumCoder.support() == album.getAlbumSuffixMode()) {
+                        String pathName = album.getPath();
+                        String filePath = pathName.substring(0, pathName.lastIndexOf('.')).replace('/', '-') + "." + albumCoder.suffix();
+                        albumCoder.save(Paths.get(savePath, filePath).toString(), album);
                     }
                 }
-            } else {
-                throw new UnsupportedEncodingException("Not found " + format + " coder.");
+            } else if (coder instanceof SpriteCoder) {
+                SpriteCoder spriteCoder = ((SpriteCoder) coder);
+                for (Album album : albums) {
+                    for (Sprite sprite : album.getSprites()) {
+                        String pathName = sprite.getParent().getPath();
+                        String filePath = pathName.substring(0, pathName.lastIndexOf('.')).replace('/', '-') + "-" + sprite.getIndex() + "." + spriteCoder.suffix();
+                        spriteCoder.save(Paths.get(savePath, filePath).toString(), sprite);
+                    }
+                }
             }
         } else {
-            throw new IllegalArgumentException("The save path must be a directory.");
+            throw new UnsupportedEncodingException("Not found " + format + " coder.");
         }
     }
 }

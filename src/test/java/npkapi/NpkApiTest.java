@@ -15,7 +15,7 @@ public class NpkApiTest {
     @Ignore
     void saveNpkToNpk() throws IOException {
         List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sprite_map_act2_stoneimage.NPK");
-        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "npk");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output\\npk", albums, "npk");
         System.out.println("OK");
     }
 
@@ -23,7 +23,7 @@ public class NpkApiTest {
     @Ignore
     void saveNpkToGif() throws IOException {
         List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sprite_map_act2_stoneimage.NPK");
-        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "gif");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output\\gif", albums, "gif");
         System.out.println("OK");
     }
 
@@ -31,7 +31,7 @@ public class NpkApiTest {
     @Ignore
     void saveNpkToPng() throws IOException {
         List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sprite_map_act2_stoneimage.NPK");
-        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "png");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output\\png", albums, "png");
         System.out.println("OK");
     }
 
@@ -39,7 +39,7 @@ public class NpkApiTest {
     @Ignore
     void saveNpkToOgg() throws IOException {
         List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sounds_amb.npk");
-        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "ogg");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output\\ogg", albums, "ogg");
         System.out.println("OK");
     }
 
@@ -47,7 +47,7 @@ public class NpkApiTest {
     @Ignore
     void saveAllToNpk() throws IOException {
         List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\output");
-        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "npk");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output\\all", albums, "npk");
         System.out.println("OK");
     }
 }
