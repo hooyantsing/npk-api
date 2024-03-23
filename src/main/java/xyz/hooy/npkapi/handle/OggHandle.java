@@ -16,8 +16,7 @@ public class OggHandle extends AbstractHandle {
 
     @Override
     public void createFromStream(MemoryStream stream) {
-        int length = Math.toIntExact(album.getIndexLength());
-        data = stream.read(length);
+        data = stream.read(album.getLength());
     }
 
     @Override

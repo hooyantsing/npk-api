@@ -58,7 +58,7 @@ public final class NpkUtils {
             stream.seek(0, MemoryStream.SeekOrigin.Begin);
             albums.addAll(readInfo(stream));
             if (!albums.isEmpty()) {
-                stream.seek(32, MemoryStream.SeekOrigin.Begin);
+                stream.seek(32, MemoryStream.SeekOrigin.Current);
             }
         } else {
             Album album = new Album();
@@ -92,29 +92,27 @@ public final class NpkUtils {
         return albums;
     }
 
-    public static void readImg(MemoryStream stream, Album album, long length) {
+    public static void readImg(MemoryStream stream, Album album, int length) {
         stream.seek(album.getOffset(), MemoryStream.SeekOrigin.Begin);
         String albumFlag = stream.readString();
         if (IMG_FLAG.equals(albumFlag)) {
-            album.setIndexLength(stream.readLong());
+            album.setIndexLength(Math.toIntExact(stream.readLong()));
             album.setAlbumModes(AlbumModes.valueOf(stream.readInt()));
             album.setCount(stream.readInt());
             album.initHandle(stream);
-        } else {
-            if (IMAGE_FLAG.equals(albumFlag)) {
-                album.setAlbumModes(AlbumModes.VERSION_1);
-            } else {
-                if (length < 0) {
-                    length = stream.length();
-                }
-                album.setAlbumModes(AlbumModes.OGG);
-                stream.seek(album.getOffset(), MemoryStream.SeekOrigin.Begin);
-                if (album.getName().toLowerCase().endsWith("ogg")) {
-                    album.setAlbumModes(AlbumModes.OGG);
-                    album.setIndexLength(length - stream.position());
-                }
-            }
+        } else if (IMAGE_FLAG.equals(albumFlag)) {
+            album.setAlbumModes(AlbumModes.VERSION_1);
             album.initHandle(stream);
+        } else if (album.getName().toLowerCase().endsWith("ogg")) {
+            if (length < 0) {
+                length = stream.length();
+            }
+            stream.seek(album.getOffset(), MemoryStream.SeekOrigin.Begin);
+            album.setAlbumModes(AlbumModes.OGG);
+            album.setLength(length - stream.position());
+            album.setIndexLength(0);
+            album.initHandle(stream);
+            album.adjust();
         }
     }
 
@@ -127,7 +125,7 @@ public final class NpkUtils {
     }
 
 
-    public static Album readImg(MemoryStream stream, String path, long length) {
+    public static Album readImg(MemoryStream stream, String path, int length) {
         Album album = new Album();
         album.setPath(path);
         readImg(stream, album, length);
@@ -143,12 +141,12 @@ public final class NpkUtils {
         return readImg(data, path, -1);
     }
 
-    public static void readImg(byte[] data, Album album, long length) {
+    public static void readImg(byte[] data, Album album, int length) {
         MemoryStream ms = new MemoryStream(data.length);
         readImg(ms, album, length);
     }
 
-    public static Album readImg(byte[] data, String path, long length) {
+    public static Album readImg(byte[] data, String path, int length) {
         MemoryStream ms = new MemoryStream(data.length);
         return readImg(ms, path, length);
     }

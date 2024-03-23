@@ -21,7 +21,7 @@ public class NpkApi {
     private static final Map<String, Coder> coderMap = new HashMap<>();
 
     static {
-        List<Coder> coders = Arrays.asList(new NpkCoder(), new GifAlbumCoder(), new PngSpriteCoder());
+        List<Coder> coders = Arrays.asList(new NpkCoder(), new GifAlbumCoder(), new PngSpriteCoder(), new OggAlbumCoder());
         for (Coder coder : coders) {
             register(coder.suffix(), coder);
         }

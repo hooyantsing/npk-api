@@ -2,6 +2,7 @@ package xyz.hooy.npkapi.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import xyz.hooy.npkapi.component.BufferedAudio;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.constant.AlbumModes;
 import xyz.hooy.npkapi.constant.AlbumSuffixModes;
@@ -10,7 +11,6 @@ import xyz.hooy.npkapi.handle.AbstractHandle;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -19,18 +19,19 @@ import java.util.Objects;
 public class Album {
 
     private Integer length;
-    private AlbumModes albumModes = AlbumModes.VERSION_2;
+    private AlbumModes albumModes;
     private Integer count;
     private byte[] data;
 
     private String path;
     private Integer offset;
-    private Long indexLength;
+    private Integer indexLength;
     private AbstractHandle handle;
     private List<Sprite> sprites = new ArrayList<>();
     private Album target;
 
     public Album() {
+        this.albumModes = AlbumModes.VERSION_2;
         this.handle = AbstractHandle.newInstance(this);
     }
 
@@ -51,8 +52,14 @@ public class Album {
         adjust();
     }
 
-    public Album(BufferedImage[] array) {
-        this(Arrays.asList(array));
+    public Album(BufferedAudio bufferedAudio) {
+        this.albumModes = AlbumModes.OGG;
+        this.length = bufferedAudio.getLength();
+        this.indexLength = 0;
+        MemoryStream memoryStream = new MemoryStream(bufferedAudio.getLength());
+        memoryStream.write(bufferedAudio.getData());
+        initHandle(memoryStream);
+        adjust();
     }
 
     public void initHandle(MemoryStream stream) {

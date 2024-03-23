@@ -135,7 +135,7 @@ public class Version2ImgHandle extends AbstractHandle {
             stream.writeInt(sprite.getFrameWidth());
             stream.writeInt(sprite.getFrameHeight());
         }
-        album.setIndexLength((long) stream.length());
+        album.setIndexLength(stream.length());
         for (Sprite sprite : album.getSprites()) {
             if (sprite.getColorLink() == ColorLinkModes.LINK) {
                 continue;

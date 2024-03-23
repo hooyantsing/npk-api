@@ -5,7 +5,6 @@ import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.Test;
 import xyz.hooy.npkapi.NpkApi;
 import xyz.hooy.npkapi.entity.Album;
-import xyz.hooy.npkapi.entity.Sprite;
 
 import java.io.IOException;
 import java.util.List;
@@ -14,28 +13,41 @@ public class NpkApiTest {
 
     @Test
     @Ignore
-    void load() throws IOException {
-        List<Album> albums = NpkApi.load("/Users/hooy/Project/NpkApi/input/sprite_map_npc_chn_knight.NPK");
-        for (Album album : albums) {
-            List<Sprite> sprites = album.getSprites();
-            for (Sprite sprite : sprites) {
-                sprite.getPicture();
-            }
-        }
+    void saveNpkToNpk() throws IOException {
+        List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sprite_map_act2_stoneimage.NPK");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "npk");
         System.out.println("OK");
     }
 
     @Test
     @Ignore
-    void save() throws IOException {
-        List<Album> albums = NpkApi.load("/Users/hooy/Project/NpkApi/input/sprite_map_npc_chn_knight.NPK");
-        for (Album album : albums) {
-            List<Sprite> sprites = album.getSprites();
-            for (Sprite sprite : sprites) {
-                sprite.getPicture();
-            }
-        }
-        NpkApi.save("/Users/hooy/Project/NpkApi/input/save.NPK", albums, "png");
+    void saveNpkToGif() throws IOException {
+        List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sprite_map_act2_stoneimage.NPK");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "gif");
+        System.out.println("OK");
+    }
+
+    @Test
+    @Ignore
+    void saveNpkToPng() throws IOException {
+        List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sprite_map_act2_stoneimage.NPK");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "png");
+        System.out.println("OK");
+    }
+
+    @Test
+    @Ignore
+    void saveNpkToOgg() throws IOException {
+        List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sounds_amb.npk");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "ogg");
+        System.out.println("OK");
+    }
+
+    @Test
+    @Ignore
+    void saveAllToNpk() throws IOException {
+        List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\output");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output", albums, "npk");
         System.out.println("OK");
     }
 }
