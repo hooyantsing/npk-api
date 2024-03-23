@@ -11,6 +11,8 @@ public class MemoryStream {
         Begin, Current, End
     }
 
+    private int length = 0;
+
     private ByteBuffer buffer;
 
     private boolean onlyRead = false;
@@ -81,35 +83,37 @@ public class MemoryStream {
 
     public void writeByte(byte b) {
         autoResize(1);
+        length += 1;
         buffer.put(b);
     }
 
     public void write(byte[] bytes) {
         autoResize(bytes.length);
+        length += bytes.length;
         buffer.put(bytes);
     }
 
     public void writeInt(int value) {
         autoResize(4);
+        length += 4;
         buffer.putInt(value);
     }
 
     public void writeLong(long value) {
         autoResize(8);
+        length += 8;
         buffer.putLong(value);
     }
 
     public void writeString(String value) {
         byte[] bytes = value.getBytes();
         autoResize(bytes.length);
+        length += bytes.length;
         buffer.put(bytes);
     }
 
     public int length() {
-        ByteBuffer duplicate = buffer.duplicate();
-        duplicate.flip();
-        duplicate.position(0);
-        return duplicate.remaining();
+        return length;
     }
 
     public byte[] toArray() {
