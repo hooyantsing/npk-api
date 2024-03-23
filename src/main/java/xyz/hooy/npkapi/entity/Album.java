@@ -86,7 +86,7 @@ public class Album {
     }
 
     public String getName() {
-        return path.substring(path.indexOf("." + 1));
+        return path.substring(path.indexOf(".") + 1);
     }
 
     public AlbumSuffixModes getAlbumSuffixMode() {
