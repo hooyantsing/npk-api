@@ -21,15 +21,25 @@ public class NpkApi {
     private static final Map<String, Coder> coderMap = new HashMap<>();
 
     static {
-        List<Coder> coders = Arrays.asList(new NpkCoder(), new GifAlbumCoder(), new PngSpriteCoder(), new JpgSpriteCoder(), new OggAlbumCoder());
-        for (Coder coder : coders) {
-            register(coder.suffix(), coder);
-        }
+        NpkCoder npkCoder = new NpkCoder();
+        register(npkCoder.suffix(), npkCoder);
+        spiProvider();
     }
 
     private static void register(String suffix, Coder coder) {
         coderMap.put(suffix, coder);
         log.info("Register coder: {}, support suffix file: {}.", coder.getClass().getName(), suffix);
+    }
+
+    private static void spiProvider() {
+        ServiceLoader<AlbumCoder> albumCoders = ServiceLoader.load(AlbumCoder.class);
+        ServiceLoader<SpriteCoder> spriteCoders = ServiceLoader.load(SpriteCoder.class);
+        for (Coder albumCoder : albumCoders) {
+            register(albumCoder.suffix(), albumCoder);
+        }
+        for (Coder spriteCoder : spriteCoders) {
+            register(spriteCoder.suffix(), spriteCoder);
+        }
     }
 
     public static List<Album> load(String loadPath) throws IOException {
