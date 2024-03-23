@@ -45,6 +45,15 @@ public class NpkApiTest {
     @Test
     @Ignore
     @Order(4)
+    void saveNpkToJpg() throws IOException {
+        List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sprite_map_act2_stoneimage.NPK");
+        NpkApi.save("D:\\Project\\NpkApi\\test\\output\\jpg", albums, "jpg");
+        System.out.println("OK");
+    }
+
+    @Test
+    @Ignore
+    @Order(5)
     void saveNpkToOgg() throws IOException {
         List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\input\\sounds_amb.npk");
         NpkApi.save("D:\\Project\\NpkApi\\test\\output\\ogg", albums, "ogg");
@@ -53,7 +62,7 @@ public class NpkApiTest {
 
     @Test
     @Ignore
-    @Order(5)
+    @Order(6)
     void saveAllToNpk() throws IOException {
         List<Album> albums = NpkApi.load("D:\\Project\\NpkApi\\test\\output");
         NpkApi.save("D:\\Project\\NpkApi\\test\\output\\all", albums, "npk");
