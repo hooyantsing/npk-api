@@ -2,20 +2,20 @@ package xyz.hooy.npkapi.coder;
 
 import lombok.extern.slf4j.Slf4j;
 import xyz.hooy.npkapi.entity.Sprite;
-import xyz.hooy.npkapi.util.BufferedImageUtils;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 @Slf4j
 public class PngSpriteCoder implements SpriteCoder {
 
     @Override
     public Sprite load(String loadPath) throws IOException {
-        List<BufferedImage> bufferedImages = BufferedImageUtils.readImage(loadPath);
+        BufferedImage bufferedImage = ImageIO.read(new File(loadPath));
         Sprite sprite = new Sprite();
-        sprite.setPicture(bufferedImages.get(0));
+        sprite.setPicture(bufferedImage);
         log.info("Loaded file: {}.", loadPath);
         return sprite;
     }
@@ -23,7 +23,7 @@ public class PngSpriteCoder implements SpriteCoder {
     @Override
     public void save(String savePath, Sprite sprite) throws IOException {
         BufferedImage bufferedImage = sprite.getPicture();
-        BufferedImageUtils.writeImage(savePath, bufferedImage, suffix());
+        ImageIO.write(bufferedImage,suffix(),new File(savePath));
         log.info("Saved file: {}.", savePath);
     }
 

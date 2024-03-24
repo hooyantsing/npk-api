@@ -35,19 +35,19 @@ public class Album {
         this.handle = AbstractHandle.newInstance(this);
     }
 
+    public Album(BufferedImage bufferedImage) {
+        this();
+        Sprite sprite = bufferedImageToSprite(bufferedImage, 0);
+        this.sprites.add(sprite);
+        adjust();
+    }
+
     public Album(List<BufferedImage> bufferedImages) {
         this();
         for (int i = 0; i < bufferedImages.size(); i++) {
             BufferedImage bufferedImage = bufferedImages.get(i);
-            Sprite sprite = new Sprite(this);
-            sprite.setIndex(i);
-            sprite.setPicture(bufferedImage);
-            sprite.setCompress(CompressModes.ZLIB);
-            sprite.setX(bufferedImage.getWidth());
-            sprite.setY(bufferedImage.getHeight());
-            sprite.setFrameWidth(bufferedImage.getWidth());
-            sprite.setFrameHeight(bufferedImage.getHeight());
-            sprites.add(sprite);
+            Sprite sprite = bufferedImageToSprite(bufferedImage, i);
+            this.sprites.add(sprite);
         }
         adjust();
     }
@@ -93,7 +93,11 @@ public class Album {
     }
 
     public String getName() {
-        return path.substring(path.indexOf(".") + 1);
+        int endIndex = path.lastIndexOf("/");
+        if (endIndex != -1) {
+            return path.substring(endIndex + 1);
+        }
+        return path;
     }
 
     public AlbumSuffixModes getAlbumSuffixMode() {
@@ -103,6 +107,18 @@ public class Album {
     public void addSprite(Sprite sprite) {
         sprites.add(sprite);
         adjust();
+    }
+
+    private Sprite bufferedImageToSprite(BufferedImage bufferedImage, int index) {
+        Sprite sprite = new Sprite(this);
+        sprite.setIndex(index);
+        sprite.setPicture(bufferedImage);
+        sprite.setCompress(CompressModes.ZLIB);
+        sprite.setX(bufferedImage.getWidth());
+        sprite.setY(bufferedImage.getHeight());
+        sprite.setFrameWidth(bufferedImage.getWidth());
+        sprite.setFrameHeight(bufferedImage.getHeight());
+        return sprite;
     }
 
     @Override

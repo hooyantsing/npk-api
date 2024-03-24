@@ -2,10 +2,11 @@ package xyz.hooy.npkapi.coder;
 
 import lombok.extern.slf4j.Slf4j;
 import xyz.hooy.npkapi.entity.Sprite;
-import xyz.hooy.npkapi.util.BufferedImageUtils;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 
 @Slf4j
@@ -14,7 +15,7 @@ public class JpgSpriteCoder extends PngSpriteCoder {
     @Override
     public void save(String savePath, Sprite sprite) throws IOException {
         BufferedImage bufferedImage = withoutAlpha(sprite.getPicture());
-        BufferedImageUtils.writeImage(savePath, bufferedImage, suffix());
+        ImageIO.write(bufferedImage,suffix(),new File(savePath));
         log.info("Saved file: {}.", savePath);
     }
 
