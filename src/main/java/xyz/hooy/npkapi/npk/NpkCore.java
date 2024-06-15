@@ -151,7 +151,7 @@ public final class NpkCore {
         return readImg(ms, path, length);
     }
 
-    public static void writeNpk(MemoryStream stream, List<Album> albums) throws NoSuchAlgorithmException {
+    public static void writeNpk(MemoryStream stream, List<Album> albums) throws IOException {
         int position = 52 + albums.size() * 264;
         int length = 0;
         for (int i = 0; i < albums.size(); i++) {
@@ -226,7 +226,7 @@ public final class NpkCore {
         return albums;
     }
 
-    public static void save(String path, List<Album> albums) throws IOException, NoSuchAlgorithmException {
+    public static void save(String path, List<Album> albums) throws IOException {
         Path file = Paths.get(path);
         if (!Files.isRegularFile(file)) {
             Files.createFile(file);
@@ -260,13 +260,18 @@ public final class NpkCore {
         stream.write(data);
     }
 
-    private static byte[] compileHash(byte[] data) throws NoSuchAlgorithmException {
+    private static byte[] compileHash(byte[] data) throws IOException {
         if (data.length == 0) {
             return new byte[0];
         }
         byte[] specimenBytes = new byte[data.length / 17 * 17];
         System.arraycopy(data, 0, specimenBytes, 0, specimenBytes.length);
-        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+        MessageDigest messageDigest = null;
+        try {
+            messageDigest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e.getMessage());
+        }
         messageDigest.update(specimenBytes);
         return messageDigest.digest();
     }

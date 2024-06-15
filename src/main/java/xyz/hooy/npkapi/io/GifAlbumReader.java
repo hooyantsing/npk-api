@@ -1,25 +1,28 @@
-package xyz.hooy.npkapi.io.impl;
+package xyz.hooy.npkapi.io;
 
-import xyz.hooy.npkapi.io.AlbumReader;
 import xyz.hooy.npkapi.npk.entity.Album;
-import xyz.hooy.npkapi.npk.util.BufferedImageUtils;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-public class GifAlbumReader implements AlbumReader {
+public class GifAlbumReader extends AbstractAlbumReader {
+
+    public GifAlbumReader(String path) {
+        super(path);
+    }
+
     @Override
-    public Album read(String path) throws IOException {
+    protected Album read(Path singleFile) throws IOException {
         ImageReader reader = null;
-        try (ImageInputStream in = ImageIO.createImageInputStream(new File(path))) {
+        try (ImageInputStream in = ImageIO.createImageInputStream(path.toFile())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
             if (!readers.hasNext()) {
                 throw new IOException("No GIF reader found.");

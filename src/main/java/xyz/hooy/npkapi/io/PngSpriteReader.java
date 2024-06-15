@@ -1,17 +1,21 @@
-package xyz.hooy.npkapi.io.impl;
+package xyz.hooy.npkapi.io;
 
-import xyz.hooy.npkapi.io.SpriteReader;
 import xyz.hooy.npkapi.npk.entity.Sprite;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
-public class PngSpriteReader implements SpriteReader {
+public class PngSpriteReader extends AbstractSpriteReader {
+
+    public PngSpriteReader(String path) {
+        super(path);
+    }
+
     @Override
-    public Sprite read(String path) throws IOException {
-        BufferedImage bufferedImage = ImageIO.read(new File(path));
+    protected Sprite read(Path singleFile) throws IOException {
+        BufferedImage bufferedImage = ImageIO.read(path.toFile());
         Sprite sprite = new Sprite();
         sprite.setPicture(bufferedImage);
         return sprite;

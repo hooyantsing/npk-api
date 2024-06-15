@@ -1,23 +1,27 @@
-package xyz.hooy.npkapi.io.impl;
+package xyz.hooy.npkapi.io;
 
-import xyz.hooy.npkapi.io.SpriteWriter;
 import xyz.hooy.npkapi.npk.entity.Sprite;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
-public class JpgSpriteWriter implements SpriteWriter {
+public class JpegSpriteWriter extends AbstractSpriteWriter{
+
+    public JpegSpriteWriter(String path) {
+        super(path);
+    }
+
     @Override
-    public void write(String path, Sprite sprite) throws IOException {
+    protected void write(Path path, Sprite sprite) throws IOException {
         BufferedImage bufferedImage = sprite.getPicture();
         BufferedImage imageWithoutAlpha = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = imageWithoutAlpha.createGraphics();
         g.drawImage(bufferedImage, 0, 0, null);
         g.dispose();
-        ImageIO.write(imageWithoutAlpha, suffix(), new File(path));
+        ImageIO.write(imageWithoutAlpha, suffix(), path.toFile());
     }
 
     @Override
