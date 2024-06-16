@@ -20,21 +20,23 @@ public abstract class AbstractSpriteReader extends AbstractReader {
 
     @Override
     protected final List<Album> doRead() throws IOException {
-        Album album = new Album();
-        album.setPath(replaceFileSuffix(path.getParent(), AlbumSuffixModes.IMAGE.getSuffix()));
         if (Files.isRegularFile(path) && supportedFileSuffix(path)) {
+            Album album = new Album();
+            album.setPath(filePathToAlbumPath(path.getParent().getFileName().toString()) + "." + AlbumSuffixModes.IMAGE.getSuffix());
             album.addSprite(readSingleFile(path));
             log.info("Read file: " + path);
             return Collections.singletonList(album);
         } else if (Files.isDirectory(path)) {
-            List<Path> paths = walkFile();
-            for (Path path : paths) {
-                if (supportedFileSuffix(path)) {
+            List<Path> paths = walkSupportedFiles();
+            if (!paths.isEmpty()) {
+                Album album = new Album();
+                album.setPath(filePathToAlbumPath(path.getParent().getFileName().toString()) + "." + AlbumSuffixModes.IMAGE.getSuffix());
+                for (Path path : paths) {
                     album.addSprite(readSingleFile(path));
                     log.info("Read file: " + path);
                 }
+                return Collections.singletonList(album);
             }
-            return Collections.singletonList(album);
         }
         return Collections.emptyList();
     }

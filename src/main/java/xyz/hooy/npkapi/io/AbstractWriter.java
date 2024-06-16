@@ -17,13 +17,25 @@ public abstract class AbstractWriter {
     }
 
     public final void write(List<Album> albums) throws IOException {
-        if (!Files.exists(path) || !Files.isDirectory(path)) {
-            Files.createDirectories(path);
-        }
+        createDirectoriesIfNotExists(path);
         doWrite(albums);
     }
 
     protected abstract void doWrite(List<Album> albums) throws IOException;
 
     public abstract String suffix();
+
+    protected void createDirectoriesIfNotExists(Path path) throws IOException {
+        if (!Files.exists(path) || !Files.isDirectory(path)) {
+            Files.createDirectories(path);
+        }
+    }
+
+    protected String alumPathToFilePath(String albumPath) {
+        albumPath = albumPath.replace("/", " ");
+        if (albumPath.contains(".")) {
+            albumPath = albumPath.substring(0, albumPath.lastIndexOf("."));
+        }
+        return albumPath;
+    }
 }

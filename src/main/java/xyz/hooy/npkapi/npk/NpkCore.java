@@ -103,7 +103,7 @@ public final class NpkCore {
         } else if (IMAGE_FLAG.equals(albumFlag)) {
             album.setAlbumModes(AlbumModes.VERSION_1);
             album.initHandle(stream);
-        } else if (album.getName().toLowerCase().endsWith("ogg")) {
+        } else if (album.getPath().toLowerCase().endsWith("ogg")) {
             if (length < 0) {
                 length = stream.length();
             }

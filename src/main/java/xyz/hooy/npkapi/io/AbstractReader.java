@@ -26,27 +26,25 @@ public abstract class AbstractReader {
 
     public abstract String suffix();
 
-    protected List<Path> walkFile() throws IOException {
+    protected List<Path> walkSupportedFiles() throws IOException {
         try (Stream<Path> walk = Files.walk(path)) {
-            return walk.filter(Files::isRegularFile).collect(Collectors.toList());
+            return walk.filter(Files::isRegularFile).filter(this::supportedFileSuffix).collect(Collectors.toList());
         }
     }
 
     protected boolean supportedFileSuffix(Path path) {
-        final String suffixMark = ".";
         String fileName = path.getFileName().toString();
-        if (fileName.contains(suffixMark)) {
-            return fileName.substring(fileName.lastIndexOf(suffixMark) + 1).equalsIgnoreCase(suffix());
+        if (fileName.contains(".")) {
+            return fileName.substring(fileName.lastIndexOf(".") + 1).equalsIgnoreCase(suffix());
         }
         return false;
     }
 
-    protected String replaceFileSuffix(Path path, String suffix) {
-        final String suffixMark = ".";
-        String fileName = path.getFileName().toString();
-        if (fileName.contains(suffixMark)) {
-            return fileName.substring(0, fileName.lastIndexOf(suffixMark) + 1) + "." + suffix;
+    protected String filePathToAlbumPath(String filePath) {
+        filePath = filePath.replace(" ", "/");
+        if (filePath.contains(".")) {
+            return filePath.substring(0, filePath.lastIndexOf("."));
         }
-        return fileName + "." + suffix;
+        return filePath;
     }
 }

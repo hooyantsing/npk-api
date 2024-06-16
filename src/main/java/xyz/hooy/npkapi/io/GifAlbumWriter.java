@@ -1,5 +1,7 @@
 package xyz.hooy.npkapi.io;
 
+import lombok.Getter;
+import lombok.Setter;
 import xyz.hooy.npkapi.component.GifMetadataExpansion;
 import xyz.hooy.npkapi.npk.entity.Album;
 import xyz.hooy.npkapi.npk.entity.Sprite;
@@ -15,7 +17,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Getter
+@Setter
 public class GifAlbumWriter extends AbstractAlbumWriter {
+
+    private int delayTime = 20;
 
     public GifAlbumWriter(String path) {
         super(path);
@@ -35,6 +41,7 @@ public class GifAlbumWriter extends AbstractAlbumWriter {
             IIOMetadata defaultImageMetadata = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(bufferedImages.get(0)), defaultWriteParam);
             defaultImageMetadata = new GifMetadataExpansion(defaultImageMetadata)
                     .setDisposalMethod(GifMetadataExpansion.DisposalMethod.RESTORE_TO_BACKGROUND_COLOR)
+                    .setDelayTime(delayTime)
                     .apply();
             writer.prepareWriteSequence(defaultImageMetadata);
             for (BufferedImage bufferedImage : bufferedImages) {

@@ -20,7 +20,10 @@ public abstract class AbstractSpriteWriter extends AbstractWriter {
     protected final void doWrite(List<Album> albums) throws IOException {
         for (Album album : albums) {
             for (int i = 0; i < album.getSprites().size(); i++) {
-                Path writePath = Paths.get(path.toString(), album.getPath() + "_" + i + "." + album.getAlbumSuffixMode().getSuffix());
+                String name = alumPathToFilePath(album.getPath());
+                Path writeDirectory = Paths.get(path.toString(), name);
+                createDirectoriesIfNotExists(writeDirectory);
+                Path writePath = Paths.get(writeDirectory.toString(), name + "#" + i + "." + suffix());
                 writeSingleFile(writePath, album.getSprites().get(i));
                 log.info("Write file: " + writePath);
             }

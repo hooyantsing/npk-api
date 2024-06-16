@@ -21,15 +21,15 @@ public class NpkReader extends AbstractReader {
         if (Files.isRegularFile(path) && supportedFileSuffix(path)) {
             return NpkCore.load(path.toString());
         } else if (Files.isDirectory(path)) {
-            List<Album> allAlbums = new ArrayList<>();
-            List<Path> paths = walkFile();
-            for (Path path : paths) {
-                if (supportedFileSuffix(path)) {
+            List<Path> paths = walkSupportedFiles();
+            if (!paths.isEmpty()) {
+                List<Album> allAlbums = new ArrayList<>();
+                for (Path path : paths) {
                     List<Album> albums = NpkCore.load(path.toString());
                     allAlbums.addAll(albums);
                 }
+                return allAlbums;
             }
-            return allAlbums;
         }
         return Collections.emptyList();
     }

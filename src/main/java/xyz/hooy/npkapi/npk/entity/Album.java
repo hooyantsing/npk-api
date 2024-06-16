@@ -92,16 +92,8 @@ public class Album {
         return handle.convertToByte(sprite);
     }
 
-    public String getName() {
-        int endIndex = path.lastIndexOf("/");
-        if (endIndex != -1) {
-            return path.substring(endIndex + 1);
-        }
-        return path;
-    }
-
     public AlbumSuffixModes getAlbumSuffixMode() {
-        return getName().endsWith("img") ? AlbumSuffixModes.IMAGE : AlbumSuffixModes.AUDIO;
+        return path.endsWith("ogg") ? AlbumSuffixModes.AUDIO : AlbumSuffixModes.IMAGE;
     }
 
     public void addSprite(Sprite sprite) {

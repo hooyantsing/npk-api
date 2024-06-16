@@ -22,21 +22,21 @@ public abstract class AbstractAlbumReader extends AbstractReader {
     protected final List<Album> doRead() throws IOException {
         if (Files.isRegularFile(path) && supportedFileSuffix(path)) {
             Album album = readSingleFile(path);
-            album.setPath(replaceFileSuffix(path, support().getSuffix()));
+            album.setPath(filePathToAlbumPath(path.getFileName().toString()) + "." + support().getSuffix());
             log.info("Read file: " + path);
             return Collections.singletonList(album);
         } else if (Files.isDirectory(path)) {
-            List<Album> albums = new ArrayList<>();
-            List<Path> paths = walkFile();
-            for (Path path : paths) {
-                if (supportedFileSuffix(path)) {
+            List<Path> paths = walkSupportedFiles();
+            if (!paths.isEmpty()) {
+                List<Album> albums = new ArrayList<>();
+                for (Path path : paths) {
                     Album album = readSingleFile(path);
-                    album.setPath(replaceFileSuffix(path, support().getSuffix()));
+                    album.setPath(filePathToAlbumPath(path.getFileName().toString()) + "." + support().getSuffix());
                     albums.add(album);
                     log.info("Read file: " + path);
                 }
+                return albums;
             }
-            return albums;
         }
         return Collections.emptyList();
     }

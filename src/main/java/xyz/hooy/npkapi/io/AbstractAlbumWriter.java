@@ -18,7 +18,7 @@ public abstract class AbstractAlbumWriter extends AbstractWriter {
     @Override
     protected final void doWrite(List<Album> albums) throws IOException {
         for (Album album : albums) {
-            Path writePath = Paths.get(path.toString(), album.getPath() + "." + suffix());
+            Path writePath = Paths.get(path.toString(), alumPathToFilePath(album.getPath()) + "." + suffix());
             writeSingleFile(writePath, album);
             log.info("Write file: " + writePath);
         }
