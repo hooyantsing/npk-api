@@ -1,5 +1,6 @@
 package xyz.hooy.npkapi.io;
 
+import xyz.hooy.npkapi.npk.constant.AlbumSuffixModes;
 import xyz.hooy.npkapi.npk.entity.Album;
 
 import java.io.IOException;
@@ -38,13 +39,5 @@ public abstract class AbstractReader {
             return fileName.substring(fileName.lastIndexOf(".") + 1).equalsIgnoreCase(suffix());
         }
         return false;
-    }
-
-    protected String filePathToAlbumPath(String filePath) {
-        filePath = filePath.replace(" ", "/");
-        if (filePath.contains(".")) {
-            return filePath.substring(0, filePath.lastIndexOf("."));
-        }
-        return filePath;
     }
 }

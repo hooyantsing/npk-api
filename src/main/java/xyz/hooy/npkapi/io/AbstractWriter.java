@@ -30,12 +30,4 @@ public abstract class AbstractWriter {
             Files.createDirectories(path);
         }
     }
-
-    protected String alumPathToFilePath(String albumPath) {
-        albumPath = albumPath.replace("/", " ");
-        if (albumPath.contains(".")) {
-            albumPath = albumPath.substring(0, albumPath.lastIndexOf("."));
-        }
-        return albumPath;
-    }
 }

@@ -4,6 +4,7 @@ import xyz.hooy.npkapi.npk.entity.Sprite;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -14,7 +15,7 @@ public class PngSpriteReader extends AbstractSpriteReader {
     }
 
     @Override
-    protected Sprite readSingleFile(Path singleFile) throws IOException {
+    protected Sprite readSingleFile(Path path) throws IOException {
         BufferedImage bufferedImage = ImageIO.read(path.toFile());
         Sprite sprite = new Sprite();
         sprite.setPicture(bufferedImage);

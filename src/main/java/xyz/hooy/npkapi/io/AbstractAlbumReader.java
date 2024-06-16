@@ -22,7 +22,7 @@ public abstract class AbstractAlbumReader extends AbstractReader {
     protected final List<Album> doRead() throws IOException {
         if (Files.isRegularFile(path) && supportedFileSuffix(path)) {
             Album album = readSingleFile(path);
-            album.setPath(filePathToAlbumPath(path.getFileName().toString()) + "." + support().getSuffix());
+            album.setPath(filePathToAlbumPath(path.getFileName().toString()));
             log.info("Read file: " + path);
             return Collections.singletonList(album);
         } else if (Files.isDirectory(path)) {
@@ -31,7 +31,7 @@ public abstract class AbstractAlbumReader extends AbstractReader {
                 List<Album> albums = new ArrayList<>();
                 for (Path path : paths) {
                     Album album = readSingleFile(path);
-                    album.setPath(filePathToAlbumPath(path.getFileName().toString()) + "." + support().getSuffix());
+                    album.setPath(filePathToAlbumPath(path.getFileName().toString()));
                     albums.add(album);
                     log.info("Read file: " + path);
                 }
@@ -39,6 +39,14 @@ public abstract class AbstractAlbumReader extends AbstractReader {
             }
         }
         return Collections.emptyList();
+    }
+
+    private String filePathToAlbumPath(String filePath) {
+        filePath = filePath.replace(" ", "/");
+        if (filePath.contains(".")) {
+            filePath = filePath.substring(0, filePath.lastIndexOf("."));
+        }
+        return filePath + "." + support().getSuffix();
     }
 
     protected abstract Album readSingleFile(Path path) throws IOException;
