@@ -6,7 +6,7 @@ import javax.imageio.metadata.IIOInvalidTreeException;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataNode;
 
-public class GIFMetadataExpansion {
+public class GifMetadataExpansion {
 
     private final IIOMetadata metadata;
     private final String metaFormatName;
@@ -28,34 +28,34 @@ public class GIFMetadataExpansion {
         }
     }
 
-    public GIFMetadataExpansion(IIOMetadata metadata) {
+    public GifMetadataExpansion(IIOMetadata metadata) {
         this.metadata = metadata;
         this.metaFormatName = metadata.getNativeMetadataFormatName();
         this.root = (IIOMetadataNode) metadata.getAsTree(metaFormatName);
         this.graphicsControlExtensionNode = getNode(root, "GraphicControlExtension");
     }
 
-    public GIFMetadataExpansion setDisposalMethod(DisposalMethod method) {
+    public GifMetadataExpansion setDisposalMethod(DisposalMethod method) {
         graphicsControlExtensionNode.setAttribute("disposalMethod", method.getValue());
         return this;
     }
 
-    public GIFMetadataExpansion setUserInputFlag(boolean flag) {
+    public GifMetadataExpansion setUserInputFlag(boolean flag) {
         graphicsControlExtensionNode.setAttribute("userInputFlag", String.valueOf(flag));
         return this;
     }
 
-    public GIFMetadataExpansion setTransparentColorFlag(boolean flag) {
+    public GifMetadataExpansion setTransparentColorFlag(boolean flag) {
         graphicsControlExtensionNode.setAttribute("transparentColorFlag", String.valueOf(flag));
         return this;
     }
 
-    public GIFMetadataExpansion setDelayTime(long delayTIme) {
+    public GifMetadataExpansion setDelayTime(long delayTIme) {
         graphicsControlExtensionNode.setAttribute("delayTime", String.valueOf(delayTIme));
         return this;
     }
 
-    public GIFMetadataExpansion setTransparentColorIndex(int index) {
+    public GifMetadataExpansion setTransparentColorIndex(int index) {
         graphicsControlExtensionNode.setAttribute("transparentColorIndex", String.valueOf(index));
         return this;
     }

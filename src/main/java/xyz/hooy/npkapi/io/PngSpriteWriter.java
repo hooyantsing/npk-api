@@ -14,7 +14,7 @@ public class PngSpriteWriter extends AbstractSpriteWriter {
     }
 
     @Override
-    protected void write(Path path, Sprite sprite) throws IOException {
+    protected void writeSingleFile(Path path, Sprite sprite) throws IOException {
         BufferedImage bufferedImage = sprite.getPicture();
         ImageIO.write(bufferedImage, suffix(), path.toFile());
     }

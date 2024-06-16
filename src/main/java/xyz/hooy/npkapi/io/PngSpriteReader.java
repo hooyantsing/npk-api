@@ -14,7 +14,7 @@ public class PngSpriteReader extends AbstractSpriteReader {
     }
 
     @Override
-    protected Sprite read(Path singleFile) throws IOException {
+    protected Sprite readSingleFile(Path singleFile) throws IOException {
         BufferedImage bufferedImage = ImageIO.read(path.toFile());
         Sprite sprite = new Sprite();
         sprite.setPicture(bufferedImage);

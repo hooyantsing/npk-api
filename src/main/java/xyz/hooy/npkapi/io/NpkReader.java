@@ -4,17 +4,34 @@ import xyz.hooy.npkapi.npk.NpkCore;
 import xyz.hooy.npkapi.npk.entity.Album;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class NpkReader extends AbstractReader{
+public class NpkReader extends AbstractReader {
 
     public NpkReader(String path) {
         super(path);
     }
 
     @Override
-    public List<Album> read() throws IOException {
-        return NpkCore.load(path.toString());
+    public final List<Album> doRead() throws IOException {
+        if (Files.isRegularFile(path) && supportedFileSuffix(path)) {
+            return NpkCore.load(path.toString());
+        } else if (Files.isDirectory(path)) {
+            List<Album> allAlbums = new ArrayList<>();
+            List<Path> paths = walkFile();
+            for (Path path : paths) {
+                if (supportedFileSuffix(path)) {
+                    List<Album> albums = NpkCore.load(path.toString());
+                    allAlbums.addAll(albums);
+                }
+            }
+            return allAlbums;
+        }
+        return Collections.emptyList();
     }
 
     @Override

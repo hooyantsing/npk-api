@@ -1,17 +1,9 @@
 package xyz.hooy.npkapi.npk.util;
 
-import xyz.hooy.npkapi.component.GIFMetadataExpansion;
 import xyz.hooy.npkapi.component.MemoryStream;
 import xyz.hooy.npkapi.npk.constant.ColorLinkModes;
 
-import javax.imageio.*;
-import javax.imageio.metadata.IIOMetadata;
-import javax.imageio.stream.ImageInputStream;
-import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
 
 public final class BufferedImageUtils {
 

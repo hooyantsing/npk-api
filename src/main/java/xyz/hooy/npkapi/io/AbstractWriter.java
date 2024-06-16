@@ -3,7 +3,6 @@ package xyz.hooy.npkapi.io;
 import xyz.hooy.npkapi.npk.entity.Album;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,13 +17,13 @@ public abstract class AbstractWriter {
     }
 
     public final void write(List<Album> albums) throws IOException {
-        if (Files.isDirectory(path)) {
-            write(path, albums);
+        if (!Files.exists(path) || !Files.isDirectory(path)) {
+            Files.createDirectories(path);
         }
-        throw new UnsupportedEncodingException("TODO");
+        doWrite(albums);
     }
 
-    protected abstract void write(Path path, List<Album> albums) throws IOException;
+    protected abstract void doWrite(List<Album> albums) throws IOException;
 
     public abstract String suffix();
 }

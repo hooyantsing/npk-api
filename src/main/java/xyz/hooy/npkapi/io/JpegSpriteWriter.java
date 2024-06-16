@@ -15,7 +15,7 @@ public class JpegSpriteWriter extends AbstractSpriteWriter{
     }
 
     @Override
-    protected void write(Path path, Sprite sprite) throws IOException {
+    protected void writeSingleFile(Path path, Sprite sprite) throws IOException {
         BufferedImage bufferedImage = sprite.getPicture();
         BufferedImage imageWithoutAlpha = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = imageWithoutAlpha.createGraphics();

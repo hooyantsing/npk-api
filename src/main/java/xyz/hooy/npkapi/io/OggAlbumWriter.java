@@ -13,7 +13,7 @@ public class OggAlbumWriter extends AbstractAlbumWriter{
     }
 
     @Override
-    protected void write(Path path, Album album) throws IOException {
+    protected void writeSingleFile(Path path, Album album) throws IOException {
         byte[] audioData = album.getData();
         Files.write(path,audioData);
     }

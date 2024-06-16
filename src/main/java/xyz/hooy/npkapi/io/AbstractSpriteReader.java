@@ -1,5 +1,7 @@
 package xyz.hooy.npkapi.io;
 
+import lombok.extern.slf4j.Slf4j;
+import xyz.hooy.npkapi.npk.constant.AlbumSuffixModes;
 import xyz.hooy.npkapi.npk.entity.Album;
 import xyz.hooy.npkapi.npk.entity.Sprite;
 
@@ -9,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 public abstract class AbstractSpriteReader extends AbstractReader {
 
     public AbstractSpriteReader(String path) {
@@ -16,17 +19,19 @@ public abstract class AbstractSpriteReader extends AbstractReader {
     }
 
     @Override
-    public final List<Album> read() throws IOException {
+    protected final List<Album> doRead() throws IOException {
         Album album = new Album();
-        album.setPath("TODO");
+        album.setPath(replaceFileSuffix(path.getParent(), AlbumSuffixModes.IMAGE.getSuffix()));
         if (Files.isRegularFile(path) && supportedFileSuffix(path)) {
-            album.addSprite(read(path));
+            album.addSprite(readSingleFile(path));
+            log.info("Read file: " + path);
             return Collections.singletonList(album);
         } else if (Files.isDirectory(path)) {
             List<Path> paths = walkFile();
             for (Path path : paths) {
                 if (supportedFileSuffix(path)) {
-                    album.addSprite(read(path));
+                    album.addSprite(readSingleFile(path));
+                    log.info("Read file: " + path);
                 }
             }
             return Collections.singletonList(album);
@@ -34,5 +39,5 @@ public abstract class AbstractSpriteReader extends AbstractReader {
         return Collections.emptyList();
     }
 
-    protected abstract Sprite read(Path singleFile) throws IOException;
+    protected abstract Sprite readSingleFile(Path path) throws IOException;
 }

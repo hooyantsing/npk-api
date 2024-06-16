@@ -1,6 +1,6 @@
 package xyz.hooy.npkapi.io;
 
-import xyz.hooy.npkapi.component.GIFMetadataExpansion;
+import xyz.hooy.npkapi.component.GifMetadataExpansion;
 import xyz.hooy.npkapi.npk.entity.Album;
 import xyz.hooy.npkapi.npk.entity.Sprite;
 
@@ -22,7 +22,7 @@ public class GifAlbumWriter extends AbstractAlbumWriter {
     }
 
     @Override
-    protected void write(Path path, Album album) throws IOException {
+    protected void writeSingleFile(Path path, Album album) throws IOException {
         List<BufferedImage> bufferedImages = album.getSprites().stream().map(Sprite::getPicture).collect(Collectors.toList());
         Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(suffix());
         if (!writers.hasNext()) {
@@ -33,8 +33,8 @@ public class GifAlbumWriter extends AbstractAlbumWriter {
             writer.setOutput(output);
             ImageWriteParam defaultWriteParam = writer.getDefaultWriteParam();
             IIOMetadata defaultImageMetadata = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(bufferedImages.get(0)), defaultWriteParam);
-            defaultImageMetadata = new GIFMetadataExpansion(defaultImageMetadata)
-                    .setDisposalMethod(GIFMetadataExpansion.DisposalMethod.RESTORE_TO_BACKGROUND_COLOR)
+            defaultImageMetadata = new GifMetadataExpansion(defaultImageMetadata)
+                    .setDisposalMethod(GifMetadataExpansion.DisposalMethod.RESTORE_TO_BACKGROUND_COLOR)
                     .apply();
             writer.prepareWriteSequence(defaultImageMetadata);
             for (BufferedImage bufferedImage : bufferedImages) {

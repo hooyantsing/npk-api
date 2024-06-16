@@ -1,5 +1,6 @@
 package xyz.hooy.npkapi.io;
 
+import xyz.hooy.npkapi.npk.constant.AlbumSuffixModes;
 import xyz.hooy.npkapi.npk.entity.Album;
 
 import javax.imageio.ImageIO;
@@ -20,7 +21,7 @@ public class GifAlbumReader extends AbstractAlbumReader {
     }
 
     @Override
-    protected Album read(Path singleFile) throws IOException {
+    protected Album readSingleFile(Path path) throws IOException {
         ImageReader reader = null;
         try (ImageInputStream in = ImageIO.createImageInputStream(path.toFile())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
@@ -41,6 +42,11 @@ public class GifAlbumReader extends AbstractAlbumReader {
                 reader.dispose();
             }
         }
+    }
+
+    @Override
+    public AlbumSuffixModes support() {
+        return AlbumSuffixModes.IMAGE;
     }
 
     @Override
