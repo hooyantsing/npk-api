@@ -1,40 +1,13 @@
 # npk-api
 
-> 提供对《地下城与勇士》（DNF、DFO）游戏资源 NPK 文件基础操作能力。
-
 [![Java](https://img.shields.io/badge/java-8-ae7118.svg?style=flat-square)](https://www.oracle.com/cn/java/technologies)
 
-### 平台特性
+npk-api 是一个用于解包与封包《地下城与勇士（Dungeon Fighter Online）》游戏 NPK 资源文件的开源库。该项目旨在为 NPK
+文件的读写操作提供结构化、高效的接口支持，既可以作为独立的 NPK 编辑工具使用，也可集成于自制 DNF
+游戏客户端或相关开发项目中，作为底层资源处理的中间层组件。
 
-* 依赖极少第三方库，规避潜在的依赖冲突；
-* 简洁易用的 API，对 NPK 及其包含 IMG 文件增、删、改、查等基础能力；
-* 可在内存中直接读取素材，或将其导出 PNG、GIF 等格式文件。
-
-### 计划清单
-
-* 目前仅支持 IMGV2 格式，未来将支持更多，如 IMGV4 等；
-* 导出 GIF 等文件；
-* 兼容 FXGL 游戏引擎。
-
-### 使用说明
-
-详见 `src/test/java/**` 的测试用例。
-
-### 衍生项目
-
-![plan](image/plan.png)
-
-> npk-api 是产品和资源之间沟通的桥梁。
-
-* [npk-editor]()：**NPK文件编辑器**，基于 JavaFX 技术实现，可视化的界面快速编辑 NPK 文件；
-* [dnf4j]()：**DNF游戏**，基于 FXGL 技术实现，力求复刻经典 60 版本。
+> 作者工作繁忙不定时更新，欢迎广大开发者贡献代码。
 
 ### 许可协议
 
-[暂无]()
-
-### 参考资料
-
-1. [NPK解包器使用演示及原理讲解](https://www.bilibili.com/video/BV1S8411873f/?spm_id_from=333.337.search-card.all.click&vd_source=2ddde2ac0a5860b504d84ead79ea843c)
-2. [关于DNF的多媒体包NPK文件的那些事儿](https://www.php1.cn/detail/GuanYu_DNF_DeDuo_138a19ad.html)
-3. [langresser-dnfextrator](https://github.com/langresser/dnfextrator/blob/master/extradnf/extradnf/extradnf.cpp)
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
