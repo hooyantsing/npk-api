@@ -3,7 +3,7 @@ package npkapi;
 import org.junit.jupiter.api.Test;
 import xyz.hooy.npkapi.Img;
 import xyz.hooy.npkapi.Npk;
-import xyz.hooy.npkapi.impl.ListableNpk;
+import xyz.hooy.npkapi.impl.DefaultNpk;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageInputStream;
@@ -19,7 +19,7 @@ public class NpkApiTest {
     void test() throws IOException {
         File file = new File(PATH + "/npkit/npk/sprite_map_npc_chn_knight.NPK");
         try (FileImageInputStream stream = new FileImageInputStream(file)) {
-            Npk npk = new ListableNpk();
+            Npk npk = new DefaultNpk();
             npk.read(stream);
             for (int i = 0; i < npk.getTextureSize(); i++) {
                 Img img = npk.getImg(i);

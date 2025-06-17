@@ -11,14 +11,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ListableNpk implements Npk {
+public class DefaultNpk implements Npk {
 
     protected Access delegateNpkAccess;
 
     protected List<Object> textures = new ArrayList<>();
 
-    public ListableNpk() {
-        this.delegateNpkAccess = new ListableNpkAccess(this);
+    public DefaultNpk() {
+        this.delegateNpkAccess = new DefaultNpkAccess(this);
     }
 
     @Override

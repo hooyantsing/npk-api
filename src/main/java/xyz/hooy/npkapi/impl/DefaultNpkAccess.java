@@ -12,15 +12,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class ListableNpkAccess implements Access {
+public class DefaultNpkAccess implements Access {
 
     public final static byte[] NPK_MAGIC = new byte[]{'N', 'e', 'o', 'p', 'l', 'e', 'P', 'a', 'c', 'k', '_', 'B', 'i', 'l', 'l', '\0'};
 
     public final static byte[] IMG_NAME_KEY = new byte[]{'p', 'u', 'c', 'h', 'i', 'k', 'o', 'n', '@', 'n', 'e', 'o', 'p', 'l', 'e', ' ', 'd', 'u', 'n', 'g', 'e', 'o', 'n', ' ', 'a', 'n', 'd', ' ', 'f', 'i', 'g', 'h', 't', 'e', 'r', ' ', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', 'D', 'N', 'F', '\0'};
 
-    private final ListableNpk npk;
+    private final DefaultNpk npk;
 
-    public ListableNpkAccess(ListableNpk npk) {
+    public DefaultNpkAccess(DefaultNpk npk) {
         this.npk = npk;
     }
 
