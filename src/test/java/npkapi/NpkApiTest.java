@@ -1,28 +1,36 @@
 package npkapi;
 
 import org.junit.jupiter.api.Test;
-import xyz.hooy.npkapi.io.*;
-import xyz.hooy.npkapi.npk.entity.Album;
+import xyz.hooy.npkapi.Img;
+import xyz.hooy.npkapi.Npk;
+import xyz.hooy.npkapi.impl.ListableNpk;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.FileImageInputStream;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 public class NpkApiTest {
 
-    @Test
-    void importer() throws IOException {
-        List<Album> albums = Importer.newInstance().addReader(new PngSpriteReader("D:\\Project\\NpkApi\\test\\output")).loadAll();
-        System.out.println(albums);
-    }
+    private final static String PATH = "/Users/hooy/Project/Npkit";
 
     @Test
-    void exporter() throws IOException {
-        List<Album> albums = Importer.newInstance().addReader(new NpkReader("D:\\Project\\NpkApi\\test\\input")).loadAll();
-        Exporter.newInstance(albums)
-                .addWriter(new GifAlbumWriter("D:\\Project\\NpkApi\\test\\output\\gif"))
-                // .addWriter(new OggAlbumWriter("D:\\Project\\NpkApi\\test\\output\\ogg"))
-                .addWriter(new PngSpriteWriter("D:\\Project\\NpkApi\\test\\output\\png"))
-                .addWriter(new JpegSpriteWriter("D:\\Project\\NpkApi\\test\\output\\jpg"))
-                .saveAll();
+    void test() throws IOException {
+        File file = new File(PATH + "/npkit/npk/sprite_map_npc_chn_knight.NPK");
+        try (FileImageInputStream stream = new FileImageInputStream(file)) {
+            Npk npk = new ListableNpk();
+            npk.read(stream);
+            for (int i = 0; i < npk.getTextureSize(); i++) {
+                Img img = npk.getImg(i);
+                for (int j = 0; j < img.getFrameSize(); j++) {
+                    BufferedImage image = img.getImage(j);
+                    String imgName = img.getName();
+                    imgName = imgName.substring(0, imgName.lastIndexOf("."));
+                    imgName = imgName.replace("/", "_") + "_" + j + ".png";
+                    ImageIO.write(image, "PNG", new File(PATH + "/test/" + imgName));
+                }
+            }
+        }
     }
 }
