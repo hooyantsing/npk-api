@@ -5,15 +5,15 @@ import java.awt.image.BufferedImage;
 
 public interface Img extends Access {
 
-    void setFrame(int index, int referenceIndex);
+    void addFrame(int index, int referenceIndex);
 
-    void setFrame(int index, BufferedImage image);
+    void addFrame(int index, BufferedImage image);
 
-    void setFrame(int index, int type, BufferedImage image);
+    void addFrame(int index, int type, BufferedImage image);
 
-    void setFrame(int index, BufferedImage image, Rectangle[] rectangles);
+    void addFrame(int index, BufferedImage image, Rectangle[] rectangles);
 
-    void setFrame(int index, int type, BufferedImage image, Rectangle[] rectangles);
+    void addFrame(int index, int type, BufferedImage image, Rectangle[] rectangles);
 
     void removeFrame(int index);
 

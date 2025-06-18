@@ -19,33 +19,33 @@ public class Version6Img extends Version4Img {
     }
 
     @Override
-    public void setFrame(int index, BufferedImage image) {
+    public void addFrame(int index, BufferedImage image) {
         multiplePalettesThrowException();
-        super.setFrame(index, image);
+        super.addFrame(index, image);
     }
 
     @Override
-    public void setFrame(int index, BufferedImage image, Rectangle[] rectangles) {
+    public void addFrame(int index, BufferedImage image, Rectangle[] rectangles) {
         multiplePalettesThrowException();
-        super.setFrame(index, image, rectangles);
+        super.addFrame(index, image, rectangles);
     }
 
     @Override
-    public void setFrame(int index, int type, BufferedImage image) {
+    public void addFrame(int index, int type, BufferedImage image) {
         multiplePalettesThrowException();
-        super.setFrame(index, type, image);
+        super.addFrame(index, type, image);
     }
 
     @Override
-    public void setFrame(int index, int referenceIndex) {
+    public void addFrame(int index, int referenceIndex) {
         multiplePalettesThrowException();
-        super.setFrame(index, referenceIndex);
+        super.addFrame(index, referenceIndex);
     }
 
     @Override
-    public void setFrame(int index, int type, BufferedImage image, Rectangle[] rectangles) {
+    public void addFrame(int index, int type, BufferedImage image, Rectangle[] rectangles) {
         multiplePalettesThrowException();
-        super.setFrame(index, type, image, rectangles);
+        super.addFrame(index, type, image, rectangles);
     }
 
     @Override

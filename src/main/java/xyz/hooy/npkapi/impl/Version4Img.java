@@ -17,13 +17,13 @@ public class Version4Img extends ListableImg {
     }
 
     @Override
-    public void setFrame(int index, BufferedImage image) {
-        super.setFrame(index, Frame.TYPE_INDEXED, image);
+    public void addFrame(int index, BufferedImage image) {
+        super.addFrame(index, Frame.TYPE_INDEXED, image);
     }
 
     @Override
-    public void setFrame(int index, BufferedImage image, Rectangle[] rectangles) {
-        super.setFrame(index, Frame.TYPE_INDEXED, image, rectangles);
+    public void addFrame(int index, BufferedImage image, Rectangle[] rectangles) {
+        super.addFrame(index, Frame.TYPE_INDEXED, image, rectangles);
     }
 
     @Override

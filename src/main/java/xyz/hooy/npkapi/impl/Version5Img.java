@@ -24,23 +24,23 @@ public class Version5Img extends Version2Img {
     }
 
     @Override
-    public void setFrame(int index, int type, BufferedImage image) {
+    public void addFrame(int index, int type, BufferedImage image) {
         if (Frame.isFxtType(type)) {
             supportedImageFrameTypeThrowException(type);
             Rectangle rectangle = new Rectangle(image.getMinX(), image.getMinY(), image.getWidth(), image.getHeight());
             setDdsImageFrame(index, type, image, new Rectangle[]{rectangle});
         } else {
-            super.setFrame(index, type, image);
+            super.addFrame(index, type, image);
         }
     }
 
     @Override
-    public void setFrame(int index, int type, BufferedImage image, Rectangle[] rectangles) {
+    public void addFrame(int index, int type, BufferedImage image, Rectangle[] rectangles) {
         if (Frame.isFxtType(type)) {
             supportedImageFrameTypeThrowException(type);
             setDdsImageFrame(index, type, image, rectangles);
         } else {
-            super.setFrame(index, type, image, rectangles);
+            super.addFrame(index, type, image, rectangles);
         }
     }
 

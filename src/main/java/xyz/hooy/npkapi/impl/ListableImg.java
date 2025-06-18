@@ -37,7 +37,7 @@ public abstract class ListableImg implements Img {
     }
 
     @Override
-    public void setFrame(int index, int referenceIndex) {
+    public void addFrame(int index, int referenceIndex) {
         if (referenceIndex >= index) {
             throw new IllegalArgumentException("Backward references are not allowed.");
         }
@@ -49,7 +49,7 @@ public abstract class ListableImg implements Img {
     }
 
     @Override
-    public void setFrame(int index, int type, BufferedImage image) {
+    public void addFrame(int index, int type, BufferedImage image) {
         supportedImageFrameTypeThrowException(type);
         ImageFrame imageFrame = new ImageFrame();
         imageFrame.type = type;
@@ -66,10 +66,10 @@ public abstract class ListableImg implements Img {
     }
 
     @Override
-    public void setFrame(int index, int type, BufferedImage image, Rectangle[] rectangles) {
+    public void addFrame(int index, int type, BufferedImage image, Rectangle[] rectangles) {
         for (Rectangle rectangle : rectangles) {
             BufferedImage subImage = image.getSubimage(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
-            setFrame(index++, type, subImage);
+            addFrame(index++, type, subImage);
         }
     }
 
