@@ -122,10 +122,10 @@ public class Version2Img extends ListableImg {
         byte[] data = new byte[argbData.length * 4];
         while (i < data.length) {
             int pixel = argbData[index++];
-            data[i++] = (byte) ((pixel >> 24) & 0xFF);
             data[i++] = (byte) ((pixel >> 16) & 0xFF);
             data[i++] = (byte) ((pixel >> 8) & 0xFF);
             data[i++] = (byte) (pixel & 0xFF);
+            data[i++] = (byte) ((pixel >> 24) & 0xFF);
         }
         return data;
     }

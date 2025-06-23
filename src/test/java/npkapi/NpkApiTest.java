@@ -44,8 +44,8 @@ public class NpkApiTest {
             npk.read(inputStream);
             Img img = npk.getImg(0);
             img.addFrame(2,1);
-           /* BufferedImage frame = ImageIO.read(new File(PATH + "/input/frame.png"));
-            img.addFrame(img.getFrameSize(), frame);*/
+            BufferedImage frame = ImageIO.read(new File(PATH + "/input/frame.png"));
+            img.addFrame(img.getFrameSize(), frame);
             npk.write(outputStream);
         }
     }
