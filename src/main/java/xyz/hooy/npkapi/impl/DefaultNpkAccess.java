@@ -86,8 +86,10 @@ public class DefaultNpkAccess implements Access {
              MemoryCacheImageOutputStream headerImageOutputStream = new MemoryCacheImageOutputStream(headerOutputStream);
              ByteArrayOutputStream dataOutputStream = new ByteArrayOutputStream();
              MemoryCacheImageOutputStream dataImageOutputStream = new MemoryCacheImageOutputStream(dataOutputStream)) {
+            headerImageOutputStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            dataImageOutputStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
             headerImageOutputStream.write(NPK_MAGIC);
-            headerImageOutputStream.write(npk.textures.size());
+            headerImageOutputStream.writeInt(npk.textures.size());
             int offset = NPK_MAGIC.length + 4 + 264 * npk.textures.size() + 32;
             for (Object texture : npk.textures) {
                 String name;
@@ -101,16 +103,20 @@ public class DefaultNpkAccess implements Access {
                     name = img.getName();
                     try (ByteArrayOutputStream imgOutputStream = new ByteArrayOutputStream();
                          MemoryCacheImageOutputStream imgImageOutputStream = new MemoryCacheImageOutputStream(imgOutputStream)) {
+                        imgImageOutputStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
                         img.write(imgImageOutputStream);
+                        imgImageOutputStream.flush();
                         rawData = imgOutputStream.toByteArray();
                     }
                 }
-                headerImageOutputStream.write(offset);
-                headerImageOutputStream.write(rawData.length);
+                headerImageOutputStream.writeInt(offset);
+                headerImageOutputStream.writeInt(rawData.length);
                 headerImageOutputStream.write(encodeName(name));
                 dataImageOutputStream.write(rawData);
                 offset += rawData.length;
             }
+            headerImageOutputStream.flush();
+            dataImageOutputStream.flush();
             byte[] headerBytes = headerOutputStream.toByteArray();
             byte[] verificationBytes = compileVerificationCode(headerBytes);
             byte[] dataBytes = dataOutputStream.toByteArray();
