@@ -47,7 +47,7 @@ public class Version5Img extends Version2Img {
     @Override
     protected void supportedImageFrameTypeThrowException(int type) {
         if (!(Frame.isArgbType(type) || Frame.isFxtType(type))) {
-            throw new IllegalArgumentException("Img(v4) type must be FXT1/FXT2/FXT3/ARGB1555/ARGB4444/ARGB8888.");
+            throw new IllegalArgumentException("Img(v5) type must be FXT1/FXT2/FXT3/ARGB1555/ARGB4444/ARGB8888.");
         }
         if (Frame.isFxtType(type)) {
             boolean supportedDds = Arrays.asList(ImageIO.getWriterFormatNames()).contains(DDS_IMAGE);
@@ -108,8 +108,7 @@ public class Version5Img extends Version2Img {
     }
 
     private boolean checkDdsIsShared(DdsImageFrame ddsImageFrame) {
-        for (int i = 0; i < getFrameSize(); i++) {
-            Frame existedFrame = frames.get(i);
+        for (Frame existedFrame : frames) {
             if (existedFrame.isFxt()) {
                 DdsImageFrame existedDdsImageFrame = (DdsImageFrame) existedFrame;
                 if (ddsImageFrame != existedDdsImageFrame && ddsImageFrame.ddsIndex == existedDdsImageFrame.ddsIndex) {

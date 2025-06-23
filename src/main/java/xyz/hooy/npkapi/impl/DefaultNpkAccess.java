@@ -1,11 +1,16 @@
 package xyz.hooy.npkapi.impl;
 
 import xyz.hooy.npkapi.Access;
+import xyz.hooy.npkapi.Img;
+import xyz.hooy.npkapi.Ogg;
+import xyz.hooy.npkapi.support.ByteArrayImageInputStream;
+import xyz.hooy.npkapi.support.ByteArrayImageOutputStream;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -31,7 +36,6 @@ public class DefaultNpkAccess implements Access {
         stream.read(npkMagicBytes);
         verifyMagicCode(npkMagicBytes);
         int size = stream.readInt();
-
         stream.mark();
         stream.seek(0);
         byte[] headerBytes = new byte[NPK_MAGIC.length + 4 + size * 264];
@@ -40,31 +44,32 @@ public class DefaultNpkAccess implements Access {
         stream.read(verificationBytes);
         stream.reset();
         verifyVerificationCode(headerBytes, verificationBytes);
-
         List<Object> textures = new ArrayList<>();
         byte[] nameBytes = new byte[256];
         for (int i = 0; i < size; i++) {
-            int imgOffset = stream.readInt();
-            int imgLength = stream.readInt();
+            int offset = stream.readInt();
+            int length = stream.readInt();
             stream.read(nameBytes);
             String name = decodeName(nameBytes);
             stream.mark();
-            stream.seek(imgOffset);
+            stream.seek(offset);
+            byte[] dataBytes = new byte[length];
+            stream.read(dataBytes);
             if (name.toLowerCase().endsWith(".ogg")) {
-                byte[] oggBytes = new byte[imgLength];
-                stream.read(oggBytes);
                 DefaultOgg ogg = new DefaultOgg();
                 ogg.setName(name);
-                ogg.setRawData(oggBytes);
+                ogg.setRawData(dataBytes);
                 textures.add(ogg);
             } else {
-                stream.skipBytes(ListableImgAccess.IMG_MAGIC.length + 8);
-                int version = stream.readInt();
-                stream.seek(imgOffset);
-                ListableImg img = findImg(version);
-                img.read(stream);
-                img.setName(name);
-                textures.add(img);
+                try (ByteArrayImageInputStream imgInputStream = new ByteArrayImageInputStream(dataBytes)) {
+                    imgInputStream.skipBytes(ListableImgAccess.IMG_MAGIC.length + 8);
+                    int version = imgInputStream.readInt();
+                    imgInputStream.seek(0);
+                    ListableImg img = findImg(version);
+                    img.read(imgInputStream);
+                    img.setName(name);
+                    textures.add(img);
+                }
             }
             stream.reset();
         }
@@ -73,7 +78,39 @@ public class DefaultNpkAccess implements Access {
 
     @Override
     public void write(ImageOutputStream stream) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        try (ByteArrayImageOutputStream headerOutputSteam = new ByteArrayImageOutputStream();
+             ByteArrayImageOutputStream dataOutputStream = new ByteArrayImageOutputStream()) {
+            headerOutputSteam.write(NPK_MAGIC);
+            headerOutputSteam.write(npk.textures.size());
+            int offset = 16 + 4 + 264 * npk.textures.size() + 32;
+            for (Object texture : npk.textures) {
+                String name;
+                byte[] rawData;
+                if (texture instanceof Ogg) {
+                    Ogg ogg = (Ogg) texture;
+                    name = ogg.getName();
+                    rawData = ogg.getRawData();
+                } else {
+                    Img img = (Img) texture;
+                    try (ByteArrayImageOutputStream imgOutputStream = new ByteArrayImageOutputStream()) {
+                        img.write(imgOutputStream);
+                        name = img.getName();
+                        rawData = imgOutputStream.toByteArray();
+                    }
+                }
+                headerOutputSteam.write(offset);
+                headerOutputSteam.write(rawData.length);
+                headerOutputSteam.write(encodeName(name));
+                dataOutputStream.write(rawData);
+                offset += rawData.length;
+            }
+            byte[] headerBytes = headerOutputSteam.toByteArray();
+            byte[] verificationBytes = compileVerificationCode(headerBytes);
+            byte[] dataBytes = dataOutputStream.toByteArray();
+            stream.write(headerBytes);
+            stream.write(verificationBytes);
+            stream.write(dataBytes);
+        }
     }
 
     protected ListableImg findImg(int version) {
@@ -125,11 +162,21 @@ public class DefaultNpkAccess implements Access {
         return messageDigest.digest();
     }
 
-    private String decodeName(byte[] imgNameBytes) {
+    private String decodeName(byte[] nameBytes) {
         byte[] data = new byte[256];
         for (int i = 0; i < data.length; i++) {
-            data[i] = (byte) (imgNameBytes[i] ^ IMG_NAME_KEY[i]);
+            data[i] = (byte) (nameBytes[i] ^ IMG_NAME_KEY[i]);
         }
         return new String(data).trim();
+    }
+
+    private byte[] encodeName(String name) {
+        byte[] data = new byte[256];
+        byte[] valueBytes = name.getBytes(StandardCharsets.UTF_8);
+        System.arraycopy(valueBytes, 0, data, 0, valueBytes.length);
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) (data[i] ^ IMG_NAME_KEY[i]);
+        }
+        return data;
     }
 }
