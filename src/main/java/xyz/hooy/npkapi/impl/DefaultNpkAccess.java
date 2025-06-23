@@ -3,11 +3,13 @@ package xyz.hooy.npkapi.impl;
 import xyz.hooy.npkapi.Access;
 import xyz.hooy.npkapi.Img;
 import xyz.hooy.npkapi.Ogg;
-import xyz.hooy.npkapi.support.ByteArrayImageInputStream;
-import xyz.hooy.npkapi.support.ByteArrayImageOutputStream;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageInputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -61,12 +63,14 @@ public class DefaultNpkAccess implements Access {
                 ogg.setRawData(dataBytes);
                 textures.add(ogg);
             } else {
-                try (ByteArrayImageInputStream imgInputStream = new ByteArrayImageInputStream(dataBytes)) {
-                    imgInputStream.skipBytes(ListableImgAccess.IMG_MAGIC.length + 8);
-                    int version = imgInputStream.readInt();
-                    imgInputStream.seek(0);
+                try (ByteArrayInputStream imgInputStream = new ByteArrayInputStream(dataBytes);
+                     MemoryCacheImageInputStream imgImageInputStream = new MemoryCacheImageInputStream(imgInputStream)) {
+                    imgImageInputStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+                    imgImageInputStream.skipBytes(ListableImgAccess.IMG_MAGIC.length + 8);
+                    int version = imgImageInputStream.readInt();
+                    imgImageInputStream.seek(0);
                     ListableImg img = findImg(version);
-                    img.read(imgInputStream);
+                    img.read(imgImageInputStream);
                     img.setName(name);
                     textures.add(img);
                 }
@@ -78,11 +82,13 @@ public class DefaultNpkAccess implements Access {
 
     @Override
     public void write(ImageOutputStream stream) throws IOException {
-        try (ByteArrayImageOutputStream headerOutputSteam = new ByteArrayImageOutputStream();
-             ByteArrayImageOutputStream dataOutputStream = new ByteArrayImageOutputStream()) {
-            headerOutputSteam.write(NPK_MAGIC);
-            headerOutputSteam.write(npk.textures.size());
-            int offset = 16 + 4 + 264 * npk.textures.size() + 32;
+        try (ByteArrayOutputStream headerOutputStream = new ByteArrayOutputStream();
+             MemoryCacheImageOutputStream headerImageOutputStream = new MemoryCacheImageOutputStream(headerOutputStream);
+             ByteArrayOutputStream dataOutputStream = new ByteArrayOutputStream();
+             MemoryCacheImageOutputStream dataImageOutputStream = new MemoryCacheImageOutputStream(dataOutputStream)) {
+            headerImageOutputStream.write(NPK_MAGIC);
+            headerImageOutputStream.write(npk.textures.size());
+            int offset = NPK_MAGIC.length + 4 + 264 * npk.textures.size() + 32;
             for (Object texture : npk.textures) {
                 String name;
                 byte[] rawData;
@@ -92,19 +98,20 @@ public class DefaultNpkAccess implements Access {
                     rawData = ogg.getRawData();
                 } else {
                     Img img = (Img) texture;
-                    try (ByteArrayImageOutputStream imgOutputStream = new ByteArrayImageOutputStream()) {
-                        img.write(imgOutputStream);
-                        name = img.getName();
+                    name = img.getName();
+                    try (ByteArrayOutputStream imgOutputStream = new ByteArrayOutputStream();
+                         MemoryCacheImageOutputStream imgImageOutputStream = new MemoryCacheImageOutputStream(imgOutputStream)) {
+                        img.write(imgImageOutputStream);
                         rawData = imgOutputStream.toByteArray();
                     }
                 }
-                headerOutputSteam.write(offset);
-                headerOutputSteam.write(rawData.length);
-                headerOutputSteam.write(encodeName(name));
-                dataOutputStream.write(rawData);
+                headerImageOutputStream.write(offset);
+                headerImageOutputStream.write(rawData.length);
+                headerImageOutputStream.write(encodeName(name));
+                dataImageOutputStream.write(rawData);
                 offset += rawData.length;
             }
-            byte[] headerBytes = headerOutputSteam.toByteArray();
+            byte[] headerBytes = headerOutputStream.toByteArray();
             byte[] verificationBytes = compileVerificationCode(headerBytes);
             byte[] dataBytes = dataOutputStream.toByteArray();
             stream.write(headerBytes);
