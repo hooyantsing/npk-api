@@ -7,13 +7,16 @@ import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterOutputStream;
 
 public abstract class ListableImg implements Img {
 
-    String name = "Unknown";
+    String name = "unknown";
 
     protected Access delegateImgAccess;
 
@@ -165,5 +168,25 @@ public abstract class ListableImg implements Img {
                 }
             }
         }
+    }
+
+    protected byte[] decompress(byte[] bytes) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (InflaterOutputStream inflaterOutputStream = new InflaterOutputStream(outputStream)) {
+            inflaterOutputStream.write(bytes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return outputStream.toByteArray();
+    }
+
+    protected byte[] compress(byte[] bytes) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(outputStream)) {
+            deflaterOutputStream.write(bytes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return outputStream.toByteArray();
     }
 }

@@ -1,7 +1,5 @@
 package xyz.hooy.npkapi.impl;
 
-import xyz.hooy.npkapi.support.Bytes;
-
 import java.awt.*;
 import java.awt.image.*;
 
@@ -46,7 +44,7 @@ public class Version4Img extends ListableImg {
             data[i] = palette.indexOf(color);
         }
         if (imageFrame.isCompressed()) {
-            data = Bytes.compress(data);
+            data = compress(data);
         }
         imageFrame.rawData = data;
         imageFrame.length = data.length;
@@ -56,7 +54,7 @@ public class Version4Img extends ListableImg {
     protected void conventDataToImage(ImageFrame imageFrame) {
         byte[] data = imageFrame.rawData;
         if (imageFrame.isCompressed()) {
-            data = Bytes.decompress(data);
+            data = decompress(data);
         }
         ColorModel colorModel = new IndexColorModel(8, palette.size(), palette.toArray(), 0, false, -1, DataBuffer.TYPE_BYTE);
         SampleModel sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, imageFrame.width, imageFrame.height, 1, imageFrame.width, new int[]{0});

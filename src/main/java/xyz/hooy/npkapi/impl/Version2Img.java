@@ -1,7 +1,5 @@
 package xyz.hooy.npkapi.impl;
 
-import xyz.hooy.npkapi.support.Bytes;
-
 import java.awt.*;
 import java.awt.color.ColorSpace;
 import java.awt.image.*;
@@ -55,7 +53,7 @@ public class Version2Img extends ListableImg {
             }
         }
         if (imageFrame.isCompressed()) {
-            data = Bytes.compress(data);
+            data = compress(data);
         }
         imageFrame.rawData = data;
         imageFrame.length = data.length;
@@ -65,7 +63,7 @@ public class Version2Img extends ListableImg {
     protected void conventDataToImage(ImageFrame imageFrame) {
         byte[] data = imageFrame.rawData;
         if (imageFrame.isCompressed()) {
-            data = Bytes.decompress(data);
+            data = decompress(data);
         }
         switch (imageFrame.type) {
             case Frame.TYPE_ARGB1555: {
@@ -136,7 +134,7 @@ public class Version2Img extends ListableImg {
         int[] masks = new int[]{0x7C00, 0x3E0, 0x1F, 0x8000};
         ColorModel colorModel = new DirectColorModel(16, masks[0], masks[1], masks[2], masks[3]);
         SampleModel sampleModel = new SinglePixelPackedSampleModel(DataBuffer.TYPE_USHORT, imageFrame.width, imageFrame.height, masks);
-        short[] shortData = Bytes.shortsMergedFrom(data);
+        short[] shortData = shortsMergedFrom(data);
         DataBuffer dataBuffer = new DataBufferUShort(shortData, shortData.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
         imageFrame.image = new BufferedImage(colorModel, raster, false, new Hashtable<>());
@@ -146,7 +144,7 @@ public class Version2Img extends ListableImg {
         int[] masks = new int[]{0xF00, 0xF0, 0xF, 0xF000};
         ColorModel colorModel = new DirectColorModel(16, masks[0], masks[1], masks[2], masks[3]);
         SampleModel sampleModel = new SinglePixelPackedSampleModel(DataBuffer.TYPE_USHORT, imageFrame.width, imageFrame.height, masks);
-        short[] shortData = Bytes.shortsMergedFrom(data);
+        short[] shortData = shortsMergedFrom(data);
         DataBuffer dataBuffer = new DataBufferUShort(shortData, shortData.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
         imageFrame.image = new BufferedImage(colorModel, raster, false, new Hashtable<>());
@@ -158,5 +156,17 @@ public class Version2Img extends ListableImg {
         DataBuffer dataBuffer = new DataBufferByte(data, data.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
         imageFrame.image = new BufferedImage(colorModel, raster, false, new Hashtable<>());
+    }
+
+    private short[] shortsMergedFrom(byte[] bytes) {
+        int i = 0;
+        int index = 0;
+        short[] merged = new short[bytes.length / 2];
+        while (i < merged.length) {
+            byte right = bytes[index++];
+            byte left = bytes[index++];
+            merged[i++] = (short) ((left << 8) | (right & 0xFF));
+        }
+        return merged;
     }
 }

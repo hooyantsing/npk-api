@@ -13,11 +13,11 @@ import java.io.IOException;
 
 public class NpkApiTest {
 
-    private final static String PATH = "/Users/hooy/Project/Npkit";
+    private final static String PATH = "C:/Users/huyq/Project/NpkApi/test";
 
     @Test
     void test() throws IOException {
-        File file = new File(PATH + "/npkit/npk/sprite_map_npc_chn_knight.NPK");
+        File file = new File(PATH + "/input/sprite_map_npc_chn_knight.NPK");
         try (FileImageInputStream stream = new FileImageInputStream(file)) {
             Npk npk = new DefaultNpk();
             npk.read(stream);
@@ -28,7 +28,7 @@ public class NpkApiTest {
                     String imgName = img.getName();
                     imgName = imgName.substring(0, imgName.lastIndexOf("."));
                     imgName = imgName.replace("/", "_") + "_" + j + ".png";
-                    ImageIO.write(image, "PNG", new File(PATH + "/test/" + imgName));
+                    ImageIO.write(image, "PNG", new File(PATH + "/output/" + imgName));
                 }
             }
         }

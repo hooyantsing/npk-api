@@ -1,7 +1,5 @@
 package xyz.hooy.npkapi.impl;
 
-import xyz.hooy.npkapi.support.Bytes;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -67,7 +65,7 @@ public class Version5Img extends Version2Img {
         DdsTable.DDS dds = new DdsTable.DDS();
         byte[] data = outputStream.toByteArray();
         dds.fullLength = data.length;
-        data = Bytes.compress(data);
+        data = compress(data);
         dds.length = data.length;
         dds.width = image.getWidth();
         dds.height = image.getHeight();
@@ -148,7 +146,7 @@ public class Version5Img extends Version2Img {
         }
         byte[] data = ddsImageFrame.rawData;
         if (ddsImageFrame.isCompressed()) {
-            data = Bytes.decompress(data);
+            data = decompress(data);
         }
         ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
         BufferedImage image;
