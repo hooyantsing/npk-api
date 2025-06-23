@@ -11,7 +11,7 @@ public abstract class Frame {
     public final static int TYPE_FXT2 = 0x13;
     public final static int TYPE_FXT3 = 0x14;
 
-    protected int type = TYPE_ARGB8888;
+    protected int type;
 
     public int getType() {
         return type;

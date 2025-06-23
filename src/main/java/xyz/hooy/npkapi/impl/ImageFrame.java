@@ -19,6 +19,10 @@ public class ImageFrame extends Frame {
     protected int frameHeight = 0;
     protected byte[] rawData = null;
 
+    public ImageFrame(){
+        this.type = TYPE_ARGB8888;
+    }
+
     public static boolean isCompressed(int compressed) {
         return compressed == COMPRESSED;
     }

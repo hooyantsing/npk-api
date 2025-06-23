@@ -49,7 +49,7 @@ public abstract class ListableImgAccess implements Access {
         int length = 0;
         for (Frame frame : img.frames) {
             if (frame.isReference()) {
-                length += 2;
+                length += 8;
             } else {
                 length += 36;
             }
