@@ -1,6 +1,4 @@
-package xyz.hooy.npkapi.impl;
-
-import xyz.hooy.npkapi.Ogg;
+package xyz.hooy.npkapi;
 
 public class DefaultOgg implements Ogg {
 

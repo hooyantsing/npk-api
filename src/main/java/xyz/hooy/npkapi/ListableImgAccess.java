@@ -1,6 +1,4 @@
-package xyz.hooy.npkapi.impl;
-
-import xyz.hooy.npkapi.Access;
+package xyz.hooy.npkapi;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;

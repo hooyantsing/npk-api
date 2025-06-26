@@ -1,5 +1,4 @@
-package xyz.hooy.npkapi.impl;
-
+package xyz.hooy.npkapi;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;

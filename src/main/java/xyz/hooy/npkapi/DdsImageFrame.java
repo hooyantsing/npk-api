@@ -1,4 +1,4 @@
-package xyz.hooy.npkapi.impl;
+package xyz.hooy.npkapi;
 
 public class DdsImageFrame extends ImageFrame {
 

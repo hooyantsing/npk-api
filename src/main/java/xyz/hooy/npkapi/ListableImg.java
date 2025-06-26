@@ -1,7 +1,4 @@
-package xyz.hooy.npkapi.impl;
-
-import xyz.hooy.npkapi.Access;
-import xyz.hooy.npkapi.Img;
+package xyz.hooy.npkapi;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
@@ -46,6 +43,7 @@ public abstract class ListableImg implements Img {
         }
         Frame frame = frames.get(referenceIndex);
         ReferenceFrame referenceFrame = new ReferenceFrame();
+        referenceFrame.type = Frame.TYPE_REFERENCE;
         referenceFrame.reference = referenceIndex;
         referenceFrame.frame = frame;
         insertFrame(index, referenceFrame);
@@ -56,7 +54,6 @@ public abstract class ListableImg implements Img {
         supportedImageFrameTypeThrowException(type);
         ImageFrame imageFrame = new ImageFrame();
         imageFrame.type = type;
-        imageFrame.image = image;
         imageFrame.compressed = ImageFrame.COMPRESSED;
         imageFrame.width = image.getWidth();
         imageFrame.height = image.getHeight();
@@ -64,6 +61,7 @@ public abstract class ListableImg implements Img {
         imageFrame.y = image.getMinY();
         imageFrame.frameWidth = image.getWidth();
         imageFrame.frameHeight = image.getHeight();
+        imageFrame.image = image;
         conventImageToData(imageFrame);
         insertFrame(index, imageFrame);
     }

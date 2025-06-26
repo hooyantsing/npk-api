@@ -1,4 +1,4 @@
-package xyz.hooy.npkapi.impl;
+package xyz.hooy.npkapi;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

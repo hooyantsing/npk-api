@@ -1,4 +1,4 @@
-package xyz.hooy.npkapi.impl;
+package xyz.hooy.npkapi;
 
 public abstract class Frame {
 

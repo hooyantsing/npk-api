@@ -1,9 +1,9 @@
 package npkapi;
 
 import org.junit.jupiter.api.Test;
+import xyz.hooy.npkapi.DefaultNpk;
 import xyz.hooy.npkapi.Img;
 import xyz.hooy.npkapi.Npk;
-import xyz.hooy.npkapi.impl.DefaultNpk;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageInputStream;
