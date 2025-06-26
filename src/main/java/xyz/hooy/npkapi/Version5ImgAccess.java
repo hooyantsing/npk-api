@@ -1,6 +1,7 @@
 package xyz.hooy.npkapi;
 
 import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,37 @@ public class Version5ImgAccess extends ListableImgAccess {
     }
 
     @Override
+    protected void writeHeader(ImageOutputStream stream) throws IOException {
+        stream.write(IMG_MAGIC);
+        int length = 0;
+        for (Frame frame : version5Img.frames) {
+            if (frame.isFxt()) {
+                length += 64;
+            } else if (frame.isReference()) {
+                length += 8;
+            } else {
+                length += 36;
+            }
+        }
+        stream.writeInt(length);
+        stream.writeInt(0); // skip 4 bytes
+        stream.writeInt(version5Img.version);
+        stream.writeInt(version5Img.frames.size());
+        stream.writeInt(version5Img.ddsTable.size());
+        stream.writeInt(0); // TODO: imgLength
+        stream.writeInt(0); // colorNum
+        for (DdsTable.DDS dds : version5Img.ddsTable.values()) {
+            stream.writeInt(dds.title);
+            stream.writeInt(dds.pixelFormat);
+            stream.writeInt(dds.index);
+            stream.writeInt(dds.fullLength);
+            stream.writeInt(dds.length);
+            stream.writeInt(dds.width);
+            stream.writeInt(dds.height);
+        }
+    }
+
+    @Override
     protected void readFrames(ImageInputStream stream) throws IOException {
         List<Frame> frames = new ArrayList<>(framesSize);
         for (int i = 0; i < framesSize; i++) {
@@ -64,28 +96,68 @@ public class Version5ImgAccess extends ListableImgAccess {
     }
 
     @Override
+    protected void writeFrames(ImageOutputStream stream) throws IOException {
+        for (Frame frame : version5Img.frames) {
+            writeFrame(stream, frame);
+        }
+        for (DdsTable.DDS dds : version5Img.ddsTable.values()) {
+            stream.write(dds.rawData);
+        }
+        for (Frame frame : version5Img.frames) {
+            if (frame.isArgb() || frame.isIndexed()) {
+                ImageFrame imageFrame = (ImageFrame) frame;
+                writeFrameRawData(stream, imageFrame);
+            }
+        }
+    }
+
+    @Override
     protected Frame readFrame(ImageInputStream stream, int type) throws IOException {
         if (Frame.isFxtType(type)) {
-            DdsImageFrame frame = new DdsImageFrame();
-            frame.type = type;
-            frame.compressed = stream.readInt();
-            frame.width = stream.readInt();
-            frame.height = stream.readInt();
-            frame.length = stream.readInt();
-            frame.x = stream.readInt();
-            frame.y = stream.readInt();
-            frame.frameWidth = stream.readInt();
-            frame.frameHeight = stream.readInt();
+            DdsImageFrame ddsImageFrame = new DdsImageFrame();
+            ddsImageFrame.type = type;
+            ddsImageFrame.compressed = stream.readInt();
+            ddsImageFrame.width = stream.readInt();
+            ddsImageFrame.height = stream.readInt();
+            ddsImageFrame.length = stream.readInt();
+            ddsImageFrame.x = stream.readInt();
+            ddsImageFrame.y = stream.readInt();
+            ddsImageFrame.frameWidth = stream.readInt();
+            ddsImageFrame.frameHeight = stream.readInt();
             stream.skipBytes(4); // skip 4 bytes
-            frame.ddsIndex = stream.readInt();
-            frame.leftCut = stream.readInt();
-            frame.upCut = stream.readInt();
-            frame.rightCut = stream.readInt();
-            frame.downCut = stream.readInt();
+            ddsImageFrame.ddsIndex = stream.readInt();
+            ddsImageFrame.leftCut = stream.readInt();
+            ddsImageFrame.upCut = stream.readInt();
+            ddsImageFrame.rightCut = stream.readInt();
+            ddsImageFrame.downCut = stream.readInt();
             stream.skipBytes(4); // skip 4 bytes
-            return frame;
+            return ddsImageFrame;
         } else {
             return super.readFrame(stream, type);
+        }
+    }
+
+    @Override
+    protected void writeFrame(ImageOutputStream stream, Frame frame) throws IOException {
+        if (frame.isFxt()) {
+            stream.writeInt(frame.type);
+            DdsImageFrame ddsImageFrame = (DdsImageFrame) frame;
+            stream.writeInt(ddsImageFrame.compressed);
+            stream.writeInt(ddsImageFrame.width);
+            stream.writeInt(ddsImageFrame.height);
+            stream.writeInt(ddsImageFrame.length);
+            stream.writeInt(ddsImageFrame.x);
+            stream.writeInt(ddsImageFrame.y);
+            stream.writeInt(ddsImageFrame.frameWidth);
+            stream.writeInt(ddsImageFrame.frameHeight);
+            stream.writeInt(0); // skip 4 bytes
+            stream.writeInt(ddsImageFrame.ddsIndex);
+            stream.writeInt(ddsImageFrame.leftCut);
+            stream.writeInt(ddsImageFrame.upCut);
+            stream.writeInt(ddsImageFrame.rightCut);
+            stream.writeInt(ddsImageFrame.downCut);
+        } else {
+            super.writeFrame(stream, frame);
         }
     }
 

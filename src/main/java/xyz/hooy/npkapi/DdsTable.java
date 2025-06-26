@@ -23,6 +23,10 @@ public class DdsTable {
         ddsTable.remove(index);
     }
 
+    public int size() {
+        return ddsTable.size();
+    }
+
     public Collection<DDS> values() {
         return ddsTable.values();
     }

@@ -25,20 +25,20 @@ public abstract class Frame {
         return this instanceof ImageFrame && isArgbType(type);
     }
 
-    public static boolean isReferenceType(int type) {
-        return type == TYPE_REFERENCE;
-    }
-
-    public static boolean isArgbType(int type) {
-        return type == TYPE_ARGB1555 || type == TYPE_ARGB4444 || type == TYPE_ARGB8888;
-    }
-
     public static boolean isIndexed(int type) {
         return type == TYPE_INDEXED;
     }
 
     public static boolean isFxtType(int type) {
         return type == TYPE_FXT1 || type == TYPE_FXT2 || type == TYPE_FXT3;
+    }
+
+    public static boolean isReferenceType(int type) {
+        return type == TYPE_REFERENCE;
+    }
+
+    public static boolean isArgbType(int type) {
+        return type == TYPE_ARGB1555 || type == TYPE_ARGB4444 || type == TYPE_ARGB8888;
     }
 
     public boolean isIndexed() {

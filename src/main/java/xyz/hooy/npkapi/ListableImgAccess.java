@@ -83,7 +83,7 @@ public abstract class ListableImgAccess implements Access {
             writeFrame(stream, frame);
         }
         for (Frame frame : img.frames) {
-            if (!frame.isReference()) {
+            if (frame.isArgb() || frame.isIndexed()) {
                 ImageFrame imageFrame = (ImageFrame) frame;
                 writeFrameRawData(stream, imageFrame);
             }
