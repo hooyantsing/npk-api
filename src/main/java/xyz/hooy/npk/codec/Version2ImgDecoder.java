@@ -10,7 +10,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
-import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterOutputStream;
 
 public class Version2ImgDecoder implements ImgDecoder {
@@ -22,10 +21,10 @@ public class Version2ImgDecoder implements ImgDecoder {
     protected List<Frame> frames;
 
     @Override
-    public Texture decode(ImageInputStream inputStream) throws IOException {
-        decodeHeader(inputStream);
-        decodeFrames(inputStream);
-        return generateTexture();
+    public Texture decode(ImageInputStream stream) throws IOException {
+        decodeHeader(stream);
+        decodeFrames(stream);
+        return getTexture();
     }
 
     @Override
@@ -33,15 +32,15 @@ public class Version2ImgDecoder implements ImgDecoder {
         return 2;
     }
 
-    protected void decodeHeader(ImageInputStream inputStream) throws IOException {
+    protected void decodeHeader(ImageInputStream stream) throws IOException {
         byte[] imgMagicBytes = new byte[IMG_MAGIC.length];
-        inputStream.read(imgMagicBytes);
+        stream.read(imgMagicBytes);
         validateMagicCode(imgMagicBytes);
-        int tableLength = inputStream.readInt(); // unused
-        inputStream.skipBytes(4); // skip 4 bytes
-        int version = inputStream.readInt();
+        int tableLength = stream.readInt(); // unused
+        stream.skipBytes(4); // skip 4 bytes
+        int version = stream.readInt();
         validateImgVersion(version);
-        this.framesSize = inputStream.readInt();
+        this.framesSize = stream.readInt();
     }
 
     protected void validateMagicCode(byte[] magicBytes) {
@@ -56,35 +55,35 @@ public class Version2ImgDecoder implements ImgDecoder {
         }
     }
 
-    protected void decodeFrames(ImageInputStream inputStream) throws IOException {
+    protected void decodeFrames(ImageInputStream stream) throws IOException {
         List<Frame> frames = new ArrayList<>(framesSize);
         for (int i = 0; i < framesSize; i++) {
-            Frame frame = decodeFrame(inputStream);
+            Frame frame = decodeFrame(stream);
             frames.add(frame);
         }
         for (int i = 0; i < framesSize; i++) {
             Frame frame = frames.get(i);
             if (!frame.isReference()) {
-                decodeFrameData(inputStream, frame);
+                decodeFrameData(stream, frame);
             }
         }
         this.frames = frames;
     }
 
-    protected Frame decodeFrame(ImageInputStream inputStream) throws IOException {
+    protected Frame decodeFrame(ImageInputStream stream) throws IOException {
         Frame frame = new Frame();
-        frame.type = inputStream.readInt();
+        frame.type = stream.readInt();
         if (frame.isReference()) {
-            frame.reference = inputStream.readInt();
+            frame.reference = stream.readInt();
         } else {
-            frame.compressed = inputStream.readInt();
-            frame.width = inputStream.readInt();
-            frame.height = inputStream.readInt();
-            frame.length = inputStream.readInt();
-            frame.x = inputStream.readInt();
-            frame.y = inputStream.readInt();
-            frame.frameWidth = inputStream.readInt();
-            frame.frameHeight = inputStream.readInt();
+            frame.compressed = stream.readInt();
+            frame.width = stream.readInt();
+            frame.height = stream.readInt();
+            frame.length = stream.readInt();
+            frame.x = stream.readInt();
+            frame.y = stream.readInt();
+            frame.frameWidth = stream.readInt();
+            frame.frameHeight = stream.readInt();
         }
         return frame;
     }
@@ -95,7 +94,7 @@ public class Version2ImgDecoder implements ImgDecoder {
         frame.rawData = data;
     }
 
-    protected Texture generateTexture() {
+    protected Texture getTexture() {
         List<BufferedImage> images = new ArrayList<>();
         for (Frame frame : frames) {
             BufferedImage image = conventFrameToImage(frame);
@@ -107,29 +106,25 @@ public class Version2ImgDecoder implements ImgDecoder {
     }
 
     protected BufferedImage conventFrameToImage(Frame frame) {
-        frame = getImageFrame(frame);
-        byte[] data = frame.rawData;
-        if (frame.isCompressed()) {
-            data = decompress(data);
-        }
+        frame = findImageFrame(frame);
         switch (frame.type) {
             case Frame.TYPE_ARGB1555: {
-                return toArgb1555Image(frame, data);
+                return conventFrameToArgb1555Image(frame);
             }
             case Frame.TYPE_ARGB4444: {
-                return toArgb4444Image(frame, data);
+                return conventFrameToArgb4444Image(frame);
             }
             case Frame.TYPE_ARGB8888: {
-                return toArgb8888Image(frame, data);
+                return conventFrameToArgb8888Image(frame);
             }
         }
         return null;
     }
 
-    protected Frame getImageFrame(Frame frame) {
+    protected Frame findImageFrame(Frame frame) {
         if (frame.isReference()) {
             frame = frames.get(frame.reference);
-            return getImageFrame(frame);
+            return findImageFrame(frame);
         }
         return frame;
     }
@@ -144,42 +139,53 @@ public class Version2ImgDecoder implements ImgDecoder {
         return outputStream.toByteArray();
     }
 
-    protected byte[] compress(byte[] bytes) {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try (DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(outputStream)) {
-            deflaterOutputStream.write(bytes);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private BufferedImage conventFrameToArgb1555Image(Frame frame) {
+        byte[] data = frame.rawData;
+        if (frame.isCompressed()) {
+            data = decompress(data);
         }
-        return outputStream.toByteArray();
-    }
-
-    private BufferedImage toArgb1555Image(Frame frame, byte[] data) {
         int[] masks = new int[]{0x7C00, 0x3E0, 0x1F, 0x8000};
         ColorModel colorModel = new DirectColorModel(16, masks[0], masks[1], masks[2], masks[3]);
         SampleModel sampleModel = new SinglePixelPackedSampleModel(DataBuffer.TYPE_USHORT, frame.width, frame.height, masks);
         short[] shortData = shortsMergedFrom(data);
         DataBuffer dataBuffer = new DataBufferUShort(shortData, shortData.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
-        return new BufferedImage(colorModel, raster, false, new Hashtable<>());
+        Hashtable<Object, Object> properties = new Hashtable<>();
+        properties.put("FrameType", frame.type);
+        properties.put("FrameCompressed", frame.compressed);
+        return new BufferedImage(colorModel, raster, false, properties);
     }
 
-    private BufferedImage toArgb4444Image(Frame frame, byte[] data) {
+    private BufferedImage conventFrameToArgb4444Image(Frame frame) {
+        byte[] data = frame.rawData;
+        if (frame.isCompressed()) {
+            data = decompress(data);
+        }
         int[] masks = new int[]{0xF00, 0xF0, 0xF, 0xF000};
         ColorModel colorModel = new DirectColorModel(16, masks[0], masks[1], masks[2], masks[3]);
         SampleModel sampleModel = new SinglePixelPackedSampleModel(DataBuffer.TYPE_USHORT, frame.width, frame.height, masks);
         short[] shortData = shortsMergedFrom(data);
         DataBuffer dataBuffer = new DataBufferUShort(shortData, shortData.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
-        return new BufferedImage(colorModel, raster, false, new Hashtable<>());
+        Hashtable<Object, Object> properties = new Hashtable<>();
+        properties.put("FrameType", frame.type);
+        properties.put("FrameCompressed", frame.compressed);
+        return new BufferedImage(colorModel, raster, false, properties);
     }
 
-    private BufferedImage toArgb8888Image(Frame frame, byte[] data) {
+    private BufferedImage conventFrameToArgb8888Image(Frame frame) {
+        byte[] data = frame.rawData;
+        if (frame.isCompressed()) {
+            data = decompress(data);
+        }
         ColorModel colorModel = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), new int[]{8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
         SampleModel sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, frame.width, frame.height, 4, frame.width * 4, new int[]{0, 1, 2, 3});
         DataBuffer dataBuffer = new DataBufferByte(data, data.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
-        return new BufferedImage(colorModel, raster, false, new Hashtable<>());
+        Hashtable<Object, Object> properties = new Hashtable<>();
+        properties.put("FrameType", frame.type);
+        properties.put("FrameCompressed", frame.compressed);
+        return new BufferedImage(colorModel, raster, false, properties);
     }
 
     private short[] shortsMergedFrom(byte[] bytes) {

@@ -30,14 +30,6 @@ public class Frame {
     protected int frameHeight = 0;
     protected byte[] rawData = null;
 
-    public static boolean isReferenceType(int type) {
-        return type == TYPE_REFERENCE;
-    }
-
-    public static boolean isCompressed(int compressed) {
-        return compressed == COMPRESSED;
-    }
-
     public int getType() {
         return type;
     }
@@ -46,7 +38,23 @@ public class Frame {
         return isReferenceType(type);
     }
 
+    public static boolean isReferenceType(int type) {
+        return type == TYPE_REFERENCE;
+    }
+
     public boolean isCompressed() {
         return isCompressed(compressed);
+    }
+
+    public static boolean isArgbType(int type) {
+        return type == TYPE_ARGB1555 || type == TYPE_ARGB4444 || type == TYPE_ARGB8888;
+    }
+
+    public static boolean isCompressed(int compressed) {
+        return compressed == COMPRESSED;
+    }
+
+    public boolean isArgb() {
+        return isArgbType(type);
     }
 }

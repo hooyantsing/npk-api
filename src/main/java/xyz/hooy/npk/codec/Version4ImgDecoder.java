@@ -15,11 +15,11 @@ public class Version4ImgDecoder extends Version2ImgDecoder {
     }
 
     @Override
-    protected void decodeHeader(ImageInputStream inputStream) throws IOException {
-        super.decodeHeader(inputStream);
-        int colorNum = inputStream.readInt();
+    protected void decodeHeader(ImageInputStream stream) throws IOException {
+        super.decodeHeader(stream);
+        int colorNum = stream.readInt();
         byte[] paletteBytes = new byte[4 * colorNum];
-        inputStream.read(paletteBytes);
+        stream.read(paletteBytes);
         Palette palette = new Palette();
         for (int i = 0; i < paletteBytes.length; i++) {
             Color color = new Color(paletteBytes[i], paletteBytes[i + 1], paletteBytes[i + 2], paletteBytes[i + 3]);
@@ -30,7 +30,7 @@ public class Version4ImgDecoder extends Version2ImgDecoder {
 
     @Override
     protected BufferedImage conventFrameToImage(Frame frame) {
-        frame = getImageFrame(frame);
+        frame = findImageFrame(frame);
         byte[] data = frame.rawData;
         if (frame.isCompressed()) {
             data = decompress(data);

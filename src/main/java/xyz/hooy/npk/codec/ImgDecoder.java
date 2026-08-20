@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public interface ImgDecoder {
 
-    Texture decode(ImageInputStream inputStream) throws IOException;
+    Texture decode(ImageInputStream stream) throws IOException;
 
     int version();
 }
