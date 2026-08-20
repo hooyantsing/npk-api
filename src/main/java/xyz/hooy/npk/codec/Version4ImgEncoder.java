@@ -1,5 +1,7 @@
 package xyz.hooy.npk.codec;
 
+import xyz.hooy.npk.Texture;
+
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -12,6 +14,12 @@ public class Version4ImgEncoder extends Version2ImgEncoder {
     @Override
     public int version() {
         return 4;
+    }
+
+    @Override
+    protected void setTexture(Texture texture) {
+        this.palette = new Palette();
+        super.setTexture(texture);
     }
 
     @Override

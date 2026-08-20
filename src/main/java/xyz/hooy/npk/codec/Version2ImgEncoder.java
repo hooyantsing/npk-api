@@ -29,7 +29,7 @@ public class Version2ImgEncoder implements ImgEncoder {
         return 2;
     }
 
-    private void setTexture(Texture texture) {
+    protected void setTexture(Texture texture) {
         List<Frame> frames = new ArrayList<>();
         for (BufferedImage image : texture.getImages()) {
             Frame frame = conventImageToFrame(image);

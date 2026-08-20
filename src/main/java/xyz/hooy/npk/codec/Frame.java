@@ -30,31 +30,54 @@ public class Frame {
     protected int frameHeight = 0;
     protected byte[] rawData = null;
 
+    // DdsImageFrame
+    protected int ddsIndex;
+    protected int leftCut;
+    protected int upCut;
+    protected int rightCut;
+    protected int downCut;
+
     public int getType() {
         return type;
+    }
+
+    public boolean isIndexed() {
+        return isIndexed(type);
+    }
+
+    public boolean isArgb() {
+        return isArgbType(type);
     }
 
     public boolean isReference() {
         return isReferenceType(type);
     }
 
-    public static boolean isReferenceType(int type) {
-        return type == TYPE_REFERENCE;
+    public boolean isFxt() {
+        return isFxtType(type);
     }
 
     public boolean isCompressed() {
         return isCompressed(compressed);
     }
 
+    public static boolean isIndexed(int type) {
+        return type == TYPE_INDEXED;
+    }
+
     public static boolean isArgbType(int type) {
         return type == TYPE_ARGB1555 || type == TYPE_ARGB4444 || type == TYPE_ARGB8888;
     }
 
-    public static boolean isCompressed(int compressed) {
-        return compressed == COMPRESSED;
+    public static boolean isReferenceType(int type) {
+        return type == TYPE_REFERENCE;
     }
 
-    public boolean isArgb() {
-        return isArgbType(type);
+    public static boolean isFxtType(int type) {
+        return type == TYPE_FXT1 || type == TYPE_FXT2 || type == TYPE_FXT3;
+    }
+
+    public static boolean isCompressed(int compressed) {
+        return compressed == COMPRESSED;
     }
 }

@@ -58,7 +58,9 @@ public class Version2ImgDecoder implements ImgDecoder {
     protected void decodeFrames(ImageInputStream stream) throws IOException {
         List<Frame> frames = new ArrayList<>(framesSize);
         for (int i = 0; i < framesSize; i++) {
-            Frame frame = decodeFrame(stream);
+            Frame frame = new Frame();
+            frame.type = stream.readInt();
+            decodeFrame(stream, frame);
             frames.add(frame);
         }
         for (int i = 0; i < framesSize; i++) {
@@ -70,9 +72,7 @@ public class Version2ImgDecoder implements ImgDecoder {
         this.frames = frames;
     }
 
-    protected Frame decodeFrame(ImageInputStream stream) throws IOException {
-        Frame frame = new Frame();
-        frame.type = stream.readInt();
+    protected void decodeFrame(ImageInputStream stream, Frame frame) throws IOException {
         if (frame.isReference()) {
             frame.reference = stream.readInt();
         } else {
@@ -85,7 +85,6 @@ public class Version2ImgDecoder implements ImgDecoder {
             frame.frameWidth = stream.readInt();
             frame.frameHeight = stream.readInt();
         }
-        return frame;
     }
 
     protected void decodeFrameData(ImageInputStream stream, Frame frame) throws IOException {
