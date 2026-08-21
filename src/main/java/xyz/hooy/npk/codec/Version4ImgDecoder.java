@@ -30,7 +30,6 @@ public class Version4ImgDecoder extends Version2ImgDecoder {
 
     @Override
     protected BufferedImage conventFrameToImage(Frame frame) {
-        frame = findImageFrame(frame);
         byte[] data = frame.rawData;
         if (frame.isCompressed()) {
             data = decompress(data);

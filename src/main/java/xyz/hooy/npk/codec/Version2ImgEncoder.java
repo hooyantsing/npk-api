@@ -31,8 +31,16 @@ public class Version2ImgEncoder implements ImgEncoder {
 
     protected void setTexture(Texture texture) {
         List<Frame> frames = new ArrayList<>();
-        for (BufferedImage image : texture.getImages()) {
-            Frame frame = conventImageToFrame(image);
+        for (int i = 0; i < texture.getImages().size(); i++) {
+            Frame frame;
+            BufferedImage image = texture.getImages().get(i);
+            int reference = texture.getImages().lastIndexOf(image);
+            if (reference < i) {
+                frame = new Frame();
+                frame.reference = reference;
+            } else {
+                frame = conventImageToFrame(image);
+            }
             frames.add(frame);
         }
         this.frames = frames;

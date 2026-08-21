@@ -8,7 +8,9 @@ import java.awt.color.ColorSpace;
 import java.awt.image.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.zip.InflaterOutputStream;
 
@@ -96,16 +98,19 @@ public class Version2ImgDecoder implements ImgDecoder {
     protected Texture getTexture() {
         List<BufferedImage> images = new ArrayList<>();
         for (Frame frame : frames) {
-            BufferedImage image = conventFrameToImage(frame);
-            if (Objects.nonNull(image)) {
-                images.add(image);
+            BufferedImage image;
+            if (frame.isReference()) {
+                int reference = frame.reference;
+                image = images.get(reference);
+            } else {
+                image = conventFrameToImage(frame);
             }
+            images.add(image);
         }
         return new Texture(images);
     }
 
     protected BufferedImage conventFrameToImage(Frame frame) {
-        frame = findImageFrame(frame);
         switch (frame.type) {
             case Frame.TYPE_ARGB1555: {
                 return conventFrameToArgb1555Image(frame);
@@ -113,19 +118,11 @@ public class Version2ImgDecoder implements ImgDecoder {
             case Frame.TYPE_ARGB4444: {
                 return conventFrameToArgb4444Image(frame);
             }
-            case Frame.TYPE_ARGB8888: {
+            case Frame.TYPE_ARGB8888:
+            default: {
                 return conventFrameToArgb8888Image(frame);
             }
         }
-        return null;
-    }
-
-    protected Frame findImageFrame(Frame frame) {
-        if (frame.isReference()) {
-            frame = frames.get(frame.reference);
-            return findImageFrame(frame);
-        }
-        return frame;
     }
 
     protected byte[] decompress(byte[] bytes) {
