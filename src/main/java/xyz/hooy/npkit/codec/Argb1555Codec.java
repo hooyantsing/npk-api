@@ -49,7 +49,9 @@ public class Argb1555Codec implements PixelCodec {
             g = g >> 3;
             b = b >> 3;
             data[i++] = (byte) (((g & 7) << 5) | b);
-            data[i++] = (byte) (a | (r << 2) | (g >> 3));
+            // 16 位字布局：A(bit15) R(14:10) G(9:5) B(4:0)，小端高字节 = word 的 bit15~8，
+            // 故 alpha 位于高字节 bit7，需左移 7 位
+            data[i++] = (byte) ((a << 7) | (r << 2) | (g >> 3));
         }
 
         xyz.hooy.npkit.Frame frame = new xyz.hooy.npkit.Frame(xyz.hooy.npkit.Frame.TYPE_ARGB1555);

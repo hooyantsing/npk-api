@@ -12,12 +12,12 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Npkit 门面类及 NpkFile 写入功能测试。
+ * NpkFile 写入功能测试。
  */
 public class NpkitTest {
 
     @Test
-    void testNpkitFacadeCreateAndWrite(@org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
+    void testNpkFileCreateAndWrite(@org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
         // 构建 IMG 资源
         Version2Img img = new Version2Img();
         img.setName("character/swordman/effect.img");
@@ -29,9 +29,12 @@ public class NpkitTest {
         // 构建 OGG 资源
         Ogg ogg = new Ogg("sound/swordman/attack.ogg", new byte[256]);
 
-        // 通过 Npkit 门面写入
+        // 通过 NpkFile 写入
+        NpkFile npk = NpkFile.create();
+        npk.addResource(img);
+        npk.addResource(ogg);
         Path outputPath = tempDir.resolve("test_output.npk");
-        Npkit.write(outputPath.toFile(), java.util.Arrays.asList(img, ogg));
+        npk.save(outputPath.toFile());
 
         assertTrue(Files.exists(outputPath));
         assertTrue(Files.size(outputPath) > 0);
@@ -73,10 +76,16 @@ public class NpkitTest {
     void testCustomCodecRegistration() {
         // 验证 ImgFactory 支持自定义版本注册
         assertFalse(ImgFactory.isSupported(99));
-        ImgFactory.register(99, Version2Img::new); // 注册一个测试版本
-        assertTrue(ImgFactory.isSupported(99));
-        Img custom = ImgFactory.create(99);
-        assertNotNull(custom);
+        try {
+            ImgFactory.register(99, Version2Img::new); // 注册一个测试版本
+            assertTrue(ImgFactory.isSupported(99));
+            Img custom = ImgFactory.create(99);
+            assertNotNull(custom);
+        } finally {
+            // 清理全局静态注册表，避免污染其他测试
+            ImgFactory.unregister(99);
+        }
+        assertFalse(ImgFactory.isSupported(99));
     }
 
     @Test

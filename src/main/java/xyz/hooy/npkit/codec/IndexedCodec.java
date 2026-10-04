@@ -24,8 +24,20 @@ public class IndexedCodec implements PixelCodec {
         Palette palette = context.getPalette();
         byte[] data = frame.getDecompressedData();
 
-        ColorModel colorModel = new IndexColorModel(8, palette.size(),
-                palette.toArray(), 0, false, -1, DataBuffer.TYPE_BYTE);
+        // 使用带 alpha 通道的字节数组构造器，保留调色板中每项的透明度（R, G, B, A）
+        int size = palette.size();
+        byte[] r = new byte[size];
+        byte[] g = new byte[size];
+        byte[] b = new byte[size];
+        byte[] a = new byte[size];
+        for (int i = 0; i < size; i++) {
+            Color color = palette.get(i);
+            r[i] = (byte) color.getRed();
+            g[i] = (byte) color.getGreen();
+            b[i] = (byte) color.getBlue();
+            a[i] = (byte) color.getAlpha();
+        }
+        ColorModel colorModel = new IndexColorModel(8, size, r, g, b, a);
         SampleModel sampleModel = new PixelInterleavedSampleModel(
                 DataBuffer.TYPE_BYTE, frame.getWidth(), frame.getHeight(),
                 1, frame.getWidth(), new int[]{0});

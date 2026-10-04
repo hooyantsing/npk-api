@@ -7,6 +7,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -278,8 +280,11 @@ public class NpkFile implements AutoCloseable {
             byte[] verification = new byte[VERIFICATION_SIZE];
             stream.readFully(verification);
 
-            // 5. 验证索引表完整性
-            verifyHash(indexBytes, verification);
+            // 5. 验证完整性：校验范围为 NPK 文件头(data1) + 索引表(data2)
+            byte[] headerBytes = new byte[NPK_MAGIC.length + 4];
+            System.arraycopy(magic, 0, headerBytes, 0, NPK_MAGIC.length);
+            writeIntLE(headerBytes, NPK_MAGIC.length, resourceCount);
+            verifyHash(concat(headerBytes, indexBytes), verification);
             stream.reset();
 
             // 6. 解析每个资源
@@ -369,8 +374,11 @@ public class NpkFile implements AutoCloseable {
 
         stream.write(indexBytes);
 
-        // 4. 写入校验哈希
-        byte[] hash = computeHash(indexBytes);
+        // 4. 写入校验哈希：校验范围为 NPK 文件头(data1) + 索引表(data2)
+        byte[] headerBytes = new byte[NPK_MAGIC.length + 4];
+        System.arraycopy(NPK_MAGIC, 0, headerBytes, 0, NPK_MAGIC.length);
+        writeIntLE(headerBytes, NPK_MAGIC.length, count);
+        byte[] hash = computeHash(concat(headerBytes, indexBytes));
         stream.write(hash);
 
         // 5. 写入资源数据
@@ -452,16 +460,35 @@ public class NpkFile implements AutoCloseable {
     }
 
     /**
-     * 计算索引表的校验哈希。
-     * NPK 使用特定的哈希算法验证索引表完整性。
+     * 计算 NPK 校验位。
+     * <p>
+     * 依据 NPK 格式规范：校验位为「NPK 文件头 + IMG 索引表」拼接字节流的
+     * 前 17 的整数倍部分，进行 SHA-256 加密后得到的 32 字节结果。
+     * </p>
+     *
+     * @param data NPK 文件头(data1) 与索引表(data2) 拼接后的字节流
+     * @return 32 字节 SHA-256 校验位
      */
     private static byte[] computeHash(byte[] data) {
-        // NPK 校验算法：对索引表数据进行 XOR 折叠生成 32 字节哈希
-        byte[] hash = new byte[VERIFICATION_SIZE];
-        for (int i = 0; i < data.length; i++) {
-            hash[i % VERIFICATION_SIZE] ^= data[i];
+        // 截断到 17 字节的整数倍
+        int len = data.length / 17 * 17;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(data, 0, len);
+            return digest.digest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new NpkException("SHA-256 algorithm not available.", e);
         }
-        return hash;
+    }
+
+    /**
+     * 拼接两个字节数组。
+     */
+    private static byte[] concat(byte[] a, byte[] b) {
+        byte[] result = new byte[a.length + b.length];
+        System.arraycopy(a, 0, result, 0, a.length);
+        System.arraycopy(b, 0, result, a.length, b.length);
+        return result;
     }
 
     // ===== 工具方法 =====

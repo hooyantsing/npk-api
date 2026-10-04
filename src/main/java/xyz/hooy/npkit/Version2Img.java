@@ -91,9 +91,24 @@ public class Version2Img implements Img {
 
     @Override
     public BufferedImage getImage(int index) {
+        return getImage(index, new HashSet<Integer>());
+    }
+
+    /**
+     * 带环检测的帧解码：记录已访问的帧索引，
+     * 若某索引被重复访问则说明存在循环引用，抛出 {@link NpkException} 而非栈溢出。
+     */
+    private BufferedImage getImage(int index, Set<Integer> visited) {
+        if (index < 0 || index >= frames.size()) {
+            throw new IndexOutOfBoundsException(
+                    "Frame index " + index + " out of bounds [0, " + frames.size() + ")");
+        }
+        if (!visited.add(index)) {
+            throw new NpkException("Circular frame reference detected at index " + index);
+        }
         Frame frame = frames.get(index);
         if (frame.isReference()) {
-            return getImage(frame.getReference());
+            return getImage(frame.getReference(), visited);
         }
         return decodeFrame(frame);
     }
@@ -103,6 +118,7 @@ public class Version2Img implements Img {
         PixelCodec codec = getCodec(frameType);
         Frame frame = codec.encode(image, createCodecContext());
         frames.add(frame);
+        invalidateRawData();
     }
 
     @Override
@@ -114,6 +130,19 @@ public class Version2Img implements Img {
         Frame frame = new Frame(Frame.TYPE_REFERENCE);
         frame.setReference(referenceIndex);
         frames.add(frame);
+        invalidateRawData();
+    }
+
+    /**
+     * 使缓存的原始字节失效。
+     * <p>
+     * IMG 从文件加载时会缓存原始字节（见 {@link #setRawData(byte[])}），
+     * 以便未修改时可原样快速重存。一旦帧等内部结构被修改，必须调用本方法
+     * 清空缓存，使后续保存时重新序列化，避免修改被静默丢弃。
+     * </p>
+     */
+    protected void invalidateRawData() {
+        this.rawData = null;
     }
 
     @Override

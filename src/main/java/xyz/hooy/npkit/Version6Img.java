@@ -17,8 +17,7 @@ import java.util.List;
  * <h3>V6 头部扩展结构</h3>
  * <pre>
  * [V2 Header]
- * [V4 Palette] (主调色板，同 V4)
- * [Extra Palettes]
+ * [Palettes]  （V6 直接以颜色方案数开头，无 V4 的单一主调色板）
  *   - paletteCount (int32)
  *   - palettes[paletteCount]:
  *     - colorNum (int32)
@@ -32,6 +31,11 @@ public class Version6Img extends Version4Img {
 
     public Version6Img() {
         super();
+        // 初始化一个空调色板方案，使新建的 V6 可直接 addImage；
+        // 从文件读取时 readPalette 会覆盖此列表
+        this.palettes.add(new Palette());
+        this.palette = this.palettes.get(0);
+        this.activePaletteIndex = 0;
     }
 
     @Override
@@ -73,12 +77,17 @@ public class Version6Img extends Version4Img {
         return activePaletteIndex;
     }
 
-    // ===== Header 读写 =====
+    // ===== 调色板读写（V6 多调色板结构） =====
 
+    /**
+     * 读取 V6 调色板数据。
+     * <p>
+     * V6 头部之后直接是「颜色方案数」，随后按顺序存储每个颜色方案
+     * （每方案：颜色数目 + 4×颜色数目字节），不存在 V4 的单一主调色板。
+     * </p>
+     */
     @Override
-    protected void readHeader(ImageInputStream stream) throws IOException {
-        super.readHeader(stream); // 读取 V4 主调色板
-
+    protected void readPalette(ImageInputStream stream) throws IOException {
         int paletteCount = stream.readInt();
         List<Palette> paletteList = new ArrayList<>(paletteCount);
         for (int i = 0; i < paletteCount; i++) {
@@ -96,9 +105,7 @@ public class Version6Img extends Version4Img {
     }
 
     @Override
-    protected void writeHeader(ImageOutputStream stream) throws IOException {
-        super.writeHeader(stream); // 写入 V4 主调色板
-
+    protected void writePalette(ImageOutputStream stream) throws IOException {
         stream.writeInt(palettes.size());
         for (Palette p : palettes) {
             stream.writeInt(p.size());

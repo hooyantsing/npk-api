@@ -10,7 +10,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * IMG V5 格式实现 — 支持 DDS 纹理的图像。
@@ -47,6 +49,26 @@ import java.util.List;
 public class Version5Img extends Version2Img {
 
     protected DdsTable ddsTable;
+
+    /**
+     * 写入阶段缓存的 DDS 压缩数据（index → ZLIB 压缩后字节），
+     * 保证头部写入的 length 字段与实际写入的数据长度一致。
+     */
+    private final Map<Integer, byte[]> ddsCompressedCache = new LinkedHashMap<>();
+
+    /**
+     * V5 头部中的「整个 IMG 文件大小」字段。该字段对解析无实际用途，
+     * 读取时保存以便重新序列化时原样写回，保证往返保真。
+     */
+    private int imgLength;
+
+    /**
+     * V5 头部中类似 IMG V4 的调色板数据。在 V5 中没有任何用途，
+     * 绝大部分 V5 文件该调色板颜色项数为 0（退化为一个全零双字），
+     * 但极少数文件（如 sprite_map_infernomode.NPK）仍保留有颜色项。
+     * 读取时保存并在写回时还原，保证往返保真。
+     */
+    private Palette headerPalette = new Palette();
 
     public Version5Img() {
         super();
@@ -90,6 +112,27 @@ public class Version5Img extends Version2Img {
         return ddsTable;
     }
 
+    /**
+     * 获取 V5 头部中的「整个 IMG 文件大小」字段（读取时保存，对解析无实际用途）。
+     */
+    public int getImgLength() {
+        return imgLength;
+    }
+
+    /**
+     * 获取 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
+     */
+    public Palette getHeaderPalette() {
+        return headerPalette;
+    }
+
+    /**
+     * 设置 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
+     */
+    public void setHeaderPalette(Palette headerPalette) {
+        this.headerPalette = headerPalette != null ? headerPalette : new Palette();
+    }
+
     // ===== Header 读写 =====
 
     @Override
@@ -97,11 +140,14 @@ public class Version5Img extends Version2Img {
         super.readHeader(stream);
 
         int ddsCount = stream.readInt();
-        stream.readInt(); // imgLength (unused)
-        int colorNum = stream.readInt(); // palette in V5 header (usually unused)
+        this.imgLength = stream.readInt(); // 整个 IMG 文件大小（V5 中无用途，保存以往返写回）
+        int colorNum = stream.readInt();   // V5 头部调色板颜色数目（绝大部分为 0）
         if (colorNum > 0) {
             byte[] paletteBytes = new byte[4 * colorNum];
             stream.readFully(paletteBytes);
+            this.headerPalette = Palette.fromBytes(paletteBytes, colorNum);
+        } else {
+            this.headerPalette = new Palette();
         }
 
         DdsTable table = new DdsTable();
@@ -125,11 +171,25 @@ public class Version5Img extends Version2Img {
 
         int ddsCount = ddsTable != null ? ddsTable.size() : 0;
         stream.writeInt(ddsCount);
-        stream.writeInt(0); // imgLength (unused)
-        stream.writeInt(0); // colorNum (no palette in V5)
+        stream.writeInt(imgLength); // 还原读取到的「整个 IMG 文件大小」字段
+        // V5 头部调色板：在 V5 中无用途，但极少数文件保留有颜色项，需往返保真
+        if (headerPalette != null && headerPalette.size() > 0) {
+            stream.writeInt(headerPalette.size());
+            stream.write(headerPalette.toBytes());
+        } else {
+            stream.writeInt(0);
+        }
 
         if (ddsTable != null) {
+            // DDS 数据以 ZLIB 压缩形式存储：先压缩以确定头部的大小字段，并缓存供写数据阶段使用
+            ddsCompressedCache.clear();
             for (DdsTable.DDS dds : ddsTable.values()) {
+                if (dds.getRawData() != null) {
+                    byte[] compressed = Bytes.compress(dds.getRawData());
+                    dds.setFullLength(dds.getRawData().length);
+                    dds.setLength(compressed.length);
+                    ddsCompressedCache.put(dds.getIndex(), compressed);
+                }
                 stream.writeInt(dds.getTitle());
                 stream.writeInt(dds.getPixelFormat());
                 stream.writeInt(dds.getIndex());
@@ -153,12 +213,13 @@ public class Version5Img extends Version2Img {
             frameList.add(frame);
         }
 
-        // 先读 DDS 纹理原始数据
+        // 先读 DDS 纹理数据：文件中存储的是 ZLIB 压缩后的 DDS，
+        // 按「压缩后大小(length)」读取字节并解压得到完整 DDS 文件
         if (ddsTable != null) {
             for (DdsTable.DDS dds : ddsTable.values()) {
-                byte[] data = new byte[dds.getFullLength()];
-                stream.readFully(data);
-                dds.setRawData(data);
+                byte[] compressed = new byte[dds.getLength()];
+                stream.readFully(compressed);
+                dds.setRawData(Bytes.decompress(compressed));
             }
         }
 
@@ -170,15 +231,8 @@ public class Version5Img extends Version2Img {
             }
         }
 
-        // FXT 帧的 rawData 来自 DDS 表
-        for (Frame frame : frameList) {
-            if (frame.isFxt() && ddsTable != null) {
-                DdsTable.DDS dds = ddsTable.get(frame.getDdsIndex());
-                if (dds != null) {
-                    frame.setRawData(dds.getRawData());
-                }
-            }
-        }
+        // FXT 帧不持有自身像素数据，其 DDS 纹理由 DdsCodec 从 ddsTable 按 ddsIndex 获取，
+        // 此处不再挂载 rawData，以免 setRawData 覆盖保留的 length 字段
 
         this.frames = frameList;
     }
@@ -215,10 +269,13 @@ public class Version5Img extends Version2Img {
         for (Frame frame : frames) {
             writeFrame(stream, frame);
         }
-        // 写 DDS 数据
+        // 写 DDS 数据（ZLIB 压缩后的字节，与头部 length 字段一致）
         if (ddsTable != null) {
             for (DdsTable.DDS dds : ddsTable.values()) {
-                if (dds.getRawData() != null) {
+                byte[] compressed = ddsCompressedCache.get(dds.getIndex());
+                if (compressed != null) {
+                    stream.write(compressed);
+                } else if (dds.getRawData() != null) {
                     stream.write(dds.getRawData());
                 }
             }

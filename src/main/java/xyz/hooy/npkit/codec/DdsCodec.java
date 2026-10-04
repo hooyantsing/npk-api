@@ -1,5 +1,6 @@
 package xyz.hooy.npkit.codec;
 
+import xyz.hooy.npkit.DdsTable;
 import xyz.hooy.npkit.Frame;
 import xyz.hooy.npkit.NpkException;
 
@@ -31,10 +32,19 @@ public class DdsCodec implements PixelCodec {
                     + "Please ensure imageio-dds is on the classpath.");
         }
 
-        byte[] data = frame.getDecompressedData();
+        // FXT 帧本身不持有像素数据，DDS 纹理来自上下文中的 DdsTable（已解压的完整 DDS）
+        DdsTable ddsTable = context != null ? context.getDdsTable() : null;
+        if (ddsTable == null) {
+            throw new NpkException("DdsCodec requires a DdsTable in CodecContext.");
+        }
+        DdsTable.DDS dds = ddsTable.get(frame.getDdsIndex());
+        if (dds == null || dds.getRawData() == null) {
+            throw new NpkException("DDS source not found for index " + frame.getDdsIndex());
+        }
+
         BufferedImage ddsImage;
         try {
-            ddsImage = ImageIO.read(new ByteArrayInputStream(data));
+            ddsImage = ImageIO.read(new ByteArrayInputStream(dds.getRawData()));
         } catch (IOException e) {
             throw new NpkException("Failed to decode DDS image data.", e);
         }

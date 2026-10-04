@@ -31,6 +31,9 @@ public class Version4Img extends Version2Img {
         super();
         // V4 中 0x0E 表示索引色，注册 IndexedCodec 覆盖默认的 Argb1555Codec
         registerCodec(Frame.TYPE_INDEXED, new IndexedCodec());
+        // 初始化一个空调色板，使新建的 V4 可直接 addImage（编码时自动追加颜色）；
+        // 从文件读取时 readPalette 会覆盖此调色板
+        this.palette = new Palette();
     }
 
     @Override
@@ -80,15 +83,29 @@ public class Version4Img extends Version2Img {
     @Override
     protected void readHeader(ImageInputStream stream) throws IOException {
         super.readHeader(stream);
+        readPalette(stream);
+    }
+
+    @Override
+    protected void writeHeader(ImageOutputStream stream) throws IOException {
+        super.writeHeader(stream);
+        writePalette(stream);
+    }
+
+    /**
+     * 读取调色板数据。子类（如 V6）可覆写以支持多调色板结构。
+     */
+    protected void readPalette(ImageInputStream stream) throws IOException {
         int colorNum = stream.readInt();
         byte[] paletteBytes = new byte[4 * colorNum];
         stream.readFully(paletteBytes);
         this.palette = Palette.fromBytes(paletteBytes, colorNum);
     }
 
-    @Override
-    protected void writeHeader(ImageOutputStream stream) throws IOException {
-        super.writeHeader(stream);
+    /**
+     * 写入调色板数据。子类（如 V6）可覆写以支持多调色板结构。
+     */
+    protected void writePalette(ImageOutputStream stream) throws IOException {
         if (palette == null) {
             stream.writeInt(0);
         } else {

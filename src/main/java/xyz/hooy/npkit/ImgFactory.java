@@ -45,6 +45,16 @@ public final class ImgFactory {
     }
 
     /**
+     * 注销指定版本的 IMG 构造器
+     *
+     * @param version 要注销的 IMG 版本号
+     * @return 被移除的构造器，不存在时返回 null
+     */
+    public static Supplier<Img> unregister(int version) {
+        return REGISTRY.remove(version);
+    }
+
+    /**
      * 根据版本号创建 Img 实例
      *
      * @param version IMG 文件版本号

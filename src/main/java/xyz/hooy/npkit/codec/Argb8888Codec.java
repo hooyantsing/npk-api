@@ -24,7 +24,9 @@ public class Argb8888Codec implements PixelCodec {
                 ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
         SampleModel sampleModel = new PixelInterleavedSampleModel(
                 DataBuffer.TYPE_BYTE, frame.getWidth(), frame.getHeight(),
-                4, frame.getWidth() * 4, new int[]{0, 1, 2, 3});
+                // DNF 数据流按 B, G, R, A 顺序存储，而 ComponentColorModel 分量顺序为 R, G, B, A，
+                // 故 band 偏移为 {2, 1, 0, 3}
+                4, frame.getWidth() * 4, new int[]{2, 1, 0, 3});
         DataBuffer dataBuffer = new DataBufferByte(data, data.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
         return new BufferedImage(colorModel, raster, false, new Hashtable<>());
@@ -40,9 +42,9 @@ public class Argb8888Codec implements PixelCodec {
         byte[] data = new byte[argbData.length * 4];
         int i = 0;
         for (int pixel : argbData) {
-            data[i++] = (byte) ((pixel >> 16) & 0xFF); // R
-            data[i++] = (byte) ((pixel >> 8) & 0xFF);  // G
             data[i++] = (byte) (pixel & 0xFF);         // B
+            data[i++] = (byte) ((pixel >> 8) & 0xFF);  // G
+            data[i++] = (byte) ((pixel >> 16) & 0xFF); // R
             data[i++] = (byte) ((pixel >> 24) & 0xFF); // A
         }
 
