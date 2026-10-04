@@ -7,6 +7,10 @@ public interface Img {
 
     int version();
 
+    String getName();
+
+    void setName(String name);
+
     int getImageCount();
 
     BufferedImage getImage(int index);

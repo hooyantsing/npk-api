@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class Version4Img extends Version2Img {
 
-    private Palette palette;
+    protected Palette palette;
 
     @Override
     public int version() {

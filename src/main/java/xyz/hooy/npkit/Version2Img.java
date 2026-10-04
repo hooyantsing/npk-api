@@ -13,11 +13,23 @@ import java.util.List;
 
 public class Version2Img implements Img, Processer {
 
+    protected String name;
+
     protected List<Frame> frames = new ArrayList<>();
 
     @Override
     public int version() {
         return 2;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override

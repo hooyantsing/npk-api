@@ -1,4 +1,4 @@
-package xyz.hooy.npkapi;
+package xyz.hooy.npkit;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
@@ -7,13 +7,28 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Version6ImgAccess extends ListableImgAccess {
+public class Version6Img extends Version4Img {
 
-    private final Version6Img version6Img;
+    private List<Palette> palettes = new ArrayList<>();
 
-    public Version6ImgAccess(Version6Img version6Img) {
-        super(version6Img);
-        this.version6Img = version6Img;
+    @Override
+    public int version() {
+        return 6;
+    }
+
+    @Override
+    public int getPaletteSourceCount() {
+        return palettes.size();
+    }
+
+    @Override
+    public Palette getPaletteSource(int index) {
+        return palettes.get(index);
+    }
+
+    @Override
+    public void activePaletteSource(int index) {
+        this.palette = palettes.get(index);
     }
 
     @Override
@@ -33,15 +48,14 @@ public class Version6ImgAccess extends ListableImgAccess {
             palettes.add(palette);
         }
         if (!palettes.isEmpty()) {
-            version6Img.palettes = palettes;
-            version6Img.setActivePalette(0);
+            this.palettes = palettes;
+            this.palette = palettes.get(0);
         }
     }
 
     @Override
     protected void writeHeader(ImageOutputStream stream) throws IOException {
         super.writeHeader(stream);
-        List<Palette> palettes = version6Img.palettes;
         stream.writeInt(palettes.size());
         for (Palette palette : palettes) {
             stream.writeInt(palette.size());
