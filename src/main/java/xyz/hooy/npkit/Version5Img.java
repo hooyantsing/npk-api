@@ -1,27 +1,19 @@
-package xyz.hooy.npk.codec;
+package xyz.hooy.npkit;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
 
-public class Version5ImgDecoder extends Version2ImgDecoder {
+public class Version5Img extends Version2Img {
 
     public final static String DDS_IMAGE = "DDS";
 
     protected DdsTable ddsTable;
-
-    private boolean cutImage;
-
-    public void cutImage(boolean enable) {
-        this.cutImage = enable;
-    }
 
     @Override
     public int version() {
@@ -29,8 +21,8 @@ public class Version5ImgDecoder extends Version2ImgDecoder {
     }
 
     @Override
-    protected void decodeHeader(ImageInputStream stream) throws IOException {
-        super.decodeHeader(stream);
+    protected void readHeader(ImageInputStream stream) throws IOException {
+        super.readHeader(stream);
         int ddsSize = stream.readInt();
         int imgLength = stream.readInt(); // unused
         int colorNum = stream.readInt(); // unused
@@ -52,12 +44,12 @@ public class Version5ImgDecoder extends Version2ImgDecoder {
     }
 
     @Override
-    protected void decodeFrames(ImageInputStream stream) throws IOException {
-        List<Frame> frames = new ArrayList<>(framesSize);
-        for (int i = 0; i < framesSize; i++) {
+    protected void readFrames(ImageInputStream stream) throws IOException {
+        List<Frame> frames = new ArrayList<>(frameSize);
+        for (int i = 0; i < frameSize; i++) {
             Frame frame = new Frame();
             frame.type = stream.readInt();
-            decodeFrame(stream, frame);
+            readFrame(stream, frame);
             frames.add(frame);
         }
         for (DdsTable.DDS dds : ddsTable.values()) {
@@ -65,17 +57,17 @@ public class Version5ImgDecoder extends Version2ImgDecoder {
             stream.read(rawData);
             dds.rawData = rawData;
         }
-        for (int i = 0; i < framesSize; i++) {
+        for (int i = 0; i < frameSize; i++) {
             Frame frame = frames.get(i);
             if (!frame.isReference()) {
-                decodeFrameData(stream, frame);
+                readFrameRawData(stream, frame);
             }
         }
         this.frames = frames;
     }
 
     @Override
-    protected void decodeFrame(ImageInputStream stream, Frame frame) throws IOException {
+    protected void readFrame(ImageInputStream stream, Frame frame) throws IOException {
         if (frame.isReference()) {
             frame.compressed = stream.readInt();
             frame.width = stream.readInt();
@@ -93,17 +85,17 @@ public class Version5ImgDecoder extends Version2ImgDecoder {
             frame.downCut = stream.readInt();
             stream.skipBytes(4); // skip 4 bytes
         } else {
-            super.decodeFrame(stream, frame);
+            super.readFrame(stream, frame);
         }
     }
 
     @Override
-    protected void decodeFrameData(ImageInputStream stream, Frame frame) throws IOException {
+    protected void readFrameRawData(ImageInputStream stream, Frame frame) throws IOException {
         if (frame.isFxt()) {
             DdsTable.DDS dds = ddsTable.get(frame.ddsIndex);
             frame.rawData = dds.rawData;
         } else {
-            super.decodeFrameData(stream, frame);
+            super.readFrameRawData(stream, frame);
         }
     }
 
@@ -116,7 +108,7 @@ public class Version5ImgDecoder extends Version2ImgDecoder {
             }
             byte[] data = frame.rawData;
             if (frame.isCompressed()) {
-                data = decompress(data);
+                data = Bytes.decompress(data);
             }
             ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
             BufferedImage image;
@@ -133,17 +125,10 @@ public class Version5ImgDecoder extends Version2ImgDecoder {
             if (width > image.getWidth() || height > image.getHeight()) {
                 throw new IllegalArgumentException("DDS sub image width/height > DDS image width/height.");
             }
-            return cutImage ? cutSubimage(image, frame.leftCut, frame.upCut, width, height) : highlightSubimage(image, frame.leftCut, frame.upCut, width, height);
+            return cutSubimage(image, frame.leftCut, frame.upCut, width, height);
         } else {
             return super.conventFrameToImage(frame);
         }
-    }
-
-    private BufferedImage highlightSubimage(BufferedImage image, int x, int y, int width, int height) {
-        Rectangle highlight = new Rectangle(x, y, width, height);
-        Hashtable<Object, Object> properties = new Hashtable<>();
-        properties.put("FrameHighlight", highlight);
-        return new BufferedImage(image.getColorModel(), image.getRaster(), image.getColorModel().isAlphaPremultiplied(), properties);
     }
 
     private BufferedImage cutSubimage(BufferedImage image, int x, int y, int width, int height) {

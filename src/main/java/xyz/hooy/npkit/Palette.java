@@ -1,4 +1,4 @@
-package xyz.hooy.npk.codec;
+package xyz.hooy.npkit;
 
 import java.awt.*;
 import java.util.ArrayList;

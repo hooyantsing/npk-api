@@ -1,4 +1,4 @@
-package xyz.hooy.npk.codec;
+package xyz.hooy.npkit;
 
 import xyz.hooy.npkapi.Frame;
 
