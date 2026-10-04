@@ -41,8 +41,6 @@ public class Version4Img extends Version2Img {
         return 4;
     }
 
-    // ===== 调色板接口实现 =====
-
     @Override
     public int getPaletteCount() {
         return palette != null ? 1 : 0;
@@ -61,8 +59,6 @@ public class Version4Img extends Version2Img {
         return palette;
     }
 
-    // ===== 编解码 =====
-
     @Override
     protected BufferedImage decodeFrame(Frame frame) {
         // V4 中所有非引用帧都按索引色处理
@@ -77,8 +73,6 @@ public class Version4Img extends Version2Img {
     protected PixelCodec.CodecContext createCodecContext() {
         return new PixelCodec.CodecContext(palette);
     }
-
-    // ===== Header 读写 =====
 
     @Override
     protected void readHeader(ImageInputStream stream) throws IOException {

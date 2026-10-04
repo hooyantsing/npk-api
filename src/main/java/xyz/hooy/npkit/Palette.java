@@ -26,6 +26,11 @@ public class Palette {
         this.colors = new ArrayList<>(colors);
     }
 
+    @Override
+    public String toString() {
+        return "Palette{size=" + colors.size() + "}";
+    }
+
     /**
      * 获取指定索引处的颜色
      *
@@ -126,10 +131,5 @@ public class Palette {
      */
     public List<Color> getColors() {
         return Collections.unmodifiableList(colors);
-    }
-
-    @Override
-    public String toString() {
-        return "Palette{size=" + colors.size() + "}";
     }
 }

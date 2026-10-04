@@ -1,6 +1,7 @@
 package npkapi;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import xyz.hooy.npkit.*;
 import xyz.hooy.npkit.codec.Argb8888Codec;
 
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class NpkitTest {
 
     @Test
-    void testNpkFileCreateAndWrite(@org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
+    void testNpkFileCreateAndWrite(@TempDir Path tempDir) throws IOException {
         // 构建 IMG 资源
         Version2Img img = new Version2Img();
         img.setName("character/swordman/effect.img");
@@ -41,7 +42,7 @@ public class NpkitTest {
     }
 
     @Test
-    void testNpkFileSaveAndReopen(@org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
+    void testNpkFileSaveAndReopen(@TempDir Path tempDir) throws IOException {
         // 创建并保存
         NpkFile npk = NpkFile.create();
         Version4Img img = new Version4Img();

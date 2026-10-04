@@ -16,7 +16,7 @@ import java.util.Hashtable;
 public class Argb8888Codec implements PixelCodec {
 
     @Override
-    public BufferedImage decode(xyz.hooy.npkit.Frame frame, CodecContext context) {
+    public BufferedImage decode(Frame frame, CodecContext context) {
         byte[] data = frame.getDecompressedData();
         ColorModel colorModel = new ComponentColorModel(
                 ColorSpace.getInstance(ColorSpace.CS_sRGB),
@@ -33,7 +33,7 @@ public class Argb8888Codec implements PixelCodec {
     }
 
     @Override
-    public xyz.hooy.npkit.Frame encode(BufferedImage image, CodecContext context) {
+    public Frame encode(BufferedImage image, CodecContext context) {
         int width = image.getWidth();
         int height = image.getHeight();
         int[] argbData = new int[width * height];
@@ -48,7 +48,7 @@ public class Argb8888Codec implements PixelCodec {
             data[i++] = (byte) ((pixel >> 24) & 0xFF); // A
         }
 
-        xyz.hooy.npkit.Frame frame = new xyz.hooy.npkit.Frame(xyz.hooy.npkit.Frame.TYPE_ARGB8888);
+        Frame frame = new Frame(Frame.TYPE_ARGB8888);
         frame.setWidth(width);
         frame.setHeight(height);
         frame.setX(image.getMinX());

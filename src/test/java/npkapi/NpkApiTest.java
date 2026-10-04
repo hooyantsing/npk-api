@@ -3,8 +3,10 @@ package npkapi;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import xyz.hooy.npkit.*;
+import xyz.hooy.npkit.Frame;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -25,8 +27,6 @@ public class NpkApiTest {
      * 手动测试路径 — 仅在有测试资源文件时可用
      */
     private static final String TEST_NPK_PATH = "D:/Project/NpkApi/test/output/sprite_map_npc_chn_knight.NPK";
-
-    // ===== 集成测试（需要实际 NPK 文件） =====
 
     @Test
     void testReadNpkFile() throws IOException {
@@ -76,8 +76,6 @@ public class NpkApiTest {
         }
     }
 
-    // ===== 单元测试（无需外部文件） =====
-
     @Test
     void testImgFactory() {
         Img v2 = ImgFactory.create(2);
@@ -121,15 +119,15 @@ public class NpkApiTest {
     @Test
     void testPalette() {
         Palette palette = new Palette();
-        palette.add(new java.awt.Color(255, 0, 0, 255));
-        palette.add(new java.awt.Color(0, 255, 0, 255));
-        palette.add(new java.awt.Color(0, 0, 255, 255));
+        palette.add(new Color(255, 0, 0, 255));
+        palette.add(new Color(0, 255, 0, 255));
+        palette.add(new Color(0, 0, 255, 255));
 
         assertEquals(3, palette.size());
-        assertEquals(0, palette.indexOf(new java.awt.Color(255, 0, 0, 255)));
-        assertEquals(2, palette.indexOf(new java.awt.Color(0, 0, 255, 255)));
-        assertEquals(-1, palette.indexOf(new java.awt.Color(128, 128, 128, 255)));
-        assertTrue(palette.contains(new java.awt.Color(0, 255, 0, 255)));
+        assertEquals(0, palette.indexOf(new Color(255, 0, 0, 255)));
+        assertEquals(2, palette.indexOf(new Color(0, 0, 255, 255)));
+        assertEquals(-1, palette.indexOf(new Color(128, 128, 128, 255)));
+        assertTrue(palette.contains(new Color(0, 255, 0, 255)));
 
         // 测试序列化/反序列化
         byte[] bytes = palette.toBytes();

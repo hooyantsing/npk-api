@@ -25,8 +25,6 @@ package xyz.hooy.npkit;
  */
 public class Frame {
 
-    // ===== 帧类型常量 =====
-
     /**
      * 在 V4/V6 上下文中表示索引色帧。
      * 注意：与 {@link #TYPE_ARGB1555} 共享相同的原始值 0x0E，
@@ -69,8 +67,6 @@ public class Frame {
      */
     public static final int TYPE_FXT3 = 0x14;
 
-    // ===== 压缩标志 =====
-
     /**
      * 未压缩
      */
@@ -78,8 +74,6 @@ public class Frame {
 
     /** zlib 压缩 */
     public static final int COMPRESSED = 0x06;
-
-    // ===== 帧属性 =====
 
     private int type;
 
@@ -156,8 +150,6 @@ public class Frame {
      */
     private int downCut;
 
-    // ===== 构造器 =====
-
     public Frame() {
     }
 
@@ -165,7 +157,19 @@ public class Frame {
         this.type = type;
     }
 
-    // ===== 类型判断 =====
+    @Override
+    public String toString() {
+        if (isReference()) {
+            return "Frame{REFERENCE -> " + reference + "}";
+        } else if (isFxt()) {
+            return "Frame{FXT, ddsIndex=" + ddsIndex
+                    + ", cut=[" + leftCut + "," + upCut + "," + rightCut + "," + downCut + "]}";
+        } else {
+            return "Frame{type=0x" + Integer.toHexString(type)
+                    + ", " + width + "x" + height
+                    + ", length=" + length + "}";
+        }
+    }
 
     public boolean isIndexed() {
         return type == TYPE_INDEXED;
@@ -187,8 +191,6 @@ public class Frame {
         return compressed == COMPRESSED;
     }
 
-    // ===== 静态类型判断工具 =====
-
     public static boolean isArgbType(int type) {
         return type == TYPE_ARGB1555 || type == TYPE_ARGB4444 || type == TYPE_ARGB8888;
     }
@@ -200,8 +202,6 @@ public class Frame {
     public static boolean isFxtType(int type) {
         return type == TYPE_FXT1 || type == TYPE_FXT2 || type == TYPE_FXT3;
     }
-
-    // ===== 数据操作 =====
 
     /**
      * 获取解压后的原始像素数据。
@@ -233,8 +233,6 @@ public class Frame {
         }
         this.length = this.rawData.length;
     }
-
-    // ===== Getter / Setter =====
 
     public int getType() {
         return type;
@@ -363,19 +361,5 @@ public class Frame {
 
     public void setDownCut(int downCut) {
         this.downCut = downCut;
-    }
-
-    @Override
-    public String toString() {
-        if (isReference()) {
-            return "Frame{REFERENCE -> " + reference + "}";
-        } else if (isFxt()) {
-            return "Frame{FXT, ddsIndex=" + ddsIndex
-                    + ", cut=[" + leftCut + "," + upCut + "," + rightCut + "," + downCut + "]}";
-        } else {
-            return "Frame{type=0x" + Integer.toHexString(type)
-                    + ", " + width + "x" + height
-                    + ", length=" + length + "}";
-        }
     }
 }

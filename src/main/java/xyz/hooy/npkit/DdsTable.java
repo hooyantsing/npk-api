@@ -79,6 +79,12 @@ public class DdsTable {
         public DDS() {
         }
 
+        @Override
+        public String toString() {
+            return "DDS{index=" + index + ", " + width + "x" + height
+                    + ", pixelFormat=0x" + Integer.toHexString(pixelFormat) + "}";
+        }
+
         public int getTitle() {
             return title;
         }
@@ -141,12 +147,6 @@ public class DdsTable {
 
         public void setRawData(byte[] rawData) {
             this.rawData = rawData;
-        }
-
-        @Override
-        public String toString() {
-            return "DDS{index=" + index + ", " + width + "x" + height
-                    + ", pixelFormat=0x" + Integer.toHexString(pixelFormat) + "}";
         }
     }
 }

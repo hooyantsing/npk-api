@@ -54,15 +54,15 @@ public class Ogg implements NpkResource {
         this.rawData = rawData;
     }
 
+    @Override
+    public String toString() {
+        return "Ogg{name='" + name + "', size=" + getSize() + "}";
+    }
+
     /**
      * 获取音频数据大小（字节）
      */
     public int getSize() {
         return rawData != null ? rawData.length : 0;
-    }
-
-    @Override
-    public String toString() {
-        return "Ogg{name='" + name + "', size=" + getSize() + "}";
     }
 }

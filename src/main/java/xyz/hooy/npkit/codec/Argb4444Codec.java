@@ -18,7 +18,7 @@ public class Argb4444Codec implements PixelCodec {
     private static final int[] BITMASKS = {0x0F00, 0x00F0, 0x000F, 0xF000};
 
     @Override
-    public BufferedImage decode(xyz.hooy.npkit.Frame frame, CodecContext context) {
+    public BufferedImage decode(Frame frame, CodecContext context) {
         byte[] data = frame.getDecompressedData();
         ColorModel colorModel = new DirectColorModel(16,
                 BITMASKS[0], BITMASKS[1], BITMASKS[2], BITMASKS[3]);
@@ -31,7 +31,7 @@ public class Argb4444Codec implements PixelCodec {
     }
 
     @Override
-    public xyz.hooy.npkit.Frame encode(BufferedImage image, CodecContext context) {
+    public Frame encode(BufferedImage image, CodecContext context) {
         int width = image.getWidth();
         int height = image.getHeight();
         int[] argbData = new int[width * height];
@@ -48,7 +48,7 @@ public class Argb4444Codec implements PixelCodec {
             data[i++] = (byte) ((a << 4) | r);
         }
 
-        xyz.hooy.npkit.Frame frame = new xyz.hooy.npkit.Frame(xyz.hooy.npkit.Frame.TYPE_ARGB4444);
+        Frame frame = new Frame(Frame.TYPE_ARGB4444);
         frame.setWidth(width);
         frame.setHeight(height);
         frame.setX(image.getMinX());

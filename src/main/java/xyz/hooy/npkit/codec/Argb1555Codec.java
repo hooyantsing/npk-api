@@ -19,7 +19,7 @@ public class Argb1555Codec implements PixelCodec {
     private static final int[] BITMASKS = {0x7C00, 0x03E0, 0x001F, 0x8000};
 
     @Override
-    public BufferedImage decode(xyz.hooy.npkit.Frame frame, CodecContext context) {
+    public BufferedImage decode(Frame frame, CodecContext context) {
         byte[] data = frame.getDecompressedData();
         ColorModel colorModel = new DirectColorModel(16,
                 BITMASKS[0], BITMASKS[1], BITMASKS[2], BITMASKS[3]);
@@ -32,7 +32,7 @@ public class Argb1555Codec implements PixelCodec {
     }
 
     @Override
-    public xyz.hooy.npkit.Frame encode(BufferedImage image, CodecContext context) {
+    public Frame encode(BufferedImage image, CodecContext context) {
         int width = image.getWidth();
         int height = image.getHeight();
         int[] argbData = new int[width * height];
@@ -54,7 +54,7 @@ public class Argb1555Codec implements PixelCodec {
             data[i++] = (byte) ((a << 7) | (r << 2) | (g >> 3));
         }
 
-        xyz.hooy.npkit.Frame frame = new xyz.hooy.npkit.Frame(xyz.hooy.npkit.Frame.TYPE_ARGB1555);
+        Frame frame = new Frame(Frame.TYPE_ARGB1555);
         frame.setWidth(width);
         frame.setHeight(height);
         frame.setX(image.getMinX());

@@ -57,8 +57,6 @@ public class Version2Img implements Img {
         codecs.put(Frame.TYPE_ARGB8888, new Argb8888Codec());
     }
 
-    // ===== Img 接口实现 =====
-
     @Override
     public int version() {
         return 2;
@@ -94,25 +92,6 @@ public class Version2Img implements Img {
         return getImage(index, new HashSet<Integer>());
     }
 
-    /**
-     * 带环检测的帧解码：记录已访问的帧索引，
-     * 若某索引被重复访问则说明存在循环引用，抛出 {@link NpkException} 而非栈溢出。
-     */
-    private BufferedImage getImage(int index, Set<Integer> visited) {
-        if (index < 0 || index >= frames.size()) {
-            throw new IndexOutOfBoundsException(
-                    "Frame index " + index + " out of bounds [0, " + frames.size() + ")");
-        }
-        if (!visited.add(index)) {
-            throw new NpkException("Circular frame reference detected at index " + index);
-        }
-        Frame frame = frames.get(index);
-        if (frame.isReference()) {
-            return getImage(frame.getReference(), visited);
-        }
-        return decodeFrame(frame);
-    }
-
     @Override
     public void addImage(BufferedImage image, int frameType) {
         PixelCodec codec = getCodec(frameType);
@@ -131,18 +110,6 @@ public class Version2Img implements Img {
         frame.setReference(referenceIndex);
         frames.add(frame);
         invalidateRawData();
-    }
-
-    /**
-     * 使缓存的原始字节失效。
-     * <p>
-     * IMG 从文件加载时会缓存原始字节（见 {@link #setRawData(byte[])}），
-     * 以便未修改时可原样快速重存。一旦帧等内部结构被修改，必须调用本方法
-     * 清空缓存，使后续保存时重新序列化，避免修改被静默丢弃。
-     * </p>
-     */
-    protected void invalidateRawData() {
-        this.rawData = null;
     }
 
     @Override
@@ -185,8 +152,6 @@ public class Version2Img implements Img {
         return null;
     }
 
-    // ===== Processor 接口实现（读写） =====
-
     @Override
     public void read(ImageInputStream stream) throws IOException {
         readHeader(stream);
@@ -199,7 +164,42 @@ public class Version2Img implements Img {
         writeFrames(stream);
     }
 
-    // ===== 模板方法：Header 读写 =====
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{name='" + name + "', version=" + version()
+                + ", frames=" + frames.size() + "}";
+    }
+
+    /**
+     * 带环检测的帧解码：记录已访问的帧索引，
+     * 若某索引被重复访问则说明存在循环引用，抛出 {@link NpkException} 而非栈溢出。
+     */
+    private BufferedImage getImage(int index, Set<Integer> visited) {
+        if (index < 0 || index >= frames.size()) {
+            throw new IndexOutOfBoundsException(
+                    "Frame index " + index + " out of bounds [0, " + frames.size() + ")");
+        }
+        if (!visited.add(index)) {
+            throw new NpkException("Circular frame reference detected at index " + index);
+        }
+        Frame frame = frames.get(index);
+        if (frame.isReference()) {
+            return getImage(frame.getReference(), visited);
+        }
+        return decodeFrame(frame);
+    }
+
+    /**
+     * 使缓存的原始字节失效。
+     * <p>
+     * IMG 从文件加载时会缓存原始字节（见 {@link #setRawData(byte[])}），
+     * 以便未修改时可原样快速重存。一旦帧等内部结构被修改，必须调用本方法
+     * 清空缓存，使后续保存时重新序列化，避免修改被静默丢弃。
+     * </p>
+     */
+    protected void invalidateRawData() {
+        this.rawData = null;
+    }
 
     /**
      * 读取 IMG 文件头。
@@ -232,8 +232,6 @@ public class Version2Img implements Img {
         stream.writeInt(version());
         stream.writeInt(frames.size());
     }
-
-    // ===== 模板方法：Frame 读写 =====
 
     /**
      * 读取所有帧（先读帧表，再读帧数据）。
@@ -322,8 +320,6 @@ public class Version2Img implements Img {
         stream.write(frame.getRawData());
     }
 
-    // ===== 编解码辅助 =====
-
     /**
      * 将帧解码为 BufferedImage。
      * 子类可覆写以支持额外的帧类型（如 DDS、INDEXED）。
@@ -360,8 +356,6 @@ public class Version2Img implements Img {
         codecs.put(frameType, codec);
     }
 
-    // ===== 内部工具 =====
-
     /**
      * 计算帧表总长度（字节）
      */
@@ -376,11 +370,5 @@ public class Version2Img implements Img {
             }
         }
         return length;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "{name='" + name + "', version=" + version()
-                + ", frames=" + frames.size() + "}";
     }
 }

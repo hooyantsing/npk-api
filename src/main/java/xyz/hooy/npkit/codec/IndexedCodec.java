@@ -17,7 +17,7 @@ import java.awt.image.*;
 public class IndexedCodec implements PixelCodec {
 
     @Override
-    public BufferedImage decode(xyz.hooy.npkit.Frame frame, CodecContext context) {
+    public BufferedImage decode(Frame frame, CodecContext context) {
         if (context == null || context.getPalette() == null) {
             throw new NpkException("IndexedCodec requires a Palette in CodecContext.");
         }
@@ -47,7 +47,7 @@ public class IndexedCodec implements PixelCodec {
     }
 
     @Override
-    public xyz.hooy.npkit.Frame encode(BufferedImage image, CodecContext context) {
+    public Frame encode(BufferedImage image, CodecContext context) {
         if (context == null || context.getPalette() == null) {
             throw new NpkException("IndexedCodec requires a Palette in CodecContext.");
         }
@@ -66,7 +66,7 @@ public class IndexedCodec implements PixelCodec {
             data[i] = (byte) palette.indexOf(color);
         }
 
-        xyz.hooy.npkit.Frame frame = new xyz.hooy.npkit.Frame(xyz.hooy.npkit.Frame.TYPE_INDEXED);
+        Frame frame = new Frame(Frame.TYPE_INDEXED);
         frame.setWidth(width);
         frame.setHeight(height);
         frame.setX(image.getMinX());

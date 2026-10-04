@@ -84,8 +84,6 @@ public class Version5Img extends Version2Img {
         return 5;
     }
 
-    // ===== DDS 接口实现 =====
-
     @Override
     public int getDdsSourceCount() {
         return ddsTable != null ? ddsTable.size() : 0;
@@ -111,29 +109,6 @@ public class Version5Img extends Version2Img {
     public DdsTable getDdsTable() {
         return ddsTable;
     }
-
-    /**
-     * 获取 V5 头部中的「整个 IMG 文件大小」字段（读取时保存，对解析无实际用途）。
-     */
-    public int getImgLength() {
-        return imgLength;
-    }
-
-    /**
-     * 获取 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
-     */
-    public Palette getHeaderPalette() {
-        return headerPalette;
-    }
-
-    /**
-     * 设置 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
-     */
-    public void setHeaderPalette(Palette headerPalette) {
-        this.headerPalette = headerPalette != null ? headerPalette : new Palette();
-    }
-
-    // ===== Header 读写 =====
 
     @Override
     protected void readHeader(ImageInputStream stream) throws IOException {
@@ -200,8 +175,6 @@ public class Version5Img extends Version2Img {
             }
         }
     }
-
-    // ===== Frame 读写 =====
 
     @Override
     protected void readFrames(ImageInputStream stream) throws IOException {
@@ -322,8 +295,6 @@ public class Version5Img extends Version2Img {
         }
     }
 
-    // ===== 编解码 =====
-
     @Override
     protected BufferedImage decodeFrame(Frame frame) {
         if (frame.isReference()) {
@@ -356,5 +327,26 @@ public class Version5Img extends Version2Img {
             }
         }
         return length;
+    }
+
+    /**
+     * 获取 V5 头部中的「整个 IMG 文件大小」字段（读取时保存，对解析无实际用途）。
+     */
+    public int getImgLength() {
+        return imgLength;
+    }
+
+    /**
+     * 获取 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
+     */
+    public Palette getHeaderPalette() {
+        return headerPalette;
+    }
+
+    /**
+     * 设置 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
+     */
+    public void setHeaderPalette(Palette headerPalette) {
+        this.headerPalette = headerPalette != null ? headerPalette : new Palette();
     }
 }

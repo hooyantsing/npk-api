@@ -1,6 +1,7 @@
 package xyz.hooy.npkit;
 
 import java.awt.image.BufferedImage;
+import java.util.List;
 
 /**
  * IMG 图像资源接口。
@@ -26,6 +27,11 @@ import java.awt.image.BufferedImage;
  * @see Version6Img
  */
 public interface Img extends NpkResource, Processor {
+
+    @Override
+    default NpkResource.Type getType() {
+        return NpkResource.Type.IMG;
+    }
 
     /**
      * 获取 IMG 文件版本号
@@ -68,9 +74,7 @@ public interface Img extends NpkResource, Processor {
     /**
      * 获取帧列表（只读视图）
      */
-    java.util.List<Frame> getFrames();
-
-    // ===== DDS 相关（仅 V5 支持） =====
+    List<Frame> getFrames();
 
     /**
      * 获取 DDS 纹理源数量。
@@ -92,8 +96,6 @@ public interface Img extends NpkResource, Processor {
      * @return DDS 纹理表，不支持时返回 null
      */
     DdsTable getDdsTable();
-
-    // ===== 调色板相关（V4/V6 支持） =====
 
     /**
      * 获取调色板数量。
@@ -123,11 +125,4 @@ public interface Img extends NpkResource, Processor {
      * @return 当前调色板，不支持时返回 null
      */
     Palette getActivePalette();
-
-    // ===== NpkResource 默认实现 =====
-
-    @Override
-    default NpkResource.Type getType() {
-        return NpkResource.Type.IMG;
-    }
 }

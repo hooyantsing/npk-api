@@ -43,8 +43,6 @@ public class Version6Img extends Version4Img {
         return 6;
     }
 
-    // ===== 多调色板接口实现 =====
-
     @Override
     public int getPaletteCount() {
         return palettes.size();
@@ -69,15 +67,6 @@ public class Version6Img extends Version4Img {
     public Palette getActivePalette() {
         return palette;
     }
-
-    /**
-     * 获取当前激活的调色板索引
-     */
-    public int getActivePaletteIndex() {
-        return activePaletteIndex;
-    }
-
-    // ===== 调色板读写（V6 多调色板结构） =====
 
     /**
      * 读取 V6 调色板数据。
@@ -111,5 +100,12 @@ public class Version6Img extends Version4Img {
             stream.writeInt(p.size());
             stream.write(p.toBytes());
         }
+    }
+
+    /**
+     * 获取当前激活的调色板索引
+     */
+    public int getActivePaletteIndex() {
+        return activePaletteIndex;
     }
 }

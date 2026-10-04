@@ -3,7 +3,9 @@ package xyz.hooy.npkit;
 import javax.imageio.stream.FileImageInputStream;
 import javax.imageio.stream.FileImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -88,8 +90,6 @@ public class NpkFile implements AutoCloseable {
     private File sourceFile;
     private boolean closed = false;
 
-    // ===== 构造 =====
-
     private NpkFile() {
     }
 
@@ -97,7 +97,19 @@ public class NpkFile implements AutoCloseable {
         this.sourceFile = sourceFile;
     }
 
-    // ===== 工厂方法 =====
+    @Override
+    public void close() {
+        this.closed = true;
+        this.resources.clear();
+    }
+
+    @Override
+    public String toString() {
+        return "NpkFile{resources=" + resources.size()
+                + ", images=" + getImages().size()
+                + ", oggs=" + getOggs().size()
+                + (sourceFile != null ? ", file='" + sourceFile.getName() + "'" : "") + "}";
+    }
 
     /**
      * 打开并解析一个 NPK 文件。
@@ -129,8 +141,6 @@ public class NpkFile implements AutoCloseable {
     public static NpkFile create() {
         return new NpkFile();
     }
-
-    // ===== 资源访问 =====
 
     /**
      * 获取所有资源（IMG + OGG）
@@ -187,8 +197,6 @@ public class NpkFile implements AutoCloseable {
         return resources.size();
     }
 
-    // ===== 资源管理 =====
-
     /**
      * 添加资源到 NPK 文件
      *
@@ -225,8 +233,6 @@ public class NpkFile implements AutoCloseable {
         return resource;
     }
 
-    // ===== 文件 I/O =====
-
     /**
      * 将 NPK 文件保存到指定路径
      *
@@ -247,14 +253,6 @@ public class NpkFile implements AutoCloseable {
     public File getSourceFile() {
         return sourceFile;
     }
-
-    @Override
-    public void close() {
-        this.closed = true;
-        this.resources.clear();
-    }
-
-    // ===== 内部读取逻辑 =====
 
     private void read(File file) throws IOException {
         try (FileImageInputStream stream = new FileImageInputStream(file)) {
@@ -335,8 +333,6 @@ public class NpkFile implements AutoCloseable {
         }
     }
 
-    // ===== 内部写入逻辑 =====
-
     private void write(FileImageOutputStream stream) throws IOException {
         int count = resources.size();
 
@@ -392,9 +388,8 @@ public class NpkFile implements AutoCloseable {
             return resource.getRawData();
         }
         if (resource instanceof Img) {
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            try (javax.imageio.stream.MemoryCacheImageOutputStream out =
-                         new javax.imageio.stream.MemoryCacheImageOutputStream(baos)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try (MemoryCacheImageOutputStream out = new MemoryCacheImageOutputStream(baos)) {
                 out.setByteOrder(ByteOrder.LITTLE_ENDIAN);
                 ((Img) resource).write(out);
                 out.flush();
@@ -403,8 +398,6 @@ public class NpkFile implements AutoCloseable {
         }
         throw new NpkException("Cannot serialize resource: " + resource.getName());
     }
-
-    // ===== 名称加解密 =====
 
     /**
      * 解密资源名称（XOR 解密）
@@ -437,8 +430,6 @@ public class NpkFile implements AutoCloseable {
         }
         return result;
     }
-
-    // ===== 校验 =====
 
     private void verifyMagic(byte[] magic) {
         for (int i = 0; i < NPK_MAGIC.length; i++) {
@@ -491,8 +482,6 @@ public class NpkFile implements AutoCloseable {
         return result;
     }
 
-    // ===== 工具方法 =====
-
     private static void writeIntLE(byte[] buffer, int offset, int value) {
         buffer[offset] = (byte) (value & 0xFF);
         buffer[offset + 1] = (byte) ((value >> 8) & 0xFF);
@@ -519,13 +508,5 @@ public class NpkFile implements AutoCloseable {
         }
         key[255] = '\0';
         return key;
-    }
-
-    @Override
-    public String toString() {
-        return "NpkFile{resources=" + resources.size()
-                + ", images=" + getImages().size()
-                + ", oggs=" + getOggs().size()
-                + (sourceFile != null ? ", file='" + sourceFile.getName() + "'" : "") + "}";
     }
 }
