@@ -1,85 +1,99 @@
 package xyz.hooy.npkit;
 
+import xyz.hooy.npkit.codec.IndexedCodec;
+import xyz.hooy.npkit.codec.PixelCodec;
+
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
-import java.awt.*;
-import java.awt.image.*;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 
+/**
+ * IMG V4 格式实现 — 索引色（调色板）图像。
+ * <p>
+ * V4 在 V2 的基础上增加了调色板支持。帧类型 0x0E 在 V4 上下文中
+ * 表示索引色帧（而非 ARGB1555），每像素 8 位索引映射到调色板颜色。
+ * </p>
+ *
+ * <h3>V4 头部扩展结构</h3>
+ * <pre>
+ * [V2 Header]
+ * [Palette]
+ *   - colorCount (int32)
+ *   - colors[colorCount] (4 bytes each: R, G, B, A)
+ * </pre>
+ */
 public class Version4Img extends Version2Img {
 
     protected Palette palette;
+
+    public Version4Img() {
+        super();
+        // V4 中 0x0E 表示索引色，注册 IndexedCodec 覆盖默认的 Argb1555Codec
+        registerCodec(Frame.TYPE_INDEXED, new IndexedCodec());
+    }
 
     @Override
     public int version() {
         return 4;
     }
 
+    // ===== 调色板接口实现 =====
+
     @Override
-    protected BufferedImage conventFrameToImage(Frame frame) {
-        byte[] data = frame.rawData;
-        if (frame.isCompressed()) {
-            data = Bytes.decompress(data);
-        }
-        ColorModel colorModel = new IndexColorModel(8, palette.size(), palette.toArray(), 0, false, -1, DataBuffer.TYPE_BYTE);
-        SampleModel sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, frame.width, frame.height, 1, frame.width, new int[]{0});
-        DataBuffer dataBuffer = new DataBufferByte(data, data.length);
-        WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
-        return new BufferedImage(colorModel, raster, false, null);
+    public int getPaletteCount() {
+        return palette != null ? 1 : 0;
     }
 
     @Override
-    protected Frame conventImageToFrame(BufferedImage image, int frameType) {
-        Frame frame = new Frame();
-        frame.type = Frame.TYPE_INDEXED;
-        frame.width = image.getWidth();
-        frame.height = image.getHeight();
-        frame.x = image.getMinX();
-        frame.y = image.getMinY();
-        frame.frameWidth = image.getWidth();
-        frame.frameHeight = image.getHeight();
-        int[] indexData = new int[frame.width * frame.height];
-        image.getRGB(0, 0, frame.width, frame.height, indexData, 0, frame.width);
-        byte[] data = new byte[indexData.length];
-        for (int i = 0; i < indexData.length; i++) {
-            Color color = new Color(indexData[i]);
-            if (!palette.contains(color)) {
-                palette.add(color);
-            }
-            data[i] = palette.indexOf(color);
+    public Palette getPalette(int index) {
+        if (index != 0 || palette == null) {
+            throw new IndexOutOfBoundsException("V4 IMG has at most 1 palette, index: " + index);
         }
-        if (frame.isCompressed()) {
-            data = Bytes.compress(data);
-        }
-        frame.rawData = data;
-        frame.length = data.length;
-        return frame;
+        return palette;
     }
+
+    @Override
+    public Palette getActivePalette() {
+        return palette;
+    }
+
+    // ===== 编解码 =====
+
+    @Override
+    protected BufferedImage decodeFrame(Frame frame) {
+        // V4 中所有非引用帧都按索引色处理
+        if (frame.isReference()) {
+            return getImage(frame.getReference());
+        }
+        PixelCodec codec = getCodec(Frame.TYPE_INDEXED);
+        return codec.decode(frame, createCodecContext());
+    }
+
+    @Override
+    protected PixelCodec.CodecContext createCodecContext() {
+        return new PixelCodec.CodecContext(palette);
+    }
+
+    // ===== Header 读写 =====
 
     @Override
     protected void readHeader(ImageInputStream stream) throws IOException {
         super.readHeader(stream);
         int colorNum = stream.readInt();
         byte[] paletteBytes = new byte[4 * colorNum];
-        stream.read(paletteBytes);
-        Palette palette = new Palette();
-        for (int i = 0; i < paletteBytes.length; i++) {
-            Color color = new Color(paletteBytes[i], paletteBytes[i + 1], paletteBytes[i + 2], paletteBytes[i + 3]);
-            palette.add(color);
-        }
-        this.palette = palette;
+        stream.readFully(paletteBytes);
+        this.palette = Palette.fromBytes(paletteBytes, colorNum);
     }
 
     @Override
     protected void writeHeader(ImageOutputStream stream) throws IOException {
         super.writeHeader(stream);
-        stream.writeInt(palette.size());
-        for (int i = 0; i < palette.size(); i++) {
-            Color color = palette.get(i);
-            stream.writeByte(color.getRed());
-            stream.writeByte(color.getGreen());
-            stream.writeByte(color.getBlue());
-            stream.writeByte(color.getAlpha());
+        if (palette == null) {
+            stream.writeInt(0);
+        } else {
+            stream.writeInt(palette.size());
+            stream.write(palette.toBytes());
         }
     }
 }
