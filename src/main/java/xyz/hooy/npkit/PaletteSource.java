@@ -27,7 +27,7 @@ public class PaletteSource {
 
     @Override
     public String toString() {
-        return "Palette{size=" + colors.size() + "}";
+        return "PaletteSource{size=" + colors.size() + "}";
     }
 
     /**
@@ -95,6 +95,10 @@ public class PaletteSource {
      * @return 解析后的调色板
      */
     public static PaletteSource fromBytes(byte[] bytes, int colorNum) {
+        if (bytes == null || colorNum < 0 || (long) colorNum * 4 > bytes.length) {
+            throw new NpkException("Invalid palette data: colorNum=" + colorNum
+                    + " exceeds available bytes " + (bytes == null ? 0 : bytes.length) + ".");
+        }
         PaletteSource palette = new PaletteSource();
         for (int i = 0; i < colorNum; i++) {
             int offset = i * 4;

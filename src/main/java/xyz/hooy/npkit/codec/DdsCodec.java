@@ -24,27 +24,16 @@ public class DdsCodec implements PixelCodec {
 
     private static final String DDS_FORMAT = "DDS";
 
+    /**
+     * ImageIO 是否具备 DDS 读取插件。插件注册在类加载期即固定，故缓存探测结果，
+     * 避免每次 decode 都全量枚举 ImageIO 格式名（{@link ImageIO#getReaderFormatNames()}）。
+     */
+    private static final boolean DDS_SUPPORTED =
+            Arrays.asList(ImageIO.getReaderFormatNames()).contains(DDS_FORMAT);
+
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
-        if (!isDdsSupported()) {
-            throw new NpkException("ImageIO DDS plugin not available. "
-                    + "Please ensure imageio-dds is on the classpath.");
-        }
-
-        // FXT 帧本身不持有像素数据，DDS 纹理来自上下文中的 DdsTable（已解压的完整 DDS）
-        DdsTable ddsTable = context != null ? context.getDdsTable() : null;
-        if (ddsTable == null) {
-            throw new NpkException("DdsCodec requires a DdsTable in CodecContext.");
-        }
-        DdsSource ddsSource = ddsTable.get(frame.getDdsIndex());
-        if (ddsSource == null || ddsSource.getRawData() == null) {
-            throw new NpkException("DDS source not found for index " + frame.getDdsIndex());
-        }
-
-        BufferedImage ddsImage = ddsSource.getImage();
-        if (ddsImage == null) {
-            throw new NpkException("ImageIO returned null for DDS data. Unsupported DDS sub-format?");
-        }
+        BufferedImage ddsImage = getDdsImage(frame, context);
 
         int width = frame.getRightCut() - frame.getLeftCut();
         int height = frame.getDownCut() - frame.getUpCut();
@@ -59,6 +48,33 @@ public class DdsCodec implements PixelCodec {
         return ddsImage.getSubimage(frame.getLeftCut(), frame.getUpCut(), width, height);
     }
 
+    private BufferedImage getDdsImage(Frame frame, CodecContext context) {
+        DdsSource ddsSource = getDdsSource(frame, context);
+        if (ddsSource == null || ddsSource.getRawData() == null) {
+            throw new NpkException("DDS source not found for index " + frame.getDdsIndex());
+        }
+
+        BufferedImage ddsImage = ddsSource.getImage();
+        if (ddsImage == null) {
+            throw new NpkException("ImageIO returned null for DDS data. Unsupported DDS sub-format?");
+        }
+        return ddsImage;
+    }
+
+    private DdsSource getDdsSource(Frame frame, CodecContext context) {
+        if (!isDdsSupported()) {
+            throw new NpkException("ImageIO DDS plugin not available. "
+                    + "Please ensure imageio-dds is on the classpath.");
+        }
+
+        // FXT 帧本身不持有像素数据，DDS 纹理来自上下文中的 DdsTable（已解压的完整 DDS）
+        DdsTable ddsTable = context != null ? context.getDdsTable() : null;
+        if (ddsTable == null) {
+            throw new NpkException("DdsCodec requires a DdsTable in CodecContext.");
+        }
+        return ddsTable.get(frame.getDdsIndex());
+    }
+
     @Override
     public Frame encode(BufferedImage image, CodecContext context) {
         // DDS 编码暂不支持 — 写入 DDS 纹理需要专门的压缩算法（如 S3TC/DXT）
@@ -68,9 +84,9 @@ public class DdsCodec implements PixelCodec {
     }
 
     /**
-     * 检查当前 ImageIO 环境是否支持 DDS 格式读取
+     * 检查当前 ImageIO 环境是否支持 DDS 格式读取（结果在类加载时探测并缓存）
      */
-    public static boolean isDdsSupported() {
-        return Arrays.asList(ImageIO.getReaderFormatNames()).contains(DDS_FORMAT);
+    public boolean isDdsSupported() {
+        return DDS_SUPPORTED;
     }
 }

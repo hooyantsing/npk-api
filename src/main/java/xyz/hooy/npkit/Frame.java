@@ -68,12 +68,24 @@ public class Frame {
     public static final int TYPE_FXT5 = 0x14;
 
     /**
-     * 未压缩
+     * 帧数据压缩标志。
+     * <ul>
+     *   <li>{@link #UNCOMPRESSED} (0x05)：未压缩</li>
+     *   <li>{@link #COMPRESSED} (0x06)：ZLIB 压缩（普通图像帧）</li>
+     *   <li>{@link #COMPRESSED_DDS} (0x07)：ZLIB 压缩（DDS 引用型索引项）</li>
+     * </ul>
      */
     public static final int UNCOMPRESSED = 0x05;
 
-    /** zlib 压缩 */
+    /**
+     * ZLIB 压缩（普通图像帧）
+     */
     public static final int COMPRESSED = 0x06;
+
+    /**
+     * ZLIB 压缩（DDS 引用型索引项，见 {@link Version5Img#addDdsImage}）
+     */
+    public static final int COMPRESSED_DDS = 0x07;
 
     private int type;
 

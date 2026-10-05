@@ -221,6 +221,11 @@ public class NpkFile implements AutoCloseable {
         if (findByName(resource.getName()) != null) {
             throw new NpkException("Duplicate resource name: " + resource.getName());
         }
+        // fail-fast：OGG 以原始字节存储，缺数据时无法序列化，提前给出明确错误
+        // （否则要等到 save() 才抛笼统的 "Cannot serialize resource"）
+        if (resource.getType() == NpkResource.Type.OGG && resource.getRawData() == null) {
+            throw new NpkException("OGG resource has no data: " + resource.getName());
+        }
         resources.add(resource);
     }
 
@@ -270,6 +275,7 @@ public class NpkFile implements AutoCloseable {
     }
 
     private void read(File file) throws IOException {
+        long fileLength = file.length();
         try (FileImageInputStream stream = new FileImageInputStream(file)) {
             stream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 
@@ -282,6 +288,16 @@ public class NpkFile implements AutoCloseable {
             int resourceCount = stream.readInt();
             if (resourceCount <= 0) {
                 return; // 空 NPK 文件
+            }
+
+            // 防御：索引表 + 校验位必须落在文件范围内，否则视为损坏
+            // （避免按损坏的 resourceCount 分配超大数组导致 OOM）
+            long requiredHeader = NPK_MAGIC.length + 4L
+                    + (long) resourceCount * INDEX_ENTRY_SIZE + VERIFICATION_SIZE;
+            if (requiredHeader > fileLength) {
+                throw new NpkException("Corrupt NPK: declared resource count " + resourceCount
+                        + " requires " + requiredHeader + " bytes but file is only "
+                        + fileLength + " bytes.");
             }
 
             // 3. 读取索引表
@@ -301,9 +317,17 @@ public class NpkFile implements AutoCloseable {
             for (int i = 0; i < resourceCount; i++) {
                 int offset = stream.readInt();
                 int length = stream.readInt();
-                byte[] nameBytes = new byte[256];
+                byte[] nameBytes = new byte[NAME_FIELD_SIZE];
                 stream.readFully(nameBytes);
                 String name = decryptName(nameBytes);
+
+                // 防御：offset/length 来自不可信文件，负值会触发 NegativeArraySizeException、
+                // 过大或越界会读到错误数据甚至 OOM，统一提前校验为"文件损坏"
+                if (offset < 0 || length < 0 || (long) offset + length > fileLength) {
+                    throw new NpkException("Corrupt NPK: resource #" + i + " has invalid range ["
+                            + offset + ", " + ((long) offset + length) + ") against file size "
+                            + fileLength + ".");
+                }
 
                 // 跳转到资源数据位置读取
                 stream.mark();
@@ -375,8 +399,8 @@ public class NpkFile implements AutoCloseable {
             writeIntLE(indexBytes, idx, data.length);
             idx += 4;
             byte[] encryptedName = encryptName(resources.get(i).getName());
-            System.arraycopy(encryptedName, 0, indexBytes, idx, 256);
-            idx += 256;
+            System.arraycopy(encryptedName, 0, indexBytes, idx, NAME_FIELD_SIZE);
+            idx += NAME_FIELD_SIZE;
             currentOffset += data.length;
         }
 

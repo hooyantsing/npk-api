@@ -1,7 +1,7 @@
 package xyz.hooy.npkit;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -22,7 +22,7 @@ import java.util.function.Supplier;
  */
 public final class ImgFactory {
 
-    private static final Map<Integer, Supplier<Img>> REGISTRY = new HashMap<>();
+    private static final Map<Integer, Supplier<Img>> REGISTRY = new ConcurrentHashMap<>();
 
     static {
         register(2, Version2Img::new);

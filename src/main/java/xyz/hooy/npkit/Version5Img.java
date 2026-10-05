@@ -261,7 +261,7 @@ public class Version5Img extends AbstractImg {
 
     @Override
     protected PixelCodec.CodecContext createCodecContext() {
-        return new PixelCodec.CodecContext(null, ddsTable);
+        return new PixelCodec.CodecContext(ddsTable);
     }
 
     @Override
@@ -344,7 +344,7 @@ public class Version5Img extends AbstractImg {
                     + frameWidth + "x" + frameHeight);
         }
         Frame frame = new Frame(frameType);
-        frame.setCompressed(7);            // 规范：DDS 引用型索引项压缩状态一般为 7（ZLIB）
+        frame.setCompressed(Frame.COMPRESSED_DDS); // 规范：DDS 引用型索引项压缩状态为 7（ZLIB）
         frame.setWidth(right - left);
         frame.setHeight(down - up);
         frame.setLength(0);                // 保留字段（原图片大小位置），须为 0
