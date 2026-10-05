@@ -63,6 +63,15 @@ public class Version6Img extends Version4Img {
     }
 
     @Override
+    public PaletteSource getPaletteSource(int index) {
+        if (index < 0 || index >= palettes.size()) {
+            throw new IndexOutOfBoundsException(
+                    "Palette index " + index + " out of bounds [0, " + palettes.size() + ")");
+        }
+        return palettes.get(index);
+    }
+
+    @Override
     public void addImage(BufferedImage image, int frameType) {
         if (palettes.size() > 1) {
             throw new NpkException("This V6 IMG has " + palettes.size() + " palettes; use "

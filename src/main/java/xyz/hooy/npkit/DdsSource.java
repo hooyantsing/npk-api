@@ -55,12 +55,12 @@ public class DdsSource {
     /**
      * 解码为图像（依赖 ImageIO 的 DDS 插件）
      *
-     * @return 解码后的图像，无数据时返回 null
-     * @throws NpkException 解码失败
+     * @return 解码后的图像
+     * @throws NpkException 无原始数据或解码失败
      */
     public BufferedImage getImage() {
         if (rawData == null) {
-            return null;
+            throw new NpkException("DDS source at index " + index + " has no raw data to decode.");
         }
         try {
             return ImageIO.read(new ByteArrayInputStream(rawData));

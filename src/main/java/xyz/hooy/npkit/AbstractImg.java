@@ -61,10 +61,18 @@ public abstract class AbstractImg implements Img {
      */
     protected final Map<Integer, PixelCodec> codecs = new LinkedHashMap<>();
 
+    /**
+     * 无状态编解码器单例：所有 Img 实例共享，避免每次构造重复分配。
+     * 编解码器不持有实例状态（状态全部来自方法参数 frame/context/image），故可安全共享。
+     */
+    private static final PixelCodec ARGB1555_CODEC = new Argb1555Codec();
+    private static final PixelCodec ARGB4444_CODEC = new Argb4444Codec();
+    private static final PixelCodec ARGB8888_CODEC = new Argb8888Codec();
+
     public AbstractImg() {
-        codecs.put(Frame.TYPE_ARGB1555, new Argb1555Codec());
-        codecs.put(Frame.TYPE_ARGB4444, new Argb4444Codec());
-        codecs.put(Frame.TYPE_ARGB8888, new Argb8888Codec());
+        codecs.put(Frame.TYPE_ARGB1555, ARGB1555_CODEC);
+        codecs.put(Frame.TYPE_ARGB4444, ARGB4444_CODEC);
+        codecs.put(Frame.TYPE_ARGB8888, ARGB8888_CODEC);
     }
 
     @Override
@@ -167,14 +175,21 @@ public abstract class AbstractImg implements Img {
     }
 
     @Override
+    public int getActivePaletteSourceIndex() {
+        throw new NpkException(getClass().getSimpleName()
+                + " does not support palettes; only Version4Img/Version6Img do.");
+    }
+
+    @Override
     public void activatePaletteSource(int index) {
         throw new NpkException(getClass().getSimpleName()
                 + " does not support palettes; only Version4Img/Version6Img do.");
     }
 
     @Override
-    public int getActivePaletteSourceIndex() {
-        return 0;
+    public PaletteSource getPaletteSource(int index) {
+        throw new NpkException(getClass().getSimpleName()
+                + " does not support palettes; only Version4Img/Version6Img do.");
     }
 
     @Override

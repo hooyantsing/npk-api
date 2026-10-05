@@ -240,6 +240,9 @@ public class Version5Img extends AbstractImg {
 
     @Override
     protected void writeFrameDescriptor(ImageOutputStream stream, Frame frame) throws IOException {
+        // 帧 type 须先于描述体写入，与 readFrames「先 setType(readInt) 再 readFrameDescriptor」对称；
+        // 若遗漏则每个 FXT 帧少写 4 字节，重读时字节错位、DDS 数据解压失败。
+        stream.writeInt(frame.getType());
         if (frame.isFxt()) {
             writeStandardFrameFields(stream, frame);
             stream.writeInt(0); // padding
@@ -249,8 +252,10 @@ public class Version5Img extends AbstractImg {
             stream.writeInt(frame.getRightCut());
             stream.writeInt(frame.getDownCut());
             stream.writeInt(0); // padding
+        } else if (frame.isReference()) {
+            stream.writeInt(frame.getReference());
         } else {
-            super.writeFrameDescriptor(stream, frame);
+            writeStandardFrameFields(stream, frame);
         }
     }
 
@@ -329,6 +334,14 @@ public class Version5Img extends AbstractImg {
         if (right <= left || down <= up) {
             throw new NpkException("Invalid DDS crop region: ["
                     + left + "," + up + "," + right + "," + down + "]");
+        }
+        if (left < 0 || up < 0 || right > ddsSource.getWidth() || down > ddsSource.getHeight()) {
+            throw new NpkException("DDS crop region [" + left + "," + up + "," + right + "," + down
+                    + "] exceeds DDS source bounds " + ddsSource.getWidth() + "x" + ddsSource.getHeight());
+        }
+        if (frameWidth <= 0 || frameHeight <= 0) {
+            throw new NpkException("Frame dimensions must be positive: "
+                    + frameWidth + "x" + frameHeight);
         }
         Frame frame = new Frame(frameType);
         frame.setCompressed(7);            // 规范：DDS 引用型索引项压缩状态一般为 7（ZLIB）

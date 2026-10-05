@@ -25,12 +25,17 @@ import java.io.IOException;
  */
 public class Version4Img extends Version2Img {
 
+    /**
+     * 无状态索引色编解码器单例：所有 V4/V6 实例共享。
+     */
+    private static final PixelCodec INDEXED_CODEC = new IndexedCodec();
+
     protected PaletteSource palette;
 
     public Version4Img() {
         super();
         // V4 中 0x0E 表示索引色，注册 IndexedCodec 覆盖默认的 Argb1555Codec
-        registerCodec(Frame.TYPE_INDEXED, new IndexedCodec());
+        registerCodec(Frame.TYPE_INDEXED, INDEXED_CODEC);
         // 初始化一个空调色板，使新建的 V4 可直接 addImage（编码时自动追加颜色）；
         // 从文件读取时 readPalette 会覆盖此调色板
         this.palette = new PaletteSource();
@@ -52,11 +57,24 @@ public class Version4Img extends Version2Img {
     }
 
     @Override
+    public int getActivePaletteSourceIndex() {
+        return 0;
+    }
+
+    @Override
     public void activatePaletteSource(int index) {
         if (index != 0 || palette == null) {
             throw new IndexOutOfBoundsException(
                     "V4 IMG has exactly 1 palette, index: " + index);
         }
+    }
+
+    @Override
+    public PaletteSource getPaletteSource(int index) {
+        if (index != 0 || palette == null) {
+            throw new IndexOutOfBoundsException("V4 IMG has at most 1 palette, index: " + index);
+        }
+        return palette;
     }
 
     @Override

@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -80,6 +81,16 @@ public class NpkFile implements AutoCloseable {
      * 每个资源索引项的固定大小（offset + length + name = 4 + 4 + 256）
      */
     private static final int INDEX_ENTRY_SIZE = 264;
+
+    /**
+     * 资源名称字段大小（字节）
+     */
+    private static final int NAME_FIELD_SIZE = 256;
+
+    /**
+     * 资源名称最大长度（{@link #NAME_FIELD_SIZE} - 1，末字节保留为 null 终止符）
+     */
+    private static final int MAX_NAME_LENGTH = NAME_FIELD_SIZE - 1;
 
     /**
      * 校验哈希长度
@@ -206,6 +217,9 @@ public class NpkFile implements AutoCloseable {
     public void addResource(NpkResource resource) {
         if (resource.getName() == null || resource.getName().isEmpty()) {
             throw new NpkException("Resource name cannot be null or empty.");
+        }
+        if (findByName(resource.getName()) != null) {
+            throw new NpkException("Duplicate resource name: " + resource.getName());
         }
         resources.add(resource);
     }
@@ -406,21 +420,22 @@ public class NpkFile implements AutoCloseable {
         while (len < decrypted.length && decrypted[len] != '\0') {
             len++;
         }
-        return new String(decrypted, 0, len);
+        return new String(decrypted, 0, len, StandardCharsets.ISO_8859_1);
     }
 
     /**
      * 加密资源名称（XOR 加密）
      */
     static byte[] encryptName(String name) {
-        byte[] result = new byte[256];
-        byte[] nameBytes = name.getBytes();
-        for (int i = 0; i < nameBytes.length && i < 255; i++) {
+        byte[] result = new byte[NAME_FIELD_SIZE];
+        byte[] nameBytes = name.getBytes(StandardCharsets.ISO_8859_1);
+        int filled = Math.min(nameBytes.length, MAX_NAME_LENGTH);
+        for (int i = 0; i < filled; i++) {
             result[i] = (byte) (nameBytes[i] ^ IMG_NAME_KEY[i % IMG_NAME_KEY.length]);
         }
         // 剩余字节用 key 加密 '\0'
-        for (int i = nameBytes.length; i < 256; i++) {
-            result[i] = (byte) ('\0' ^ IMG_NAME_KEY[i % IMG_NAME_KEY.length]);
+        for (int i = filled; i < NAME_FIELD_SIZE; i++) {
+            result[i] = IMG_NAME_KEY[i % IMG_NAME_KEY.length];
         }
         return result;
     }
@@ -497,20 +512,20 @@ public class NpkFile implements AutoCloseable {
      * 构建 IMG 文件名解密密钥
      */
     private static byte[] buildNameKey() {
-        byte[] key = new byte[256];
+        byte[] key = new byte[NAME_FIELD_SIZE];
         String base = "puchikon@neople dungeon and fighter DNF";
-        byte[] baseBytes = base.getBytes();
+        byte[] baseBytes = base.getBytes(StandardCharsets.ISO_8859_1);
         System.arraycopy(baseBytes, 0, key, 0, baseBytes.length);
         // 后续填充 "DNF" 循环
         String suffix = "DNF";
-        byte[] suffixBytes = suffix.getBytes();
+        byte[] suffixBytes = suffix.getBytes(StandardCharsets.ISO_8859_1);
         int pos = baseBytes.length;
         int si = 0;
-        while (pos < 255) {
+        while (pos < MAX_NAME_LENGTH) {
             key[pos++] = suffixBytes[si % suffixBytes.length];
             si++;
         }
-        key[255] = '\0';
+        key[MAX_NAME_LENGTH] = '\0';
         return key;
     }
 }

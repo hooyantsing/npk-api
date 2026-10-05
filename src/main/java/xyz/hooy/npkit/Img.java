@@ -59,9 +59,11 @@ public interface Img extends NpkResource, Processor {
 
     int getPaletteSourceCount();
 
+    int getActivePaletteSourceIndex();
+
     void activatePaletteSource(int index);
 
-    int getActivePaletteSourceIndex();
+    PaletteSource getPaletteSource(int index);
 
     void addPalettesImage(BufferedImage[] palettesImage);
 }
