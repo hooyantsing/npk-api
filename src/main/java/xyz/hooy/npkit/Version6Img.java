@@ -43,7 +43,7 @@ public class Version6Img extends Version4Img {
     }
 
     @Override
-    public int version() {
+    public int getVersion() {
         return 6;
     }
 
@@ -133,118 +133,19 @@ public class Version6Img extends Version4Img {
      * @throws NpkException 入参非法、尺寸不一致、或某图在参考分区组内颜色不一致
      */
     public void addImage(BufferedImage[] paletteImages) {
-        if (paletteImages == null || paletteImages.length == 0) {
-            throw new NpkException("paletteImages cannot be null or empty.");
-        }
-        int n = paletteImages.length;
-        for (int i = 0; i < n; i++) {
-            if (paletteImages[i] == null) {
-                throw new NpkException("paletteImages[" + i + "] is null.");
-            }
-        }
+        validatePaletteImages(paletteImages);
+        int paletteCount = paletteImages.length;
+        ensurePaletteLayout(paletteCount);
 
-        BufferedImage ref = paletteImages[0];
-        int w = ref.getWidth();
-        int h = ref.getHeight();
-        for (int i = 1; i < n; i++) {
-            if (paletteImages[i].getWidth() != w || paletteImages[i].getHeight() != h) {
-                throw new NpkException("All images must share the same dimensions: image[0]="
-                        + w + "x" + h + ", image[" + i + "]="
-                        + paletteImages[i].getWidth() + "x" + paletteImages[i].getHeight());
-            }
-        }
-
-        // 调色板数量由数组长度决定：全空视为从零创作，直接创建 n 个；否则须与既有数量一致且等长
-        if (isAllPalettesEmpty()) {
-            List<Palette> newPalettes = new ArrayList<>(n);
-            for (int i = 0; i < n; i++) {
-                newPalettes.add(new Palette());
-            }
-            this.palettes = newPalettes;
-            this.activePaletteIndex = 0;
-            this.palette = newPalettes.get(0);
-        } else {
-            if (palettes.size() != n) {
-                throw new NpkException("paletteImages length (" + n + ") does not match the "
-                        + "established palette count (" + palettes.size() + "). Once palettes are "
-                        + "established, every addImage(BufferedImage[]) call must pass the same number of images.");
-            }
-            int size0 = palettes.get(0).size();
-            for (int i = 1; i < palettes.size(); i++) {
-                if (palettes.get(i).size() != size0) {
-                    throw new NpkException("Existing palettes have inconsistent sizes (palette[0]="
-                            + size0 + ", palette[" + i + "]=" + palettes.get(i).size()
-                            + "); multi-palette V6 requires all palettes to be equal-sized.");
-                }
-            }
-        }
-
+        BufferedImage referenceImage = paletteImages[0];
         int oldSize = palettes.get(0).size();
+        int[] indexes = assignColorIndexes(referenceImage);
 
-        // 以参考图划分共享索引分区：同色像素同一索引，新颜色追加到 palette[0]
-        int[] refArgb = ref.getRGB(0, 0, w, h, null, 0, w);
-        int[] index = new int[w * h];
-        Map<Integer, Integer> argbToIndex = new HashMap<>();
-        Palette p0 = palettes.get(0);
-        for (int g = 0; g < oldSize; g++) {
-            argbToIndex.put(p0.get(g).getRGB(), g); // 复用既有颜色索引，保证跨帧一致
-        }
-        for (int p = 0; p < index.length; p++) {
-            int argb = refArgb[p];
-            Integer g = argbToIndex.get(argb);
-            if (g == null) {
-                p0.add(new Color(argb, true));
-                g = p0.size() - 1;
-                argbToIndex.put(argb, g);
-            }
-            index[p] = g;
-        }
-        int newSize = p0.size();
-
-        // 其余调色板按相同索引顺序填色，并校验「组内一致」与「与既有映射一致」
-        for (int i = 1; i < n; i++) {
-            Palette pi = palettes.get(i);
-            int[] argbi = paletteImages[i].getRGB(0, 0, w, h, null, 0, w);
-            int[] slotColor = new int[newSize];
-            boolean[] slotSet = new boolean[newSize];
-            for (int p = 0; p < index.length; p++) {
-                int g = index[p];
-                int c = argbi[p];
-                if (g < oldSize) {
-                    if (pi.get(g).getRGB() != c) {
-                        throw new NpkException("image[" + i + "] conflicts with the established "
-                                + "index mapping at pixel (" + (p % w) + "," + (p / w) + "), index " + g
-                                + ". All frames must share one index-to-region mapping.");
-                    }
-                } else {
-                    if (slotSet[g] && slotColor[g] != c) {
-                        throw new NpkException("image[" + i + "] has different colors within the same "
-                                + "reference region (index " + g + "). All images must share the same "
-                                + "shape (region partition); only colors may differ.");
-                    }
-                    slotColor[g] = c;
-                    slotSet[g] = true;
-                }
-            }
-            for (int g = oldSize; g < newSize; g++) {
-                pi.add(new Color(slotColor[g], true));
-            }
+        for (int i = 1; i < paletteCount; i++) {
+            syncPalette(i, paletteImages[i], indexes, oldSize);
         }
 
-        // 生成帧：索引流来自参考图分区
-        byte[] data = new byte[index.length];
-        for (int p = 0; p < index.length; p++) {
-            data[p] = (byte) index[p];
-        }
-        Frame frame = new Frame(Frame.TYPE_INDEXED);
-        frame.setWidth(w);
-        frame.setHeight(h);
-        frame.setX(ref.getMinX());
-        frame.setY(ref.getMinY());
-        frame.setFrameWidth(w);
-        frame.setFrameHeight(h);
-        frame.compressAndSetData(data);
-        frames.add(frame);
+        frames.add(createIndexedFrame(referenceImage, indexes));
         invalidateRawData();
     }
 
@@ -253,6 +154,147 @@ public class Version6Img extends Version4Img {
      */
     public int getActivePaletteIndex() {
         return activePaletteIndex;
+    }
+
+    /**
+     * 校验入参图像数组：非空、无 null 元素且所有图像尺寸完全一致。
+     */
+    private void validatePaletteImages(BufferedImage[] paletteImages) {
+        if (paletteImages == null || paletteImages.length == 0) {
+            throw new NpkException("paletteImages cannot be null or empty.");
+        }
+        for (int i = 0; i < paletteImages.length; i++) {
+            if (paletteImages[i] == null) {
+                throw new NpkException("paletteImages[" + i + "] is null.");
+            }
+        }
+        BufferedImage referenceImage = paletteImages[0];
+        int width = referenceImage.getWidth();
+        int height = referenceImage.getHeight();
+        for (int i = 1; i < paletteImages.length; i++) {
+            if (paletteImages[i].getWidth() != width || paletteImages[i].getHeight() != height) {
+                throw new NpkException("All images must share the same dimensions: image[0]="
+                        + width + "x" + height + ", image[" + i + "]="
+                        + paletteImages[i].getWidth() + "x" + paletteImages[i].getHeight());
+            }
+        }
+    }
+
+    /**
+     * 确保调色板布局与图像数组长度匹配：所有调色板全空视为从零创作，
+     * 按数组长度创建等量空调色板；否则既有调色板数量须与数组长度一致且等长。
+     */
+    private void ensurePaletteLayout(int paletteCount) {
+        if (isAllPalettesEmpty()) {
+            List<Palette> newPalettes = new ArrayList<>(paletteCount);
+            for (int i = 0; i < paletteCount; i++) {
+                newPalettes.add(new Palette());
+            }
+            this.palettes = newPalettes;
+            this.activePaletteIndex = 0;
+            this.palette = newPalettes.get(0);
+        } else {
+            if (palettes.size() != paletteCount) {
+                throw new NpkException("paletteImages length (" + paletteCount + ") does not match the "
+                        + "established palette count (" + palettes.size() + "). Once palettes are "
+                        + "established, every addImage(BufferedImage[]) call must pass the same number of images.");
+            }
+            int referenceSize = palettes.get(0).size();
+            for (int i = 1; i < palettes.size(); i++) {
+                if (palettes.get(i).size() != referenceSize) {
+                    throw new NpkException("Existing palettes have inconsistent sizes (palette[0]="
+                            + referenceSize + ", palette[" + i + "]=" + palettes.get(i).size()
+                            + "); multi-palette V6 requires all palettes to be equal-sized.");
+                }
+            }
+        }
+    }
+
+    /**
+     * 以参考图为所有调色板划分共享索引分区，返回每像素的索引流。
+     * <p>
+     * 同色像素归为同一索引；既有颜色复用其索引以保证跨帧一致，
+     * 新颜色追加到参考调色板（palette[0]）末尾。
+     * </p>
+     */
+    private int[] assignColorIndexes(BufferedImage referenceImage) {
+        int width = referenceImage.getWidth();
+        int height = referenceImage.getHeight();
+        int[] referenceArgb = referenceImage.getRGB(0, 0, width, height, null, 0, width);
+        Map<Integer, Integer> argbToIndex = new HashMap<>();
+        Palette referencePalette = palettes.get(0);
+        for (int i = 0; i < referencePalette.size(); i++) {
+            argbToIndex.put(referencePalette.get(i).getRGB(), i); // 复用既有颜色索引，保证跨帧一致
+        }
+        int[] indexes = new int[referenceArgb.length];
+        for (int pixel = 0; pixel < referenceArgb.length; pixel++) {
+            int argb = referenceArgb[pixel];
+            Integer colorIndex = argbToIndex.get(argb);
+            if (colorIndex == null) {
+                referencePalette.add(new Color(argb, true));
+                colorIndex = referencePalette.size() - 1;
+                argbToIndex.put(argb, colorIndex);
+            }
+            indexes[pixel] = colorIndex;
+        }
+        return indexes;
+    }
+
+    /**
+     * 按参考分区给指定调色板同步追加新颜色。
+     * <p>
+     * 既有索引（小于 oldSize）处颜色须与该调色板既有颜色一致；
+     * 新索引分区组内颜色须一致，组内颜色按相同索引顺序追加到调色板末尾。
+     * </p>
+     */
+    private void syncPalette(int paletteIndex, BufferedImage image, int[] indexes, int oldSize) {
+        Palette palette = palettes.get(paletteIndex);
+        int width = image.getWidth();
+        int[] argb = image.getRGB(0, 0, width, image.getHeight(), null, 0, width);
+        int newSize = palettes.get(0).size();
+        int[] slotColor = new int[newSize];
+        boolean[] slotSet = new boolean[newSize];
+        for (int pixel = 0; pixel < indexes.length; pixel++) {
+            int colorIndex = indexes[pixel];
+            int color = argb[pixel];
+            if (colorIndex < oldSize) {
+                if (palette.get(colorIndex).getRGB() != color) {
+                    throw new NpkException("image[" + paletteIndex + "] conflicts with the established "
+                            + "index mapping at pixel (" + (pixel % width) + "," + (pixel / width) + "), index " + colorIndex
+                            + ". All frames must share one index-to-region mapping.");
+                }
+            } else {
+                if (slotSet[colorIndex] && slotColor[colorIndex] != color) {
+                    throw new NpkException("image[" + paletteIndex + "] has different colors within the same "
+                            + "reference region (index " + colorIndex + "). All images must share the same "
+                            + "shape (region partition); only colors may differ.");
+                }
+                slotColor[colorIndex] = color;
+                slotSet[colorIndex] = true;
+            }
+        }
+        for (int colorIndex = oldSize; colorIndex < newSize; colorIndex++) {
+            palette.add(new Color(slotColor[colorIndex], true));
+        }
+    }
+
+    /**
+     * 由索引流构建 V6 索引色帧（宽高与绘制偏移取自参考图，帧域尺寸等于图像尺寸）。
+     */
+    private Frame createIndexedFrame(BufferedImage referenceImage, int[] indexes) {
+        byte[] data = new byte[indexes.length];
+        for (int pixel = 0; pixel < indexes.length; pixel++) {
+            data[pixel] = (byte) indexes[pixel];
+        }
+        Frame frame = new Frame(Frame.TYPE_INDEXED);
+        frame.setWidth(referenceImage.getWidth());
+        frame.setHeight(referenceImage.getHeight());
+        frame.setX(referenceImage.getMinX());
+        frame.setY(referenceImage.getMinY());
+        frame.setFrameWidth(referenceImage.getWidth());
+        frame.setFrameHeight(referenceImage.getHeight());
+        frame.compressAndSetData(data);
+        return frame;
     }
 
     /**

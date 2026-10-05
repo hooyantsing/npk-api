@@ -80,7 +80,7 @@ public class Version5Img extends Version2Img {
     }
 
     @Override
-    public int version() {
+    public int getVersion() {
         return 5;
     }
 
@@ -182,7 +182,7 @@ public class Version5Img extends Version2Img {
         for (int i = 0; i < frameSize; i++) {
             Frame frame = new Frame();
             frame.setType(stream.readInt());
-            readFrame(stream, frame);
+            readFrameDescriptor(stream, frame);
             frameList.add(frame);
         }
 
@@ -211,17 +211,10 @@ public class Version5Img extends Version2Img {
     }
 
     @Override
-    protected void readFrame(ImageInputStream stream, Frame frame) throws IOException {
+    protected void readFrameDescriptor(ImageInputStream stream, Frame frame) throws IOException {
         if (frame.isFxt()) {
             // FXT 帧：标准图像帧描述 + DDS 裁剪信息
-            frame.setCompressed(stream.readInt());
-            frame.setWidth(stream.readInt());
-            frame.setHeight(stream.readInt());
-            frame.setLength(stream.readInt());
-            frame.setX(stream.readInt());
-            frame.setY(stream.readInt());
-            frame.setFrameWidth(stream.readInt());
-            frame.setFrameHeight(stream.readInt());
+            readStandardFrameFields(stream, frame);
             stream.skipBytes(4); // padding
             frame.setDdsIndex(stream.readInt());
             frame.setLeftCut(stream.readInt());
@@ -229,10 +222,8 @@ public class Version5Img extends Version2Img {
             frame.setRightCut(stream.readInt());
             frame.setDownCut(stream.readInt());
             stream.skipBytes(4); // padding
-        } else if (frame.isReference()) {
-            frame.setReference(stream.readInt());
         } else {
-            super.readFrame(stream, frame);
+            super.readFrameDescriptor(stream, frame);
         }
     }
 
@@ -240,7 +231,7 @@ public class Version5Img extends Version2Img {
     protected void writeFrames(ImageOutputStream stream) throws IOException {
         // 写帧表
         for (Frame frame : frames) {
-            writeFrame(stream, frame);
+            writeFrameDescriptor(stream, frame);
         }
         // 写 DDS 数据（ZLIB 压缩后的字节，与头部 length 字段一致）
         if (ddsTable != null) {
@@ -262,17 +253,9 @@ public class Version5Img extends Version2Img {
     }
 
     @Override
-    protected void writeFrame(ImageOutputStream stream, Frame frame) throws IOException {
-        stream.writeInt(frame.getType());
+    protected void writeFrameDescriptor(ImageOutputStream stream, Frame frame) throws IOException {
         if (frame.isFxt()) {
-            stream.writeInt(frame.getCompressed());
-            stream.writeInt(frame.getWidth());
-            stream.writeInt(frame.getHeight());
-            stream.writeInt(frame.getLength());
-            stream.writeInt(frame.getX());
-            stream.writeInt(frame.getY());
-            stream.writeInt(frame.getFrameWidth());
-            stream.writeInt(frame.getFrameHeight());
+            writeStandardFrameFields(stream, frame);
             stream.writeInt(0); // padding
             stream.writeInt(frame.getDdsIndex());
             stream.writeInt(frame.getLeftCut());
@@ -280,32 +263,9 @@ public class Version5Img extends Version2Img {
             stream.writeInt(frame.getRightCut());
             stream.writeInt(frame.getDownCut());
             stream.writeInt(0); // padding
-        } else if (frame.isReference()) {
-            stream.writeInt(frame.getReference());
         } else {
-            // 标准 ARGB 帧
-            stream.writeInt(frame.getCompressed());
-            stream.writeInt(frame.getWidth());
-            stream.writeInt(frame.getHeight());
-            stream.writeInt(frame.getLength());
-            stream.writeInt(frame.getX());
-            stream.writeInt(frame.getY());
-            stream.writeInt(frame.getFrameWidth());
-            stream.writeInt(frame.getFrameHeight());
+            super.writeFrameDescriptor(stream, frame);
         }
-    }
-
-    @Override
-    protected BufferedImage decodeFrame(Frame frame) {
-        if (frame.isReference()) {
-            return getImage(frame.getReference());
-        }
-        if (frame.isFxt()) {
-            PixelCodec codec = getCodec(frame.getType());
-            return codec.decode(frame, createCodecContext());
-        }
-        // 非 FXT 帧按 V2 方式处理
-        return super.decodeFrame(frame);
     }
 
     @Override
@@ -314,19 +274,11 @@ public class Version5Img extends Version2Img {
     }
 
     @Override
-    protected int calculateTableLength() {
-        int length = 0;
-        for (Frame frame : frames) {
-            length += 4; // type
-            if (frame.isFxt()) {
-                length += 60; // 15 int fields (including 2 paddings)
-            } else if (frame.isReference()) {
-                length += 4;
-            } else {
-                length += 32;
-            }
+    protected int frameTableEntrySize(Frame frame) {
+        if (frame.isFxt()) {
+            return 64; // type(4) + 8 个 int 字段(32) + padding(4) + 裁剪信息(20) + padding(4)
         }
-        return length;
+        return super.frameTableEntrySize(frame);
     }
 
     /**

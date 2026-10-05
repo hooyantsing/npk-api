@@ -5,14 +5,14 @@ import xyz.hooy.npkit.codec.PixelCodec;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 /**
  * IMG V4 格式实现 — 索引色（调色板）图像。
  * <p>
  * V4 在 V2 的基础上增加了调色板支持。帧类型 0x0E 在 V4 上下文中
- * 表示索引色帧（而非 ARGB1555），每像素 8 位索引映射到调色板颜色。
+ * 表示索引色帧（而非 ARGB1555），每像素 8 位索引映射到调色板颜色；
+ * 其余帧类型仍按 V2 语义分发（由构造器中的编解码器注册表决定）。
  * </p>
  *
  * <h3>V4 头部扩展结构</h3>
@@ -37,7 +37,7 @@ public class Version4Img extends Version2Img {
     }
 
     @Override
-    public int version() {
+    public int getVersion() {
         return 4;
     }
 
@@ -57,16 +57,6 @@ public class Version4Img extends Version2Img {
     @Override
     public Palette getActivePalette() {
         return palette;
-    }
-
-    @Override
-    protected BufferedImage decodeFrame(Frame frame) {
-        // V4 中所有非引用帧都按索引色处理
-        if (frame.isReference()) {
-            return getImage(frame.getReference());
-        }
-        PixelCodec codec = getCodec(Frame.TYPE_INDEXED);
-        return codec.decode(frame, createCodecContext());
     }
 
     @Override

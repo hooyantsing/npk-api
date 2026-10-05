@@ -171,10 +171,6 @@ public class Frame {
         }
     }
 
-    public boolean isIndexed() {
-        return type == TYPE_INDEXED;
-    }
-
     public boolean isArgb() {
         return isArgbType(type);
     }
@@ -193,10 +189,6 @@ public class Frame {
 
     public static boolean isArgbType(int type) {
         return type == TYPE_ARGB1555 || type == TYPE_ARGB4444 || type == TYPE_ARGB8888;
-    }
-
-    public static boolean isReferenceType(int type) {
-        return type == TYPE_REFERENCE;
     }
 
     public static boolean isFxtType(int type) {

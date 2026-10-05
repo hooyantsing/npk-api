@@ -38,7 +38,7 @@ public interface Img extends NpkResource, Processor {
      *
      * @return 版本号（2, 4, 5, 6 等）
      */
-    int version();
+    int getVersion();
 
     /**
      * 获取帧（图像）总数

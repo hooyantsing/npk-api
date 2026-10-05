@@ -6,6 +6,8 @@ import xyz.hooy.npkit.Palette;
 
 import java.awt.*;
 import java.awt.image.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 索引色（调色板）像素编解码器。
@@ -14,7 +16,7 @@ import java.awt.image.*;
  * 用于 IMG V4 和 V6 格式。
  * </p>
  */
-public class IndexedCodec implements PixelCodec {
+public class IndexedCodec extends AbstractPixelCodec {
 
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
@@ -57,28 +59,22 @@ public class IndexedCodec implements PixelCodec {
         int[] rgbData = new int[width * height];
         image.getRGB(0, 0, width, height, rgbData, 0, width);
 
+        // ARGB → 索引哈希表：既有颜色复用索引，新颜色追加到调色板末尾
+        Map<Integer, Integer> argbToIndex = new HashMap<>();
+        for (int i = 0; i < palette.size(); i++) {
+            argbToIndex.put(palette.get(i).getRGB(), i);
+        }
         byte[] data = new byte[rgbData.length];
         for (int i = 0; i < rgbData.length; i++) {
-            Color color = new Color(rgbData[i], true);
-            if (!palette.contains(color)) {
-                palette.add(color);
+            int argb = rgbData[i];
+            Integer colorIndex = argbToIndex.get(argb);
+            if (colorIndex == null) {
+                palette.add(new Color(argb, true));
+                colorIndex = palette.size() - 1;
+                argbToIndex.put(argb, colorIndex);
             }
-            data[i] = (byte) palette.indexOf(color);
+            data[i] = colorIndex.byteValue();
         }
-
-        Frame frame = new Frame(Frame.TYPE_INDEXED);
-        frame.setWidth(width);
-        frame.setHeight(height);
-        frame.setX(image.getMinX());
-        frame.setY(image.getMinY());
-        frame.setFrameWidth(width);
-        frame.setFrameHeight(height);
-        frame.compressAndSetData(data);
-        return frame;
-    }
-
-    @Override
-    public int supportedFrameType() {
-        return Frame.TYPE_INDEXED;
+        return createFrame(Frame.TYPE_INDEXED, image, data);
     }
 }

@@ -68,7 +68,7 @@ public class NpkitTest {
 
         // 验证 V5 注册了 DDS 编解码器
         Version5Img v5 = new Version5Img();
-        assertEquals(5, v5.version());
+        assertEquals(5, v5.getVersion());
         assertNull(v5.getDdsTable()); // 未读取数据前为 null
         assertEquals(0, v5.getDdsSourceCount());
     }

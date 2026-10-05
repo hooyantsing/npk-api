@@ -2,7 +2,6 @@ package xyz.hooy.npkit;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -55,13 +54,6 @@ public class Palette {
     }
 
     /**
-     * 判断调色板是否包含指定颜色
-     */
-    public boolean contains(Color color) {
-        return colors.contains(color);
-    }
-
-    /**
      * 获取指定颜色在调色板中的索引
      *
      * @param color 要查找的颜色
@@ -76,17 +68,6 @@ public class Palette {
      */
     public int size() {
         return colors.size();
-    }
-
-    /**
-     * 将调色板转为 RGB int 数组，用于 {@link java.awt.image.IndexColorModel} 构造
-     */
-    public int[] toArray() {
-        int[] array = new int[colors.size()];
-        for (int i = 0; i < colors.size(); i++) {
-            array[i] = colors.get(i).getRGB();
-        }
-        return array;
     }
 
     /**
@@ -124,12 +105,5 @@ public class Palette {
             palette.add(new Color(r, g, b, a));
         }
         return palette;
-    }
-
-    /**
-     * 返回不可变的颜色列表视图
-     */
-    public List<Color> getColors() {
-        return Collections.unmodifiableList(colors);
     }
 }

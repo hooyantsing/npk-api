@@ -39,11 +39,6 @@ public interface PixelCodec {
     Frame encode(BufferedImage image, CodecContext context);
 
     /**
-     * 获取此编解码器支持的帧类型值
-     */
-    int supportedFrameType();
-
-    /**
      * 编解码上下文，携带编解码过程中需要的附加信息。
      * 例如 INDEXED 模式需要调色板，DDS 模式需要 DdsTable 等。
      */

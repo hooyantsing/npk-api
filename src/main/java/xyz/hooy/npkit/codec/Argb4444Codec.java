@@ -1,11 +1,8 @@
 package xyz.hooy.npkit.codec;
 
-import xyz.hooy.npkit.Bytes;
 import xyz.hooy.npkit.Frame;
 
-import java.awt.*;
-import java.awt.image.*;
-import java.util.Hashtable;
+import java.awt.image.BufferedImage;
 
 /**
  * ARGB 4444 像素编解码器。
@@ -13,21 +10,13 @@ import java.util.Hashtable;
  * 每像素 16 位：4 bit Alpha + 4 bit Red + 4 bit Green + 4 bit Blue。
  * </p>
  */
-public class Argb4444Codec implements PixelCodec {
+public class Argb4444Codec extends Abstract16BitPixelCodec {
 
     private static final int[] BITMASKS = {0x0F00, 0x00F0, 0x000F, 0xF000};
 
     @Override
-    public BufferedImage decode(Frame frame, CodecContext context) {
-        byte[] data = frame.getDecompressedData();
-        ColorModel colorModel = new DirectColorModel(16,
-                BITMASKS[0], BITMASKS[1], BITMASKS[2], BITMASKS[3]);
-        SampleModel sampleModel = new SinglePixelPackedSampleModel(
-                DataBuffer.TYPE_USHORT, frame.getWidth(), frame.getHeight(), BITMASKS);
-        short[] shortData = Bytes.shortsMergedFrom(data);
-        DataBuffer dataBuffer = new DataBufferUShort(shortData, shortData.length);
-        WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
-        return new BufferedImage(colorModel, raster, false, new Hashtable<>());
+    protected int[] bitMasks() {
+        return BITMASKS;
     }
 
     @Override
@@ -47,20 +36,6 @@ public class Argb4444Codec implements PixelCodec {
             data[i++] = (byte) ((g << 4) | b);
             data[i++] = (byte) ((a << 4) | r);
         }
-
-        Frame frame = new Frame(Frame.TYPE_ARGB4444);
-        frame.setWidth(width);
-        frame.setHeight(height);
-        frame.setX(image.getMinX());
-        frame.setY(image.getMinY());
-        frame.setFrameWidth(width);
-        frame.setFrameHeight(height);
-        frame.compressAndSetData(data);
-        return frame;
-    }
-
-    @Override
-    public int supportedFrameType() {
-        return Frame.TYPE_ARGB4444;
+        return createFrame(Frame.TYPE_ARGB4444, image, data);
     }
 }

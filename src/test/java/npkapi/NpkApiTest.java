@@ -79,19 +79,19 @@ public class NpkApiTest {
     @Test
     void testImgFactory() {
         Img v2 = ImgFactory.create(2);
-        assertEquals(2, v2.version());
+        assertEquals(2, v2.getVersion());
         assertInstanceOf(Version2Img.class, v2);
 
         Img v4 = ImgFactory.create(4);
-        assertEquals(4, v4.version());
+        assertEquals(4, v4.getVersion());
         assertInstanceOf(Version4Img.class, v4);
 
         Img v5 = ImgFactory.create(5);
-        assertEquals(5, v5.version());
+        assertEquals(5, v5.getVersion());
         assertInstanceOf(Version5Img.class, v5);
 
         Img v6 = ImgFactory.create(6);
-        assertEquals(6, v6.version());
+        assertEquals(6, v6.getVersion());
         assertInstanceOf(Version6Img.class, v6);
 
         assertTrue(ImgFactory.isSupported(2));
@@ -127,7 +127,7 @@ public class NpkApiTest {
         assertEquals(0, palette.indexOf(new Color(255, 0, 0, 255)));
         assertEquals(2, palette.indexOf(new Color(0, 0, 255, 255)));
         assertEquals(-1, palette.indexOf(new Color(128, 128, 128, 255)));
-        assertTrue(palette.contains(new Color(0, 255, 0, 255)));
+        assertTrue(palette.indexOf(new Color(0, 255, 0, 255)) >= 0);
 
         // 测试序列化/反序列化
         byte[] bytes = palette.toBytes();

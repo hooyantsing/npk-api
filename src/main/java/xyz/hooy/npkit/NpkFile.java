@@ -153,26 +153,27 @@ public class NpkFile implements AutoCloseable {
      * 获取所有 IMG 图像资源
      */
     public List<Img> getImages() {
-        List<Img> imgs = new ArrayList<>();
-        for (NpkResource resource : resources) {
-            if (resource instanceof Img) {
-                imgs.add((Img) resource);
-            }
-        }
-        return imgs;
+        return findResources(Img.class);
     }
 
     /**
      * 获取所有 OGG 音频资源
      */
     public List<Ogg> getOggs() {
-        List<Ogg> oggs = new ArrayList<>();
+        return findResources(Ogg.class);
+    }
+
+    /**
+     * 按资源类型过滤当前资源列表
+     */
+    private <T extends NpkResource> List<T> findResources(Class<T> type) {
+        List<T> result = new ArrayList<>();
         for (NpkResource resource : resources) {
-            if (resource instanceof Ogg) {
-                oggs.add((Ogg) resource);
+            if (type.isInstance(resource)) {
+                result.add(type.cast(resource));
             }
         }
-        return oggs;
+        return result;
     }
 
     /**
@@ -279,10 +280,7 @@ public class NpkFile implements AutoCloseable {
             stream.readFully(verification);
 
             // 5. 验证完整性：校验范围为 NPK 文件头(data1) + 索引表(data2)
-            byte[] headerBytes = new byte[NPK_MAGIC.length + 4];
-            System.arraycopy(magic, 0, headerBytes, 0, NPK_MAGIC.length);
-            writeIntLE(headerBytes, NPK_MAGIC.length, resourceCount);
-            verifyHash(concat(headerBytes, indexBytes), verification);
+            verifyHash(indexBytes, resourceCount, verification);
             stream.reset();
 
             // 6. 解析每个资源
@@ -321,7 +319,7 @@ public class NpkFile implements AutoCloseable {
             imgStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 
             // 跳过魔数(16) + tableLength(4) + padding(4) 读取版本号
-            imgStream.skipBytes(Version2Img.IMG_MAGIC.length + 8);
+            imgStream.skipBytes(AbstractImg.IMG_MAGIC.length + 8);
             int version = imgStream.readInt();
             imgStream.seek(0);
 
@@ -371,11 +369,7 @@ public class NpkFile implements AutoCloseable {
         stream.write(indexBytes);
 
         // 4. 写入校验哈希：校验范围为 NPK 文件头(data1) + 索引表(data2)
-        byte[] headerBytes = new byte[NPK_MAGIC.length + 4];
-        System.arraycopy(NPK_MAGIC, 0, headerBytes, 0, NPK_MAGIC.length);
-        writeIntLE(headerBytes, NPK_MAGIC.length, count);
-        byte[] hash = computeHash(concat(headerBytes, indexBytes));
-        stream.write(hash);
+        stream.write(computeVerification(indexBytes, count));
 
         // 5. 写入资源数据
         for (byte[] data : resourceDataList) {
@@ -440,14 +434,24 @@ public class NpkFile implements AutoCloseable {
         }
     }
 
-    private void verifyHash(byte[] indexBytes, byte[] expectedHash) {
-        byte[] computed = computeHash(indexBytes);
+    private void verifyHash(byte[] indexBytes, int resourceCount, byte[] expectedHash) {
+        byte[] computed = computeVerification(indexBytes, resourceCount);
         for (int i = 0; i < VERIFICATION_SIZE; i++) {
             if (computed[i] != expectedHash[i]) {
                 throw new NpkException("NPK file verification failed: index table hash mismatch. "
                         + "The file may be corrupted or modified.");
             }
         }
+    }
+
+    /**
+     * 计算 NPK 校验位输入：拼接「NPK 文件头(魔数+资源数量) + 索引表」。
+     */
+    private static byte[] computeVerification(byte[] indexBytes, int resourceCount) {
+        byte[] headerBytes = new byte[NPK_MAGIC.length + 4];
+        System.arraycopy(NPK_MAGIC, 0, headerBytes, 0, NPK_MAGIC.length);
+        writeIntLE(headerBytes, NPK_MAGIC.length, resourceCount);
+        return computeHash(concat(headerBytes, indexBytes));
     }
 
     /**

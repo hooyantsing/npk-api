@@ -13,7 +13,7 @@ import java.util.Hashtable;
  * 每像素 32 位：8 bit Blue + 8 bit Green + 8 bit Red + 8 bit Alpha（BGRA 字节序）。
  * </p>
  */
-public class Argb8888Codec implements PixelCodec {
+public class Argb8888Codec extends AbstractPixelCodec {
 
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
@@ -47,20 +47,6 @@ public class Argb8888Codec implements PixelCodec {
             data[i++] = (byte) ((pixel >> 16) & 0xFF); // R
             data[i++] = (byte) ((pixel >> 24) & 0xFF); // A
         }
-
-        Frame frame = new Frame(Frame.TYPE_ARGB8888);
-        frame.setWidth(width);
-        frame.setHeight(height);
-        frame.setX(image.getMinX());
-        frame.setY(image.getMinY());
-        frame.setFrameWidth(width);
-        frame.setFrameHeight(height);
-        frame.compressAndSetData(data);
-        return frame;
-    }
-
-    @Override
-    public int supportedFrameType() {
-        return Frame.TYPE_ARGB8888;
+        return createFrame(Frame.TYPE_ARGB8888, image, data);
     }
 }

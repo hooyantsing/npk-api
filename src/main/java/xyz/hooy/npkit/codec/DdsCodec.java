@@ -73,11 +73,6 @@ public class DdsCodec implements PixelCodec {
                         + "to register pre-built DDS data, then Version5Img.addDdsFrame() to add frames.");
     }
 
-    @Override
-    public int supportedFrameType() {
-        return Frame.TYPE_FXT1; // 代表所有 FXT 类型（FXT1/FXT2/FXT3）
-    }
-
     /**
      * 检查当前 ImageIO 环境是否支持 DDS 格式读取
      */

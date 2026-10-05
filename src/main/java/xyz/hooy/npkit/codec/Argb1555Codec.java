@@ -1,11 +1,8 @@
 package xyz.hooy.npkit.codec;
 
-import xyz.hooy.npkit.Bytes;
 import xyz.hooy.npkit.Frame;
 
-import java.awt.*;
-import java.awt.image.*;
-import java.util.Hashtable;
+import java.awt.image.BufferedImage;
 
 /**
  * ARGB 1555 像素编解码器。
@@ -14,21 +11,13 @@ import java.util.Hashtable;
  * Alpha 为 1 位透明度开关（全透明或全不透明）。
  * </p>
  */
-public class Argb1555Codec implements PixelCodec {
+public class Argb1555Codec extends Abstract16BitPixelCodec {
 
     private static final int[] BITMASKS = {0x7C00, 0x03E0, 0x001F, 0x8000};
 
     @Override
-    public BufferedImage decode(Frame frame, CodecContext context) {
-        byte[] data = frame.getDecompressedData();
-        ColorModel colorModel = new DirectColorModel(16,
-                BITMASKS[0], BITMASKS[1], BITMASKS[2], BITMASKS[3]);
-        SampleModel sampleModel = new SinglePixelPackedSampleModel(
-                DataBuffer.TYPE_USHORT, frame.getWidth(), frame.getHeight(), BITMASKS);
-        short[] shortData = Bytes.shortsMergedFrom(data);
-        DataBuffer dataBuffer = new DataBufferUShort(shortData, shortData.length);
-        WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
-        return new BufferedImage(colorModel, raster, false, new Hashtable<>());
+    protected int[] bitMasks() {
+        return BITMASKS;
     }
 
     @Override
@@ -53,20 +42,6 @@ public class Argb1555Codec implements PixelCodec {
             // 故 alpha 位于高字节 bit7，需左移 7 位
             data[i++] = (byte) ((a << 7) | (r << 2) | (g >> 3));
         }
-
-        Frame frame = new Frame(Frame.TYPE_ARGB1555);
-        frame.setWidth(width);
-        frame.setHeight(height);
-        frame.setX(image.getMinX());
-        frame.setY(image.getMinY());
-        frame.setFrameWidth(width);
-        frame.setFrameHeight(height);
-        frame.compressAndSetData(data);
-        return frame;
-    }
-
-    @Override
-    public int supportedFrameType() {
-        return Frame.TYPE_ARGB1555;
+        return createFrame(Frame.TYPE_ARGB1555, image, data);
     }
 }
