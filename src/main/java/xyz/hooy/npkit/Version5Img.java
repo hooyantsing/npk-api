@@ -330,23 +330,89 @@ public class Version5Img extends Version2Img {
     }
 
     /**
-     * 获取 V5 头部中的「整个 IMG 文件大小」字段（读取时保存，对解析无实际用途）。
+     * 登记一张 DDS 纹理到 DDS 表，返回其分配的索引。
+     * <p>
+     * 传入的必须是完整的 DDS 文件字节（本库不实现 BufferedImage → DDS 的 DXT 压缩）。
+     * 压缩前/后大小（fullLength/length）会在 writeHeader 阶段按 ZLIB 压缩结果自动回填，
+     * 此处只需提供纹理原始字节与其像素格式、宽高。
+     * </p>
+     *
+     * @param ddsFileData 完整的 DDS 文件字节
+     * @param pixelFormat DDS 像素压缩格式（如 {@link Frame#TYPE_FXT1}）
+     * @param width       DDS 图像宽（一般要求被 4 整除）
+     * @param height      DDS 图像高（一般要求被 4 整除）
+     * @return 该 DDS 在表中分配的索引，供 {@link #addDdsFrame} 引用
      */
-    public int getImgLength() {
-        return imgLength;
+    public int addDdsSource(byte[] ddsFileData, int pixelFormat, int width, int height) {
+        if (ddsFileData == null || ddsFileData.length == 0) {
+            throw new NpkException("DDS data cannot be null or empty.");
+        }
+        if (ddsTable == null) {
+            ddsTable = new DdsTable();
+        }
+        DdsTable.DDS dds = new DdsTable.DDS();
+        dds.setPixelFormat(pixelFormat);
+        dds.setWidth(width);
+        dds.setHeight(height);
+        dds.setRawData(ddsFileData);
+        ddsTable.put(dds); // index < 0 时自动分配下一个可用索引
+        invalidateRawData();
+        return dds.getIndex();
     }
 
     /**
-     * 获取 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
+     * 追加一个引用 DDS 纹理裁切区域的 FXT 帧（DDS 引用型索引项）。
+     * <p>
+     * 帧的颜色系统（type）无需显式传入——一帧即从所引用的 DDS 大图裁切而来，
+     * 其压缩方式必然等于该 DDS 的像素格式，故直接取自 {@code DDS.pixelFormat}
+     * （取值 0x12/0x13/0x14，与 {@link Frame#TYPE_FXT1} 等同一编码空间）。
+     * 帧的贴图宽高由裁切区域自动得出（right-left × down-up），
+     * 压缩状态按格式规范固定为 7（ZLIB），保留的 length 字段置 0。
+     * </p>
+     *
+     * @param ddsIndex    引用的 DDS 纹理索引（来自 {@link #addDdsSource} 的返回值）
+     * @param left        裁切区域左边界
+     * @param up          裁切区域上边界
+     * @param right       裁切区域右边界
+     * @param down        裁切区域下边界
+     * @param x           图像起始绘制点 X 坐标
+     * @param y           图像起始绘制点 Y 坐标
+     * @param frameWidth  帧域宽（基准用）
+     * @param frameHeight 帧域高（基准用）
      */
-    public Palette getHeaderPalette() {
-        return headerPalette;
-    }
-
-    /**
-     * 设置 V5 头部调色板（在 V5 中无用途，仅为往返保真而保留）。
-     */
-    public void setHeaderPalette(Palette headerPalette) {
-        this.headerPalette = headerPalette != null ? headerPalette : new Palette();
+    public void addDdsFrame(int ddsIndex,
+                            int left, int up, int right, int down,
+                            int x, int y, int frameWidth, int frameHeight) {
+        if (ddsTable == null || ddsTable.get(ddsIndex) == null) {
+            throw new NpkException("DDS source not found for index " + ddsIndex
+                    + ". Call addDdsSource() first.");
+        }
+        // 帧的颜色系统直接沿用所引用 DDS 的像素格式（FXT1/FXT3/FXT5）
+        int frameType = ddsTable.get(ddsIndex).getPixelFormat();
+        if (!Frame.isFxtType(frameType)) {
+            throw new NpkException("DDS source at index " + ddsIndex
+                    + " has a non-FXT pixel format (0x" + Integer.toHexString(frameType)
+                    + "); a DDS-reference frame requires FXT1/FXT3/FXT5 (0x12/0x13/0x14).");
+        }
+        if (right <= left || down <= up) {
+            throw new NpkException("Invalid DDS crop region: ["
+                    + left + "," + up + "," + right + "," + down + "]");
+        }
+        Frame frame = new Frame(frameType);
+        frame.setCompressed(7);            // 规范：DDS 引用型索引项压缩状态一般为 7（ZLIB）
+        frame.setWidth(right - left);
+        frame.setHeight(down - up);
+        frame.setLength(0);                // 保留字段（原图片大小位置），须为 0
+        frame.setX(x);
+        frame.setY(y);
+        frame.setFrameWidth(frameWidth);
+        frame.setFrameHeight(frameHeight);
+        frame.setDdsIndex(ddsIndex);
+        frame.setLeftCut(left);
+        frame.setUpCut(up);
+        frame.setRightCut(right);
+        frame.setDownCut(down);
+        frames.add(frame);
+        invalidateRawData();
     }
 }

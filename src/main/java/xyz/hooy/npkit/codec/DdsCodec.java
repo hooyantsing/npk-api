@@ -69,7 +69,8 @@ public class DdsCodec implements PixelCodec {
     public Frame encode(BufferedImage image, CodecContext context) {
         // DDS 编码暂不支持 — 写入 DDS 纹理需要专门的压缩算法（如 S3TC/DXT）
         throw new UnsupportedOperationException(
-                "DDS encoding is not supported. Use addDdsSource() to add pre-built DDS data.");
+                "DDS encoding is not supported (no DXT compression). Use Version5Img.addDdsSource() "
+                        + "to register pre-built DDS data, then Version5Img.addDdsFrame() to add frames.");
     }
 
     @Override
