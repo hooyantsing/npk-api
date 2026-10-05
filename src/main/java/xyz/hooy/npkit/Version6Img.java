@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * IMG V6 格式实现 — 多调色板索引色图像。
  * <p>
- * V6 在 V4 的基础上支持多个调色板，可通过 {@link #activatePalette(int)}
+ * V6 在 V4 的基础上支持多个调色板，可通过 {@link #activatePaletteSource(int)}
  * 切换当前使用的调色板。常用于同一 IMG 中不同帧使用不同配色的场景
  * （如装备染色、多队伍颜色区分等）。
  * </p>
@@ -30,14 +30,14 @@ import java.util.Map;
  */
 public class Version6Img extends Version4Img {
 
-    private List<Palette> palettes = new ArrayList<>();
+    private List<PaletteSource> palettes = new ArrayList<>();
     private int activePaletteIndex;
 
     public Version6Img() {
         super();
         // 初始化一个空调色板方案，使新建的 V6 可直接 addImage；
         // 从文件读取时 readPalette 会覆盖此列表
-        this.palettes.add(new Palette());
+        this.palettes.add(new PaletteSource());
         this.palette = this.palettes.get(0);
         this.activePaletteIndex = 0;
     }
@@ -48,17 +48,12 @@ public class Version6Img extends Version4Img {
     }
 
     @Override
-    public int getPaletteCount() {
+    public int getPaletteSourceCount() {
         return palettes.size();
     }
 
     @Override
-    public Palette getPalette(int index) {
-        return palettes.get(index);
-    }
-
-    @Override
-    public void activatePalette(int index) {
+    public void activatePaletteSource(int index) {
         if (index < 0 || index >= palettes.size()) {
             throw new IndexOutOfBoundsException(
                     "Palette index " + index + " out of bounds [0, " + palettes.size() + ")");
@@ -71,7 +66,7 @@ public class Version6Img extends Version4Img {
     public void addImage(BufferedImage image, int frameType) {
         if (palettes.size() > 1) {
             throw new NpkException("This V6 IMG has " + palettes.size() + " palettes; use "
-                    + "addImage(BufferedImage[]) to add a frame while keeping all palettes in sync. "
+                    + "addPalettesImage(BufferedImage[]) to add a frame while keeping all palettes in sync. "
                     + "Single-image addImage is only allowed when there is exactly one palette.");
         }
         super.addImage(image, frameType);
@@ -87,12 +82,12 @@ public class Version6Img extends Version4Img {
     @Override
     protected void readPalette(ImageInputStream stream) throws IOException {
         int paletteCount = stream.readInt();
-        List<Palette> paletteList = new ArrayList<>(paletteCount);
+        List<PaletteSource> paletteList = new ArrayList<>(paletteCount);
         for (int i = 0; i < paletteCount; i++) {
             int colorNum = stream.readInt();
             byte[] paletteBytes = new byte[4 * colorNum];
             stream.readFully(paletteBytes);
-            paletteList.add(Palette.fromBytes(paletteBytes, colorNum));
+            paletteList.add(PaletteSource.fromBytes(paletteBytes, colorNum));
         }
 
         if (!paletteList.isEmpty()) {
@@ -105,34 +100,26 @@ public class Version6Img extends Version4Img {
     @Override
     protected void writePalette(ImageOutputStream stream) throws IOException {
         stream.writeInt(palettes.size());
-        for (Palette p : palettes) {
+        for (PaletteSource p : palettes) {
             stream.writeInt(p.size());
             stream.write(p.toBytes());
         }
     }
 
     /**
-     * 以「多调色板配色方案」的方式添加一帧。
+     * 以「多调色板配色方案」的方式添加一帧，实现锁步机制：
      * <p>
-     * 用于 V6 的多调色板场景（装备染色、队伍区分等）：数组长度即调色板方案数，
-     * 每个元素是同一帧在对应配色方案下的图像。方法会：
-     * <ol>
-     *   <li>以 {@code paletteImages[0]} 为参考，按「同色像素归为同一索引」划分共享索引分区，
-     *       生成唯一的帧索引流（V6 帧不记录调色板序号，所有帧共用一套索引映射）；</li>
-     *   <li>校验其它每张图在参考分区组内 ARGB 必须一致（形状/分区一致，仅颜色可不同），
-     *       否则抛 {@link NpkException}；</li>
-     *   <li>把每张图各界定区域的颜色按相同索引顺序追加进对应调色板，
-     *       使所有调色板等量增长、始终等长。</li>
-     * </ol>
-     * 从零创作时（当前所有调色板为空）会按数组长度自动创建对应数量的调色板，
-     * 不要求预先匹配默认的单调色板；一旦调色板已建立（含颜色），
-     * 后续每次调用的数组长度必须与既有调色板数一致。
+     * 以参考图（palettesImage[0]）划分共享索引分区——同色像素归为同一索引；
+     * 其余各图校验组内颜色一致后按相同索引顺序追加到对应调色板，
+     * 保证所有调色板等量增长、索引→色槽映射跨调色板一致。
      * </p>
-     *
-     * @param paletteImages 同一帧在各配色方案下的图像，长度等于调色板方案数，尺寸须完全一致
-     * @throws NpkException 入参非法、尺寸不一致、或某图在参考分区组内颜色不一致
+     * <p>
+     * 所有图像必须尺寸完全一致且共享同一「形状分区」（仅颜色可不同）；
+     * 既有调色板数量须与数组长度一致，否则抛出 {@link NpkException}。
+     * </p>
      */
-    public void addImage(BufferedImage[] paletteImages) {
+    @Override
+    public void addPalettesImage(BufferedImage[] paletteImages) {
         validatePaletteImages(paletteImages);
         int paletteCount = paletteImages.length;
         ensurePaletteLayout(paletteCount);
@@ -152,7 +139,8 @@ public class Version6Img extends Version4Img {
     /**
      * 获取当前激活的调色板索引
      */
-    public int getActivePaletteIndex() {
+    @Override
+    public int getActivePaletteSourceIndex() {
         return activePaletteIndex;
     }
 
@@ -186,9 +174,9 @@ public class Version6Img extends Version4Img {
      */
     private void ensurePaletteLayout(int paletteCount) {
         if (isAllPalettesEmpty()) {
-            List<Palette> newPalettes = new ArrayList<>(paletteCount);
+            List<PaletteSource> newPalettes = new ArrayList<>(paletteCount);
             for (int i = 0; i < paletteCount; i++) {
-                newPalettes.add(new Palette());
+                newPalettes.add(new PaletteSource());
             }
             this.palettes = newPalettes;
             this.activePaletteIndex = 0;
@@ -197,7 +185,7 @@ public class Version6Img extends Version4Img {
             if (palettes.size() != paletteCount) {
                 throw new NpkException("paletteImages length (" + paletteCount + ") does not match the "
                         + "established palette count (" + palettes.size() + "). Once palettes are "
-                        + "established, every addImage(BufferedImage[]) call must pass the same number of images.");
+                        + "established, every addPalettesImage(BufferedImage[]) call must pass the same number of images.");
             }
             int referenceSize = palettes.get(0).size();
             for (int i = 1; i < palettes.size(); i++) {
@@ -222,7 +210,7 @@ public class Version6Img extends Version4Img {
         int height = referenceImage.getHeight();
         int[] referenceArgb = referenceImage.getRGB(0, 0, width, height, null, 0, width);
         Map<Integer, Integer> argbToIndex = new HashMap<>();
-        Palette referencePalette = palettes.get(0);
+        PaletteSource referencePalette = palettes.get(0);
         for (int i = 0; i < referencePalette.size(); i++) {
             argbToIndex.put(referencePalette.get(i).getRGB(), i); // 复用既有颜色索引，保证跨帧一致
         }
@@ -248,7 +236,7 @@ public class Version6Img extends Version4Img {
      * </p>
      */
     private void syncPalette(int paletteIndex, BufferedImage image, int[] indexes, int oldSize) {
-        Palette palette = palettes.get(paletteIndex);
+        PaletteSource palette = palettes.get(paletteIndex);
         int width = image.getWidth();
         int[] argb = image.getRGB(0, 0, width, image.getHeight(), null, 0, width);
         int newSize = palettes.get(0).size();
@@ -301,7 +289,7 @@ public class Version6Img extends Version4Img {
      * 判断当前所有调色板是否均为空（用于区分「从零创作」与「扩充既有调色板」）。
      */
     private boolean isAllPalettesEmpty() {
-        for (Palette p : palettes) {
+        for (PaletteSource p : palettes) {
             if (p.size() != 0) {
                 return false;
             }

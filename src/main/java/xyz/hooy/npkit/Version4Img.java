@@ -25,7 +25,7 @@ import java.io.IOException;
  */
 public class Version4Img extends Version2Img {
 
-    protected Palette palette;
+    protected PaletteSource palette;
 
     public Version4Img() {
         super();
@@ -33,7 +33,7 @@ public class Version4Img extends Version2Img {
         registerCodec(Frame.TYPE_INDEXED, new IndexedCodec());
         // 初始化一个空调色板，使新建的 V4 可直接 addImage（编码时自动追加颜色）；
         // 从文件读取时 readPalette 会覆盖此调色板
-        this.palette = new Palette();
+        this.palette = new PaletteSource();
     }
 
     @Override
@@ -42,21 +42,21 @@ public class Version4Img extends Version2Img {
     }
 
     @Override
-    public int getPaletteCount() {
+    public boolean supportPaletteSource() {
+        return true;
+    }
+
+    @Override
+    public int getPaletteSourceCount() {
         return palette != null ? 1 : 0;
     }
 
     @Override
-    public Palette getPalette(int index) {
+    public void activatePaletteSource(int index) {
         if (index != 0 || palette == null) {
-            throw new IndexOutOfBoundsException("V4 IMG has at most 1 palette, index: " + index);
+            throw new IndexOutOfBoundsException(
+                    "V4 IMG has exactly 1 palette, index: " + index);
         }
-        return palette;
-    }
-
-    @Override
-    public Palette getActivePalette() {
-        return palette;
     }
 
     @Override
@@ -83,7 +83,7 @@ public class Version4Img extends Version2Img {
         int colorNum = stream.readInt();
         byte[] paletteBytes = new byte[4 * colorNum];
         stream.readFully(paletteBytes);
-        this.palette = Palette.fromBytes(paletteBytes, colorNum);
+        this.palette = PaletteSource.fromBytes(paletteBytes, colorNum);
     }
 
     /**

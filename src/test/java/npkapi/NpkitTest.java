@@ -25,7 +25,7 @@ public class NpkitTest {
         BufferedImage testImage = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
         img.addImage(testImage, Frame.TYPE_ARGB8888);
         img.addImage(testImage, Frame.TYPE_ARGB1555);
-        img.addReference(0);
+        img.addReferenceImage(0);
 
         // 构建 OGG 资源
         Ogg ogg = new Ogg("sound/swordman/attack.ogg", new byte[256]);
@@ -66,11 +66,49 @@ public class NpkitTest {
         Version2Img v2 = new Version2Img();
         assertNotNull(v2);
 
-        // 验证 V5 注册了 DDS 编解码器
+        // 验证 V5 具备 DDS 能力，其余版本降级（无 DDS 表 / 抛异常）
         Version5Img v5 = new Version5Img();
         assertEquals(5, v5.getVersion());
-        assertNull(v5.getDdsTable()); // 未读取数据前为 null
+        assertTrue(v5.supportDdsSource());
         assertEquals(0, v5.getDdsSourceCount());
+        assertNull(v5.getDdsSource(0));
+
+        assertFalse(v2.supportDdsSource());
+        assertFalse(new Version4Img().supportDdsSource());
+        assertFalse(new Version6Img().supportDdsSource());
+        assertEquals(0, v2.getDdsSourceCount());
+        assertThrows(NpkException.class, () -> v2.addDdsSource(new DdsSource(new byte[1], Frame.TYPE_FXT1, 4, 4)));
+        assertThrows(NpkException.class, () -> new Version4Img().addDdsImage(0, 0, 0, 4, 4, 0, 0, 4, 4));
+        assertThrows(NpkException.class, () -> new Version6Img().addDdsImage(0, 0, 0, 4, 4, 0, 0, 4, 4));
+    }
+
+    @Test
+    void testPaletteCapable() {
+        // V4/V6 具备调色板能力，其余版本降级（数量为 0 / 抛异常）
+        Version4Img v4 = new Version4Img();
+        assertTrue(v4.supportPaletteSource());
+        assertEquals(1, v4.getPaletteSourceCount());
+        assertEquals(0, v4.getActivePaletteSourceIndex());
+        assertThrows(IndexOutOfBoundsException.class, () -> v4.activatePaletteSource(1));
+
+        Version2Img v2 = new Version2Img();
+        assertFalse(v2.supportPaletteSource());
+        assertEquals(0, v2.getPaletteSourceCount());
+        assertEquals(0, v2.getActivePaletteSourceIndex());
+        assertThrows(NpkException.class, () -> v2.activatePaletteSource(0));
+        assertThrows(NpkException.class, () -> v2.addPalettesImage(new BufferedImage[]{new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB)}));
+
+        Version5Img v5 = new Version5Img();
+        assertFalse(v5.supportPaletteSource());
+        assertEquals(0, v5.getPaletteSourceCount());
+        assertThrows(NpkException.class, () -> v5.activatePaletteSource(0));
+
+        // 多调色板能力仅 V6 具备，V4 不具备
+        Version6Img v6 = new Version6Img();
+        assertTrue(v6.supportPaletteSource());
+        assertEquals(1, v6.getPaletteSourceCount());
+        assertEquals(0, v6.getActivePaletteSourceIndex());
+        assertThrows(IndexOutOfBoundsException.class, () -> v6.activatePaletteSource(1));
     }
 
     @Test

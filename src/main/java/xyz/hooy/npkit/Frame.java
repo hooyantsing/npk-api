@@ -9,7 +9,7 @@ package xyz.hooy.npkit;
  *   <li>图像帧（ARGB1555/ARGB4444/ARGB8888）— 直接存储像素数据</li>
  *   <li>索引帧（INDEXED）— 在 V4/V6 上下文中，type 值 0x0E 表示索引色</li>
  *   <li>引用帧（REFERENCE）— 指向另一个帧的索引</li>
- *   <li>DDS 帧（FXT1/FXT2/FXT3）— 引用 DdsTable 中的纹理数据</li>
+ *   <li>DDS 帧（FXT1/FXT3/FXT5）— 引用 DdsTable 中的纹理数据</li>
  * </ul>
  * </p>
  *
@@ -58,14 +58,14 @@ public class Frame {
     public static final int TYPE_FXT1 = 0x12;
 
     /**
-     * DDS FXT2 压缩纹理
-     */
-    public static final int TYPE_FXT2 = 0x13;
-
-    /**
      * DDS FXT3 压缩纹理
      */
-    public static final int TYPE_FXT3 = 0x14;
+    public static final int TYPE_FXT3 = 0x13;
+
+    /**
+     * DDS FXT5 压缩纹理
+     */
+    public static final int TYPE_FXT5 = 0x14;
 
     /**
      * 未压缩
@@ -192,7 +192,7 @@ public class Frame {
     }
 
     public static boolean isFxtType(int type) {
-        return type == TYPE_FXT1 || type == TYPE_FXT2 || type == TYPE_FXT3;
+        return type == TYPE_FXT1 || type == TYPE_FXT3 || type == TYPE_FXT5;
     }
 
     /**

@@ -2,7 +2,7 @@ package xyz.hooy.npkit.codec;
 
 import xyz.hooy.npkit.Frame;
 import xyz.hooy.npkit.NpkException;
-import xyz.hooy.npkit.Palette;
+import xyz.hooy.npkit.PaletteSource;
 
 import java.awt.*;
 import java.awt.image.*;
@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * 索引色（调色板）像素编解码器。
  * <p>
- * 每像素 8 位索引值，通过 {@link Palette} 映射到实际 RGBA 颜色。
+ * 每像素 8 位索引值，通过 {@link PaletteSource} 映射到实际 RGBA 颜色。
  * 用于 IMG V4 和 V6 格式。
  * </p>
  */
@@ -23,7 +23,7 @@ public class IndexedCodec extends AbstractPixelCodec {
         if (context == null || context.getPalette() == null) {
             throw new NpkException("IndexedCodec requires a Palette in CodecContext.");
         }
-        Palette palette = context.getPalette();
+        PaletteSource palette = context.getPalette();
         byte[] data = frame.getDecompressedData();
 
         // 使用带 alpha 通道的字节数组构造器，保留调色板中每项的透明度（R, G, B, A）
@@ -53,7 +53,7 @@ public class IndexedCodec extends AbstractPixelCodec {
         if (context == null || context.getPalette() == null) {
             throw new NpkException("IndexedCodec requires a Palette in CodecContext.");
         }
-        Palette palette = context.getPalette();
+        PaletteSource palette = context.getPalette();
         int width = image.getWidth();
         int height = image.getHeight();
         int[] rgbData = new int[width * height];

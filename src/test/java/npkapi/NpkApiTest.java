@@ -118,7 +118,7 @@ public class NpkApiTest {
 
     @Test
     void testPalette() {
-        Palette palette = new Palette();
+        PaletteSource palette = new PaletteSource();
         palette.add(new Color(255, 0, 0, 255));
         palette.add(new Color(0, 255, 0, 255));
         palette.add(new Color(0, 0, 255, 255));
@@ -132,7 +132,7 @@ public class NpkApiTest {
         // 测试序列化/反序列化
         byte[] bytes = palette.toBytes();
         assertEquals(12, bytes.length); // 3 colors * 4 bytes
-        Palette restored = Palette.fromBytes(bytes, 3);
+        PaletteSource restored = PaletteSource.fromBytes(bytes, 3);
         assertEquals(palette.size(), restored.size());
         assertEquals(palette.get(0).getRGB(), restored.get(0).getRGB());
     }
@@ -158,7 +158,7 @@ public class NpkApiTest {
         assertEquals(NpkResource.Type.IMG, img.getType());
 
         // 添加引用帧
-        img.addReference(0);
+        img.addReferenceImage(0);
         assertEquals(2, img.getImageCount());
         assertNotNull(img.getImage(1)); // 引用帧应解引用到帧 0
     }

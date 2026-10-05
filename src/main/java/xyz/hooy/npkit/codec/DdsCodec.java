@@ -1,19 +1,18 @@
 package xyz.hooy.npkit.codec;
 
+import xyz.hooy.npkit.DdsSource;
 import xyz.hooy.npkit.DdsTable;
 import xyz.hooy.npkit.Frame;
 import xyz.hooy.npkit.NpkException;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.Arrays;
 
 /**
  * DDS/FXT 纹理编解码器。
  * <p>
- * 用于 IMG V5 格式中的 FXT1/FXT2/FXT3 类型帧。
+ * 用于 IMG V5 格式中的 FXT1/FXT3/FXT5 类型帧。
  * 这类帧的数据来源是 DdsTable 中的 DDS 纹理，
  * 解码时通过裁剪区域（leftCut, upCut, rightCut, downCut）获取子图像。
  * </p>
@@ -37,17 +36,12 @@ public class DdsCodec implements PixelCodec {
         if (ddsTable == null) {
             throw new NpkException("DdsCodec requires a DdsTable in CodecContext.");
         }
-        DdsTable.DDS dds = ddsTable.get(frame.getDdsIndex());
-        if (dds == null || dds.getRawData() == null) {
+        DdsSource ddsSource = ddsTable.get(frame.getDdsIndex());
+        if (ddsSource == null || ddsSource.getRawData() == null) {
             throw new NpkException("DDS source not found for index " + frame.getDdsIndex());
         }
 
-        BufferedImage ddsImage;
-        try {
-            ddsImage = ImageIO.read(new ByteArrayInputStream(dds.getRawData()));
-        } catch (IOException e) {
-            throw new NpkException("Failed to decode DDS image data.", e);
-        }
+        BufferedImage ddsImage = ddsSource.getImage();
         if (ddsImage == null) {
             throw new NpkException("ImageIO returned null for DDS data. Unsupported DDS sub-format?");
         }
@@ -70,7 +64,7 @@ public class DdsCodec implements PixelCodec {
         // DDS 编码暂不支持 — 写入 DDS 纹理需要专门的压缩算法（如 S3TC/DXT）
         throw new UnsupportedOperationException(
                 "DDS encoding is not supported (no DXT compression). Use Version5Img.addDdsSource() "
-                        + "to register pre-built DDS data, then Version5Img.addDdsFrame() to add frames.");
+                        + "to register pre-built DDS data, then Version5Img.addDdsImage() to add frames.");
     }
 
     /**

@@ -11,17 +11,17 @@ import java.util.List;
  * 颜色以 RGBA 顺序存储。
  * </p>
  */
-public class Palette {
+public class PaletteSource {
 
     private static final int MAX_COLOR_SIZE = 256;
 
     private final List<Color> colors;
 
-    public Palette() {
+    public PaletteSource() {
         this.colors = new ArrayList<>(MAX_COLOR_SIZE);
     }
 
-    public Palette(List<Color> colors) {
+    public PaletteSource(List<Color> colors) {
         this.colors = new ArrayList<>(colors);
     }
 
@@ -94,8 +94,8 @@ public class Palette {
      * @param colorNum 颜色数量
      * @return 解析后的调色板
      */
-    public static Palette fromBytes(byte[] bytes, int colorNum) {
-        Palette palette = new Palette();
+    public static PaletteSource fromBytes(byte[] bytes, int colorNum) {
+        PaletteSource palette = new PaletteSource();
         for (int i = 0; i < colorNum; i++) {
             int offset = i * 4;
             int r = bytes[offset] & 0xFF;

@@ -68,6 +68,11 @@ public abstract class AbstractImg implements Img {
     }
 
     @Override
+    public NpkResource.Type getType() {
+        return NpkResource.Type.IMG;
+    }
+
+    @Override
     public String getName() {
         return name;
     }
@@ -106,7 +111,7 @@ public abstract class AbstractImg implements Img {
     }
 
     @Override
-    public void addReference(int referenceIndex) {
+    public void addReferenceImage(int referenceIndex) {
         if (referenceIndex < 0 || referenceIndex >= frames.size()) {
             throw new IndexOutOfBoundsException(
                     "Reference index " + referenceIndex + " out of bounds [0, " + frames.size() + ")");
@@ -117,9 +122,12 @@ public abstract class AbstractImg implements Img {
         invalidateRawData();
     }
 
+    /**
+     * 本版本是否支持 DDS 纹理源（默认不支持，仅 V5 覆写为 true）
+     */
     @Override
-    public List<Frame> getFrames() {
-        return Collections.unmodifiableList(frames);
+    public boolean supportDdsSource() {
+        return false;
     }
 
     @Override
@@ -128,33 +136,51 @@ public abstract class AbstractImg implements Img {
     }
 
     @Override
-    public BufferedImage getDdsSource(int index) {
+    public DdsSource getDdsSource(int index) {
         return null;
     }
 
     @Override
-    public DdsTable getDdsTable() {
-        return null;
+    public int addDdsSource(DdsSource ddsSource) {
+        throw new NpkException(getClass().getSimpleName()
+                + " does not support DDS sources; only Version5Img does.");
     }
 
     @Override
-    public int getPaletteCount() {
+    public void addDdsImage(int ddsSourceIndex, int left, int up, int right, int down,
+                            int x, int y, int frameWidth, int frameHeight) {
+        throw new NpkException(getClass().getSimpleName()
+                + " does not support DDS frames; only Version5Img does.");
+    }
+
+    /**
+     * 本版本是否支持调色板（默认不支持，仅 V4/V6 覆写为 true）
+     */
+    @Override
+    public boolean supportPaletteSource() {
+        return false;
+    }
+
+    @Override
+    public int getPaletteSourceCount() {
         return 0;
     }
 
     @Override
-    public Palette getPalette(int index) {
-        return null;
+    public void activatePaletteSource(int index) {
+        throw new NpkException(getClass().getSimpleName()
+                + " does not support palettes; only Version4Img/Version6Img do.");
     }
 
     @Override
-    public void activatePalette(int index) {
-        // V2 不支持调色板
+    public int getActivePaletteSourceIndex() {
+        return 0;
     }
 
     @Override
-    public Palette getActivePalette() {
-        return null;
+    public void addPalettesImage(BufferedImage[] palettesImage) {
+        throw new NpkException(getClass().getSimpleName()
+                + " does not support multi-palette images; only Version6Img does.");
     }
 
     @Override

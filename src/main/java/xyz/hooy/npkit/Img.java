@@ -1,7 +1,6 @@
 package xyz.hooy.npkit;
 
 import java.awt.image.BufferedImage;
-import java.util.List;
 
 /**
  * IMG 图像资源接口。
@@ -11,6 +10,14 @@ import java.util.List;
  * </p>
  * <p>
  * 一个 IMG 资源包含若干帧（Frame），每帧可解码为一张 {@link BufferedImage}。
+ * </p>
+ * <p>
+ * DDS 纹理能力仅 V5（{@link Version5Img}）真正支持：其余版本调用相关方法时
+ * 返回空值或抛出 {@link NpkException}（见 AbstractImg 的默认实现）。
+ * </p>
+ * <p>
+ * 调色板能力仅 V4/V6（{@link Version4Img}）真正支持：V4 为单一调色板，
+ * V6 支持多调色板配色方案；其余版本同理降级。
  * </p>
  *
  * <h3>使用示例</h3>
@@ -28,101 +35,33 @@ import java.util.List;
  */
 public interface Img extends NpkResource, Processor {
 
-    @Override
-    default NpkResource.Type getType() {
-        return NpkResource.Type.IMG;
-    }
-
-    /**
-     * 获取 IMG 文件版本号
-     *
-     * @return 版本号（2, 4, 5, 6 等）
-     */
     int getVersion();
 
-    /**
-     * 获取帧（图像）总数
-     */
     int getImageCount();
 
-    /**
-     * 获取指定索引的帧解码后的图像。
-     * 如果是引用帧，会自动解引用到目标帧。
-     *
-     * @param index 帧索引
-     * @return 解码后的 BufferedImage
-     * @throws IndexOutOfBoundsException 索引越界
-     * @throws NpkException              解码失败
-     */
     BufferedImage getImage(int index);
 
-    /**
-     * 添加一帧图像，以指定的像素编码格式存储
-     *
-     * @param image     待添加的图像
-     * @param frameType 帧类型（如 {@link Frame#TYPE_ARGB8888}）
-     */
     void addImage(BufferedImage image, int frameType);
 
-    /**
-     * 添加一个引用帧，指向已存在的帧
-     *
-     * @param referenceIndex 被引用帧的索引
-     */
-    void addReference(int referenceIndex);
+    void addReferenceImage(int referenceIndex);
 
-    /**
-     * 获取帧列表（只读视图）
-     */
-    List<Frame> getFrames();
+    boolean supportDdsSource();
 
-    /**
-     * 获取 DDS 纹理源数量。
-     * 非 V5 版本返回 0。
-     */
     int getDdsSourceCount();
 
-    /**
-     * 获取指定索引的 DDS 纹理源图像
-     *
-     * @param index DDS 表索引
-     * @return DDS 解码后的图像，不支持时返回 null
-     */
-    BufferedImage getDdsSource(int index);
+    DdsSource getDdsSource(int index);
 
-    /**
-     * 获取 DDS 纹理表
-     *
-     * @return DDS 纹理表，不支持时返回 null
-     */
-    DdsTable getDdsTable();
+    int addDdsSource(DdsSource ddsSource);
 
-    /**
-     * 获取调色板数量。
-     * V4 返回 1，V6 返回多个，其他版本返回 0。
-     */
-    int getPaletteCount();
+    void addDdsImage(int ddsSourceIndex, int left, int up, int right, int down, int x, int y, int frameWidth, int frameHeight);
 
-    /**
-     * 获取指定索引的调色板
-     *
-     * @param index 调色板索引
-     * @return 调色板对象，不支持时返回 null
-     */
-    Palette getPalette(int index);
+    boolean supportPaletteSource();
 
-    /**
-     * 激活指定索引的调色板作为当前解码使用的调色板。
-     * 仅 V6（多调色板）有意义。
-     *
-     * @param index 调色板索引
-     */
-    void activatePalette(int index);
+    int getPaletteSourceCount();
 
-    /**
-     * 获取当前激活的调色板
-     *
-     * @return 当前调色板，不支持时返回 null
-     */
-    Palette getActivePalette();
+    void activatePaletteSource(int index);
+
+    int getActivePaletteSourceIndex();
+
+    void addPalettesImage(BufferedImage[] palettesImage);
 }

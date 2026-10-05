@@ -2,7 +2,7 @@ package xyz.hooy.npkit.codec;
 
 import xyz.hooy.npkit.DdsTable;
 import xyz.hooy.npkit.Frame;
-import xyz.hooy.npkit.Palette;
+import xyz.hooy.npkit.PaletteSource;
 
 import java.awt.image.BufferedImage;
 
@@ -44,13 +44,13 @@ public interface PixelCodec {
      */
     class CodecContext {
 
-        private Palette palette;
+        private PaletteSource palette;
         private DdsTable ddsTable;
 
         public CodecContext() {
         }
 
-        public CodecContext(Palette palette) {
+        public CodecContext(PaletteSource palette) {
             this.palette = palette;
         }
 
@@ -58,16 +58,16 @@ public interface PixelCodec {
             this.ddsTable = ddsTable;
         }
 
-        public CodecContext(Palette palette, DdsTable ddsTable) {
+        public CodecContext(PaletteSource palette, DdsTable ddsTable) {
             this.palette = palette;
             this.ddsTable = ddsTable;
         }
 
-        public Palette getPalette() {
+        public PaletteSource getPalette() {
             return palette;
         }
 
-        public void setPalette(Palette palette) {
+        public void setPalette(PaletteSource palette) {
             this.palette = palette;
         }
 
