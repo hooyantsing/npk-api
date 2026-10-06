@@ -1,4 +1,4 @@
-package xyz.hooy.npkit;
+package xyz.hooy.npkapi;
 
 /**
  * OGG 音频资源。

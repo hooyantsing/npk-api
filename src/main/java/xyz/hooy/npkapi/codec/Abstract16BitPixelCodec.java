@@ -1,7 +1,7 @@
-package xyz.hooy.npkit.codec;
+package xyz.hooy.npkapi.codec;
 
-import xyz.hooy.npkit.Bytes;
-import xyz.hooy.npkit.Frame;
+import xyz.hooy.npkapi.Bytes;
+import xyz.hooy.npkapi.Frame;
 
 import java.awt.*;
 import java.awt.image.*;

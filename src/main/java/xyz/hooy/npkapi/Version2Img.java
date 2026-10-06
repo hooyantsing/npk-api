@@ -1,4 +1,4 @@
-package xyz.hooy.npkit;
+package xyz.hooy.npkapi;
 
 /**
  * IMG V2 格式实现 — 基础真彩色图像。

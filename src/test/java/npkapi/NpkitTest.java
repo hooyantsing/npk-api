@@ -2,9 +2,9 @@ package npkapi;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import xyz.hooy.npkit.*;
-import xyz.hooy.npkit.Frame;
-import xyz.hooy.npkit.codec.Argb8888Codec;
+import xyz.hooy.npkapi.*;
+import xyz.hooy.npkapi.Frame;
+import xyz.hooy.npkapi.codec.Argb8888Codec;
 
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.*;

@@ -1,4 +1,4 @@
-package xyz.hooy.npkit;
+package xyz.hooy.npkapi;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

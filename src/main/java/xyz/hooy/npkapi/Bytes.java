@@ -1,4 +1,4 @@
-package xyz.hooy.npkit;
+package xyz.hooy.npkapi;
 
 import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayOutputStream;

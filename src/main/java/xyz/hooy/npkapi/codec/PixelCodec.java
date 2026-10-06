@@ -1,8 +1,8 @@
-package xyz.hooy.npkit.codec;
+package xyz.hooy.npkapi.codec;
 
-import xyz.hooy.npkit.DdsTable;
-import xyz.hooy.npkit.Frame;
-import xyz.hooy.npkit.PaletteSource;
+import xyz.hooy.npkapi.DdsTable;
+import xyz.hooy.npkapi.Frame;
+import xyz.hooy.npkapi.PaletteSource;
 
 import java.awt.image.BufferedImage;
 

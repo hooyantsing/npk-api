@@ -1,6 +1,6 @@
-package xyz.hooy.npkit.codec;
+package xyz.hooy.npkapi.codec;
 
-import xyz.hooy.npkit.Frame;
+import xyz.hooy.npkapi.Frame;
 
 import java.awt.image.BufferedImage;
 

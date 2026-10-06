@@ -1,7 +1,7 @@
-package xyz.hooy.npkit;
+package xyz.hooy.npkapi;
 
-import xyz.hooy.npkit.codec.DdsCodec;
-import xyz.hooy.npkit.codec.PixelCodec;
+import xyz.hooy.npkapi.codec.DdsCodec;
+import xyz.hooy.npkapi.codec.PixelCodec;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;

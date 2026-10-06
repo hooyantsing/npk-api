@@ -1,4 +1,4 @@
-package xyz.hooy.npkit;
+package xyz.hooy.npkapi;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;

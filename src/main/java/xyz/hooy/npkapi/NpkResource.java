@@ -1,4 +1,4 @@
-package xyz.hooy.npkit;
+package xyz.hooy.npkapi;
 
 /**
  * NPK 文件中的资源统一抽象。

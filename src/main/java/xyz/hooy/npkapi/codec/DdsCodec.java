@@ -1,9 +1,9 @@
-package xyz.hooy.npkit.codec;
+package xyz.hooy.npkapi.codec;
 
-import xyz.hooy.npkit.DdsSource;
-import xyz.hooy.npkit.DdsTable;
-import xyz.hooy.npkit.Frame;
-import xyz.hooy.npkit.NpkException;
+import xyz.hooy.npkapi.DdsSource;
+import xyz.hooy.npkapi.DdsTable;
+import xyz.hooy.npkapi.Frame;
+import xyz.hooy.npkapi.NpkException;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
