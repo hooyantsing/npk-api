@@ -1,9 +1,9 @@
-package npkapi;
+package xyz.hooy.npkapi;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import xyz.hooy.npkapi.*;
-import xyz.hooy.npkapi.Frame;
+import xyz.hooy.npkapi.codec.Argb8888Codec;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -15,27 +15,31 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * NPK 文件读写集成测试。
+ * 核心组件单元测试与（可选的）真实 NPK 文件集成测试。
  * <p>
- * 注意：read/write 测试需要实际的 NPK 文件，标记为手动测试。
- * 单元测试部分验证核心组件逻辑。
+ * 集成测试需要真实的游戏 NPK 文件，通过系统属性 {@code npk.test.file} 指定路径：
+ * <pre>mvn test -Dnpk.test.file=/path/to/sprite_map_npc_chn_knight.NPK</pre>
+ * 未指定或文件不存在时以 JUnit Assumption 显式跳过（而非静默通过）。
  * </p>
  */
 public class NpkApiTest {
 
     /**
-     * 手动测试路径 — 仅在有测试资源文件时可用
+     * 手动集成测试的 NPK 文件路径系统属性
      */
-    private static final String TEST_NPK_PATH = "D:/Project/NpkApi/test/output/sprite_map_npc_chn_knight.NPK";
+    private static final String TEST_NPK_PROPERTY = "npk.test.file";
+
+    private static File manualTestNpk() {
+        String path = System.getProperty(TEST_NPK_PROPERTY);
+        File file = path != null ? new File(path) : null;
+        Assumptions.assumeTrue(file != null && file.isFile(),
+                "Manual integration test skipped: set -D" + TEST_NPK_PROPERTY + "=/path/to/file.NPK");
+        return file;
+    }
 
     @Test
     void testReadNpkFile() throws IOException {
-        File file = new File(TEST_NPK_PATH);
-        if (!file.exists()) {
-            System.out.println("[SKIP] Test NPK file not found: " + TEST_NPK_PATH);
-            return;
-        }
-
+        File file = manualTestNpk();
         try (NpkFile npk = NpkFile.open(file)) {
             assertTrue(npk.getResourceCount() > 0, "NPK should contain at least one resource");
 
@@ -54,12 +58,7 @@ public class NpkApiTest {
 
     @Test
     void testExportFramesAsPng(@TempDir Path tempDir) throws IOException {
-        File file = new File(TEST_NPK_PATH);
-        if (!file.exists()) {
-            System.out.println("[SKIP] Test NPK file not found: " + TEST_NPK_PATH);
-            return;
-        }
-
+        File file = manualTestNpk();
         try (NpkFile npk = NpkFile.open(file)) {
             for (Img img : npk.getImages()) {
                 String imgName = img.getName();
@@ -117,6 +116,16 @@ public class NpkApiTest {
     }
 
     @Test
+    void testFrameLengthDerivedFromData() {
+        // length 单一事实来源：挂载数据后以数据长度为准，setLength 的残留值被忽略
+        Frame frame = new Frame(Frame.TYPE_ARGB8888);
+        frame.setLength(999);
+        assertEquals(999, frame.getLength()); // 无数据时返回描述值（FXT 保留字段语义）
+        frame.setRawData(new byte[16]);
+        assertEquals(16, frame.getLength());
+    }
+
+    @Test
     void testPalette() {
         PaletteSource palette = new PaletteSource();
         palette.add(new Color(255, 0, 0, 255));
@@ -141,8 +150,20 @@ public class NpkApiTest {
     void testBytesCompression() {
         byte[] original = "Hello, NPK world! This is a test string for compression.".getBytes();
         byte[] compressed = Bytes.compress(original);
-        byte[] decompressed = Bytes.decompress(compressed);
+        byte[] decompressed = Bytes.decompress(compressed, original.length);
         assertArrayEquals(original, decompressed);
+    }
+
+    @Test
+    void testDecompressLimitEnforced() {
+        // 解压上限防御：声明大小小于实际数据时拒绝（压缩炸弹/损坏文件防御）
+        byte[] original = new byte[4096];
+        byte[] compressed = Bytes.compress(original);
+        assertThrows(NpkException.class, () -> Bytes.decompress(compressed, 1024));
+
+        // 损坏数据拒绝而非挂起/静默
+        byte[] garbage = new byte[]{1, 2, 3, 4, 5, 6, 7, 8};
+        assertThrows(NpkException.class, () -> Bytes.decompress(garbage, 4096));
     }
 
     @Test
@@ -164,6 +185,32 @@ public class NpkApiTest {
     }
 
     @Test
+    void testDecodedImageIsIndependentFromFrameData() {
+        // 回归：解码返回的图像必须与帧内部数据完全独立，
+        // 修改解码图像的像素不得污染帧数据（旧实现未压缩帧共享数组）
+        Argb8888Codec codec = new Argb8888Codec();
+        Frame frame = new Frame(Frame.TYPE_ARGB8888);
+        frame.setCompressed(Frame.UNCOMPRESSED);
+        frame.setWidth(4);
+        frame.setHeight(4);
+        byte[] pixels = new byte[4 * 4 * 4]; // BGRA，(0,0) 设为不透明红
+        pixels[2] = (byte) 0xFF;
+        pixels[3] = (byte) 0xFF;
+        frame.setRawData(pixels);
+        byte[] snapshot = pixels.clone();
+
+        BufferedImage decoded = codec.decode(frame, null);
+        assertEquals(0xFFFF0000, decoded.getRGB(0, 0));
+        decoded.setRGB(1, 1, 0xFF00FF00); // 修改解码图像
+        decoded.setRGB(0, 0, 0xFF0000FF);
+
+        assertArrayEquals(snapshot, frame.getRawData(), "Frame data must not be modified");
+        BufferedImage redecoded = codec.decode(frame, null);
+        assertEquals(0xFFFF0000, redecoded.getRGB(0, 0));
+        assertEquals(0x00000000, redecoded.getRGB(1, 1));
+    }
+
+    @Test
     void testOggResource() {
         byte[] fakeAudioData = new byte[]{0x4F, 0x67, 0x67, 0x53}; // "OggS" magic
         Ogg ogg = new Ogg("sound/bgm/test.ogg", fakeAudioData);
@@ -171,11 +218,11 @@ public class NpkApiTest {
         assertEquals("sound/bgm/test.ogg", ogg.getName());
         assertEquals(NpkResource.Type.OGG, ogg.getType());
         assertEquals(4, ogg.getSize());
-        assertArrayEquals(fakeAudioData, ogg.getRawData());
+        assertArrayEquals(fakeAudioData, ogg.getData());
     }
 
     @Test
-    void testNpkFileCreate() throws IOException {
+    void testNpkFileCreate() {
         NpkFile npk = NpkFile.create();
         assertEquals(0, npk.getResourceCount());
 
@@ -192,5 +239,43 @@ public class NpkApiTest {
         assertEquals(1, npk.getOggs().size());
         assertNotNull(npk.findByName("test/sample.img"));
         assertNull(npk.findByName("nonexist.img"));
+    }
+
+    @Test
+    void testResourceNameEncryptDecryptRoundTrip() {
+        // 资源名 XOR 加解密往返（含边界：255 字节最长名、空名）
+        String[] names = {
+                "character/swordman/effect.img",
+                "sound/bgm/stage1.ogg",
+                repeat('a', 255),
+                ""
+        };
+        for (String name : names) {
+            byte[] encrypted = NpkFile.encryptName(name);
+            assertEquals(256, encrypted.length);
+            assertEquals(name, NpkFile.decryptName(encrypted));
+        }
+    }
+
+    @Test
+    void testDdsTableRejectsDuplicateIndex() {
+        DdsTable table = new DdsTable();
+        DdsSource first = new DdsSource(new byte[]{1}, Frame.TYPE_FXT1, 4, 4);
+        table.put(first); // 自动分配索引 0
+        assertEquals(0, first.getIndex());
+
+        DdsSource conflicting = new DdsSource(new byte[]{2}, Frame.TYPE_FXT1, 4, 4);
+        conflicting.setIndex(0);
+        assertThrows(NpkException.class, () -> table.put(conflicting));
+        assertEquals(1, table.size());
+        assertSame(first, table.get(0));
+    }
+
+    private static String repeat(char c, int count) {
+        StringBuilder sb = new StringBuilder(count);
+        for (int i = 0; i < count; i++) {
+            sb.append(c);
+        }
+        return sb.toString();
     }
 }

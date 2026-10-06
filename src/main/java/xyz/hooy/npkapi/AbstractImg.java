@@ -14,14 +14,22 @@ import java.util.*;
 /**
  * IMG 各版本实现的模板基类。
  * <p>
- * 采用模板方法模式固化「文件头 → 帧表 → 帧数据」的读写流程，
+ * 采用模板方法模式固化「文件头 → 帧表 → 数据区」的读写流程，
  * 子类（V2/V4/V5/V6）通过覆写各阶段钩子方法扩展版本特有的结构：
  * </p>
  * <ul>
  *   <li>{@link #readHeader}/{@link #writeHeader} — 头部扩展（调色板、DDS 表等）</li>
  *   <li>{@link #readFrameDescriptor}/{@link #writeFrameDescriptor} — 版本特有的帧描述布局</li>
+ *   <li>{@link #readDataSection}/{@link #writeDataSection} — 版本特有的数据区布局（如 V5 的 DDS 数据段）</li>
+ *   <li>{@link #prepareWrite}/{@link #finishWrite} — 写出前置准备与收尾（如 V5 的 DDS 预压缩与 imgLength 回填）</li>
  *   <li>{@link #createCodecContext} — 为编解码器提供调色板、DDS 表等附加信息</li>
  * </ul>
+ * <p>
+ * 本类不缓存资源的原始字节：内存模型是唯一事实来源，
+ * {@link #write(ImageOutputStream)} 总是从模型完整序列化，
+ * 因此任何修改（含对 {@link PaletteSource} 等子对象的直接修改）
+ * 都会在下次保存时如实写出，不存在缓存失效问题。
+ * </p>
  *
  * <h3>文件结构</h3>
  * <pre>
@@ -45,16 +53,35 @@ import java.util.*;
 public abstract class AbstractImg implements Img {
 
     /**
-     * IMG 文件魔数标识
+     * IMG 文件魔数标识。
+     * 包私有以避免公开可变数组被外部篡改；对外需要时使用 {@link #getImgMagic()}。
      */
-    public static final byte[] IMG_MAGIC = {
+    static final byte[] IMG_MAGIC = {
             'N', 'e', 'o', 'p', 'l', 'e', ' ', 'I', 'm', 'g', ' ', 'F', 'i', 'l', 'e', '\0'
     };
 
+    /**
+     * 魔数长度（字节）
+     */
+    public static final int MAGIC_LENGTH = 16;
+
+    /**
+     * 版本号字段在 IMG 文件中的字节偏移：magic(16) + tableLength(4) + padding(4)。
+     * 供外部在不完整解析文件的情况下探测 IMG 版本（如 NPK 资源分派）。
+     */
+    public static final int VERSION_OFFSET = MAGIC_LENGTH + 4 + 4;
+
     protected String name;
-    protected byte[] rawData;
+
+    /**
+     * 帧列表（模型单一事实来源，写出时完整序列化）
+     */
     protected List<Frame> frames = new ArrayList<>();
-    protected int frameSize;
+
+    /**
+     * 帧数量（读取阶段来自文件头，写出阶段以 {@link #frames} 大小为准）
+     */
+    protected int frameCount;
 
     /**
      * 像素编解码器注册表：帧类型值 → 编解码器
@@ -75,6 +102,13 @@ public abstract class AbstractImg implements Img {
         codecs.put(Frame.TYPE_ARGB8888, ARGB8888_CODEC);
     }
 
+    /**
+     * 获取 IMG 文件魔数的副本。
+     */
+    public static byte[] getImgMagic() {
+        return IMG_MAGIC.clone();
+    }
+
     @Override
     public NpkResource.Type getType() {
         return NpkResource.Type.IMG;
@@ -88,16 +122,6 @@ public abstract class AbstractImg implements Img {
     @Override
     public void setName(String name) {
         this.name = name;
-    }
-
-    @Override
-    public byte[] getRawData() {
-        return rawData;
-    }
-
-    @Override
-    public void setRawData(byte[] rawData) {
-        this.rawData = rawData;
     }
 
     @Override
@@ -115,7 +139,6 @@ public abstract class AbstractImg implements Img {
         PixelCodec codec = getCodec(frameType);
         Frame frame = codec.encode(image, createCodecContext());
         frames.add(frame);
-        invalidateRawData();
     }
 
     @Override
@@ -127,75 +150,6 @@ public abstract class AbstractImg implements Img {
         Frame frame = new Frame(Frame.TYPE_REFERENCE);
         frame.setReference(referenceIndex);
         frames.add(frame);
-        invalidateRawData();
-    }
-
-    /**
-     * 本版本是否支持 DDS 纹理源（默认不支持，仅 V5 覆写为 true）
-     */
-    @Override
-    public boolean supportDdsSource() {
-        return false;
-    }
-
-    @Override
-    public int getDdsSourceCount() {
-        return 0;
-    }
-
-    @Override
-    public DdsSource getDdsSource(int index) {
-        return null;
-    }
-
-    @Override
-    public int addDdsSource(DdsSource ddsSource) {
-        throw new NpkException(getClass().getSimpleName()
-                + " does not support DDS sources; only Version5Img does.");
-    }
-
-    @Override
-    public void addDdsImage(int ddsSourceIndex, int left, int up, int right, int down,
-                            int x, int y, int frameWidth, int frameHeight) {
-        throw new NpkException(getClass().getSimpleName()
-                + " does not support DDS frames; only Version5Img does.");
-    }
-
-    /**
-     * 本版本是否支持调色板（默认不支持，仅 V4/V6 覆写为 true）
-     */
-    @Override
-    public boolean supportPaletteSource() {
-        return false;
-    }
-
-    @Override
-    public int getPaletteSourceCount() {
-        return 0;
-    }
-
-    @Override
-    public int getActivePaletteSourceIndex() {
-        throw new NpkException(getClass().getSimpleName()
-                + " does not support palettes; only Version4Img/Version6Img do.");
-    }
-
-    @Override
-    public void activatePaletteSource(int index) {
-        throw new NpkException(getClass().getSimpleName()
-                + " does not support palettes; only Version4Img/Version6Img do.");
-    }
-
-    @Override
-    public PaletteSource getPaletteSource(int index) {
-        throw new NpkException(getClass().getSimpleName()
-                + " does not support palettes; only Version4Img/Version6Img do.");
-    }
-
-    @Override
-    public void addPalettesImage(BufferedImage[] palettesImage) {
-        throw new NpkException(getClass().getSimpleName()
-                + " does not support multi-palette images; only Version6Img does.");
     }
 
     @Override
@@ -204,10 +158,21 @@ public abstract class AbstractImg implements Img {
         readFrames(stream);
     }
 
+    /**
+     * 写出模板：记录起始位置 → {@link #prepareWrite()} → 头部 → 帧表与数据区
+     * → {@link #finishWrite(ImageOutputStream, long)}。
+     * <p>
+     * 起始位置传给 finishWrite，使回填类操作（如 V5 的 imgLength 字段）
+     * 不依赖「流从位置 0 开始」的隐含假设。
+     * </p>
+     */
     @Override
     public void write(ImageOutputStream stream) throws IOException {
+        long startPosition = stream.getStreamPosition();
+        prepareWrite();
         writeHeader(stream);
         writeFrames(stream);
+        finishWrite(stream, startPosition);
     }
 
     @Override
@@ -236,21 +201,19 @@ public abstract class AbstractImg implements Img {
     }
 
     /**
-     * 使缓存的原始字节失效。
-     * <p>
-     * IMG 从文件加载时会缓存原始字节（见 {@link #setRawData(byte[])}），
-     * 以便未修改时可原样快速重存。一旦帧等内部结构被修改，必须调用本方法
-     * 清空缓存，使后续保存时重新序列化，避免修改被静默丢弃。
-     * </p>
-     * <p>
-     * 注意：addImage / addReferenceImage / addDdsSource / addDdsImage /
-     * addPalettesImage 等方法会自动调用本方法；但通过 {@link #getPaletteSource(int)}
-     * 或 {@link #getDdsSource(int)} 拿到的 PaletteSource / DdsSource 是可变对象，
-     * 直接修改它们不会触发失效，再次保存时修改会被缓存的原始字节覆盖。
-     * </p>
+     * 写出前置准备钩子（默认空操作）。
+     * 子类可覆写以完成写出所需的预计算（如 V5 预先压缩 DDS 数据以确定头部长度字段）。
      */
-    protected void invalidateRawData() {
-        this.rawData = null;
+    protected void prepareWrite() {
+    }
+
+    /**
+     * 写出收尾钩子（默认空操作）。
+     *
+     * @param stream        输出流（此时位于写出末尾）
+     * @param startPosition 本次 write 开始时流的位置，回填类操作应以此为基准
+     */
+    protected void finishWrite(ImageOutputStream stream, long startPosition) throws IOException {
     }
 
     /**
@@ -270,9 +233,9 @@ public abstract class AbstractImg implements Img {
             throw new NpkException(getClass().getSimpleName() + " cannot process IMG v" + version
                     + " (expected v" + getVersion() + ")");
         }
-        this.frameSize = stream.readInt();
-        if (frameSize < 0) {
-            throw new NpkException("Corrupt IMG: negative frame count " + frameSize + ".");
+        this.frameCount = stream.readInt();
+        if (frameCount < 0) {
+            throw new NpkException("Corrupt IMG: negative frame count " + frameCount + ".");
         }
     }
 
@@ -289,23 +252,30 @@ public abstract class AbstractImg implements Img {
     }
 
     /**
-     * 读取所有帧（先读帧表，再读帧数据）。
+     * 读取所有帧：先读帧表，再委托 {@link #readDataSection} 读取数据区。
      */
     protected void readFrames(ImageInputStream stream) throws IOException {
-        List<Frame> frameList = new ArrayList<>(frameSize);
-        for (int i = 0; i < frameSize; i++) {
+        List<Frame> frameList = new ArrayList<>(frameCount);
+        for (int i = 0; i < frameCount; i++) {
             Frame frame = new Frame();
             frame.setType(stream.readInt());
             readFrameDescriptor(stream, frame);
             frameList.add(frame);
         }
-        for (int i = 0; i < frameSize; i++) {
-            Frame frame = frameList.get(i);
+        this.frames = frameList;
+        readDataSection(stream);
+    }
+
+    /**
+     * 读取数据区（默认布局：按帧表顺序存放各非引用帧的像素数据）。
+     * 子类可覆写以支持扩展的数据区布局（如 V5 在帧数据前插入 DDS 数据段）。
+     */
+    protected void readDataSection(ImageInputStream stream) throws IOException {
+        for (Frame frame : frames) {
             if (!frame.isReference()) {
                 readFrameRawData(stream, frame);
             }
         }
-        this.frames = frameList;
     }
 
     /**
@@ -354,12 +324,20 @@ public abstract class AbstractImg implements Img {
     }
 
     /**
-     * 写入所有帧（先写帧表，再写帧数据）。
+     * 写入所有帧：先写帧表，再委托 {@link #writeDataSection} 写入数据区。
      */
     protected void writeFrames(ImageOutputStream stream) throws IOException {
         for (Frame frame : frames) {
             writeFrameDescriptor(stream, frame);
         }
+        writeDataSection(stream);
+    }
+
+    /**
+     * 写入数据区（默认布局：按帧表顺序写出各非引用帧的像素数据）。
+     * 子类可覆写以支持扩展的数据区布局（如 V5 在帧数据前插入 DDS 数据段）。
+     */
+    protected void writeDataSection(ImageOutputStream stream) throws IOException {
         for (Frame frame : frames) {
             if (!frame.isReference()) {
                 writeFrameRawData(stream, frame);
@@ -397,9 +375,16 @@ public abstract class AbstractImg implements Img {
 
     /**
      * 写入帧原始像素数据。
+     *
+     * @throws NpkException 帧未挂载像素数据（手工构造后未经编解码器填充）
      */
     protected void writeFrameRawData(ImageOutputStream stream, Frame frame) throws IOException {
-        stream.write(frame.getRawData());
+        byte[] data = frame.getRawData();
+        if (data == null) {
+            throw new NpkException("Cannot write frame without raw data: " + frame
+                    + " in " + getClass().getSimpleName() + "{name='" + name + "'}.");
+        }
+        stream.write(data);
     }
 
     /**

@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -21,6 +22,12 @@ import java.util.List;
  * <p>
  * NpkFile 是 npk-api 库的核心类，代表一个完整的 NPK 文件实例。
  * 提供 NPK 文件的打开、读取、资源管理和保存功能。
+ * </p>
+ * <p>
+ * 资源以内存模型为单一事实来源：保存时一律通过
+ * {@link NpkResource#write(javax.imageio.stream.ImageOutputStream)} 重新序列化，
+ * 不依赖任何字节缓存，因此对资源（含其调色板、DDS 表等子对象）的
+ * 任何修改都会在保存时如实写出。
  * </p>
  *
  * <h3>NPK 文件格式概述</h3>
@@ -66,16 +73,17 @@ import java.util.List;
 public class NpkFile implements AutoCloseable {
 
     /**
-     * NPK 文件魔数
+     * NPK 文件魔数。
+     * 包私有以避免公开可变数组被外部篡改；对外需要时使用 {@link #getNpkMagic()}。
      */
-    public static final byte[] NPK_MAGIC = {
+    static final byte[] NPK_MAGIC = {
             'N', 'e', 'o', 'p', 'l', 'e', 'P', 'a', 'c', 'k', '_', 'B', 'i', 'l', 'l', '\0'
     };
 
     /**
-     * IMG 文件名解密密钥
+     * IMG 文件名解密密钥（XOR）。私有以避免密钥材料外泄为可篡改的公开数组。
      */
-    public static final byte[] IMG_NAME_KEY = buildNameKey();
+    private static final byte[] IMG_NAME_KEY = buildNameKey();
 
     /**
      * 每个资源索引项的固定大小（offset + length + name = 4 + 4 + 256）
@@ -106,6 +114,13 @@ public class NpkFile implements AutoCloseable {
 
     private NpkFile(File sourceFile) {
         this.sourceFile = sourceFile;
+    }
+
+    /**
+     * 获取 NPK 文件魔数的副本。
+     */
+    public static byte[] getNpkMagic() {
+        return NPK_MAGIC.clone();
     }
 
     @Override
@@ -271,8 +286,8 @@ public class NpkFile implements AutoCloseable {
             throw new NpkException("Duplicate resource name: " + resource.getName());
         }
         // fail-fast：OGG 以原始字节存储，缺数据时无法序列化，提前给出明确错误
-        // （否则要等到 save() 才抛笼统的 "Cannot serialize resource"）
-        if (resource.getType() == NpkResource.Type.OGG && resource.getRawData() == null) {
+        // （否则要等到 save() 才由 Ogg.write 抛出）
+        if (resource instanceof Ogg && ((Ogg) resource).getData() == null) {
             throw new NpkException("OGG resource has no data: " + resource.getName());
         }
         resources.add(resource);
@@ -302,6 +317,21 @@ public class NpkFile implements AutoCloseable {
             resources.remove(resource);
         }
         return resource;
+    }
+
+    /**
+     * 保存回打开时的源文件。
+     *
+     * @throws IOException  写入异常
+     * @throws NpkException 本实例并非从文件打开（无源文件）或某个资源无法序列化
+     * @see #save(File)
+     */
+    public void save() throws IOException {
+        ensureOpen();
+        if (sourceFile == null) {
+            throw new NpkException("No source file to save to; use save(File) instead.");
+        }
+        save(sourceFile);
     }
 
     /**
@@ -341,7 +371,10 @@ public class NpkFile implements AutoCloseable {
             // 1. 验证魔数
             byte[] magic = new byte[NPK_MAGIC.length];
             stream.readFully(magic);
-            verifyMagic(magic);
+            if (!Arrays.equals(NPK_MAGIC, magic)) {
+                throw new NpkException("Invalid NPK file: magic bytes mismatch. "
+                        + "Expected 'NeoplePack_Bill\\0'.");
+            }
 
             // 2. 读取资源数量
             int resourceCount = stream.readInt();
@@ -351,17 +384,16 @@ public class NpkFile implements AutoCloseable {
 
             // 防御：索引表 + 校验位必须落在文件范围内，否则视为损坏
             // （避免按损坏的 resourceCount 分配超大数组导致 OOM）
-            long requiredHeader = NPK_MAGIC.length + 4L
-                    + (long) resourceCount * INDEX_ENTRY_SIZE + VERIFICATION_SIZE;
-            if (requiredHeader > fileLength) {
+            long indexSize = (long) resourceCount * INDEX_ENTRY_SIZE;
+            long requiredHeader = NPK_MAGIC.length + 4L + indexSize + VERIFICATION_SIZE;
+            if (indexSize > Integer.MAX_VALUE || requiredHeader > fileLength) {
                 throw new NpkException("Corrupt NPK: declared resource count " + resourceCount
                         + " requires " + requiredHeader + " bytes but file is only "
                         + fileLength + " bytes.");
             }
 
-            // 3. 读取索引表
-            stream.mark();
-            byte[] indexBytes = new byte[resourceCount * INDEX_ENTRY_SIZE];
+            // 3. 读取索引表（一次读入，条目解析直接基于该缓冲区，避免二次读流）
+            byte[] indexBytes = new byte[(int) indexSize];
             stream.readFully(indexBytes);
 
             // 4. 读取校验哈希
@@ -370,15 +402,14 @@ public class NpkFile implements AutoCloseable {
 
             // 5. 验证完整性：校验范围为 NPK 文件头(data1) + 索引表(data2)
             verifyHash(indexBytes, resourceCount, verification);
-            stream.reset();
 
-            // 6. 解析每个资源
+            // 6. 解析每个资源索引项并读取其数据
             for (int i = 0; i < resourceCount; i++) {
-                int offset = stream.readInt();
-                int length = stream.readInt();
-                byte[] nameBytes = new byte[NAME_FIELD_SIZE];
-                stream.readFully(nameBytes);
-                String name = decryptName(nameBytes);
+                int entryBase = i * INDEX_ENTRY_SIZE;
+                int offset = Bytes.readIntLE(indexBytes, entryBase);
+                int length = Bytes.readIntLE(indexBytes, entryBase + 4);
+                String name = decryptName(
+                        Arrays.copyOfRange(indexBytes, entryBase + 8, entryBase + INDEX_ENTRY_SIZE));
 
                 // 防御：offset/length 来自不可信文件，负值会触发 NegativeArraySizeException、
                 // 过大或越界会读到错误数据甚至 OOM，统一提前校验为"文件损坏"
@@ -389,15 +420,11 @@ public class NpkFile implements AutoCloseable {
                 }
 
                 // 跳转到资源数据位置读取
-                stream.mark();
                 stream.seek(offset);
                 byte[] data = new byte[length];
                 stream.readFully(data);
-                stream.reset();
 
-                // 根据扩展名判断资源类型
-                NpkResource resource = parseResource(name, data);
-                resources.add(resource);
+                resources.add(parseResource(name, data));
             }
         }
     }
@@ -410,22 +437,20 @@ public class NpkFile implements AutoCloseable {
             return new Ogg(name, data);
         }
 
-        // 解析 IMG 资源
+        // 解析 IMG 资源：先按固定偏移探测版本号，再交由对应版本的处理器完整解析
+        if (data.length < AbstractImg.VERSION_OFFSET + 4) {
+            throw new NpkException("Corrupt IMG resource '" + name + "': only " + data.length
+                    + " bytes, too small to contain an IMG header.");
+        }
+        int version = Bytes.readIntLE(data, AbstractImg.VERSION_OFFSET);
+        Img img = ImgFactory.create(version);
         try (ByteArrayInputStream bais = new ByteArrayInputStream(data);
              MemoryCacheImageInputStream imgStream = new MemoryCacheImageInputStream(bais)) {
             imgStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
-
-            // 跳过魔数(16) + tableLength(4) + padding(4) 读取版本号
-            Bytes.skipFully(imgStream, AbstractImg.IMG_MAGIC.length + 8);
-            int version = imgStream.readInt();
-            imgStream.seek(0);
-
-            Img img = ImgFactory.create(version);
             img.read(imgStream);
-            img.setName(name);
-            img.setRawData(data);
-            return img;
         }
+        img.setName(name);
+        return img;
     }
 
     private void write(FileImageOutputStream stream) throws IOException {
@@ -437,57 +462,48 @@ public class NpkFile implements AutoCloseable {
         // 2. 写入资源数量
         stream.writeInt(count);
 
-        // 3. 计算索引表并写入
+        // 3. 先将所有资源从模型序列化（格式要求索引表先行，须先得到各资源长度）
+        List<byte[]> resourceDataList = new ArrayList<>(count);
+        for (NpkResource resource : resources) {
+            resourceDataList.add(serializeResource(resource));
+        }
+
+        // 4. 构建索引表并写入
         int headerSize = NPK_MAGIC.length + 4 + count * INDEX_ENTRY_SIZE + VERIFICATION_SIZE;
         byte[] indexBytes = new byte[count * INDEX_ENTRY_SIZE];
         int currentOffset = headerSize;
-
-        // 先将所有资源数据序列化
-        List<byte[]> resourceDataList = new ArrayList<>(count);
-        for (NpkResource resource : resources) {
-            byte[] data = serializeResource(resource);
-            resourceDataList.add(data);
-        }
-
-        // 构建索引表
         int idx = 0;
         for (int i = 0; i < count; i++) {
             byte[] data = resourceDataList.get(i);
-            writeIntLE(indexBytes, idx, currentOffset);
-            idx += 4;
-            writeIntLE(indexBytes, idx, data.length);
-            idx += 4;
+            Bytes.writeIntLE(indexBytes, idx, currentOffset);
+            Bytes.writeIntLE(indexBytes, idx + 4, data.length);
             byte[] encryptedName = encryptName(resources.get(i).getName());
-            System.arraycopy(encryptedName, 0, indexBytes, idx, NAME_FIELD_SIZE);
-            idx += NAME_FIELD_SIZE;
+            System.arraycopy(encryptedName, 0, indexBytes, idx + 8, NAME_FIELD_SIZE);
+            idx += INDEX_ENTRY_SIZE;
             currentOffset += data.length;
         }
-
         stream.write(indexBytes);
 
-        // 4. 写入校验哈希：校验范围为 NPK 文件头(data1) + 索引表(data2)
+        // 5. 写入校验哈希：校验范围为 NPK 文件头(data1) + 索引表(data2)
         stream.write(computeVerification(indexBytes, count));
 
-        // 5. 写入资源数据
+        // 6. 写入资源数据
         for (byte[] data : resourceDataList) {
             stream.write(data);
         }
     }
 
+    /**
+     * 将资源从内存模型完整序列化（不依赖任何字节缓存）。
+     */
     private byte[] serializeResource(NpkResource resource) throws IOException {
-        if (resource.getRawData() != null) {
-            return resource.getRawData();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (MemoryCacheImageOutputStream out = new MemoryCacheImageOutputStream(baos)) {
+            out.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            resource.write(out);
+            out.flush();
         }
-        if (resource instanceof Img) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (MemoryCacheImageOutputStream out = new MemoryCacheImageOutputStream(baos)) {
-                out.setByteOrder(ByteOrder.LITTLE_ENDIAN);
-                ((Img) resource).write(out);
-                out.flush();
-            }
-            return baos.toByteArray();
-        }
-        throw new NpkException("Cannot serialize resource: " + resource.getName());
+        return baos.toByteArray();
     }
 
     /**
@@ -523,22 +539,12 @@ public class NpkFile implements AutoCloseable {
         return result;
     }
 
-    private void verifyMagic(byte[] magic) {
-        for (int i = 0; i < NPK_MAGIC.length; i++) {
-            if (magic[i] != NPK_MAGIC[i]) {
-                throw new NpkException("Invalid NPK file: magic bytes mismatch. "
-                        + "Expected 'NeoplePack_Bill\\0'.");
-            }
-        }
-    }
-
     private void verifyHash(byte[] indexBytes, int resourceCount, byte[] expectedHash) {
         byte[] computed = computeVerification(indexBytes, resourceCount);
-        for (int i = 0; i < VERIFICATION_SIZE; i++) {
-            if (computed[i] != expectedHash[i]) {
-                throw new NpkException("NPK file verification failed: index table hash mismatch. "
-                        + "The file may be corrupted or modified.");
-            }
+        // 恒定时间比较，同时避免手写逐字节循环
+        if (!MessageDigest.isEqual(computed, expectedHash)) {
+            throw new NpkException("NPK file verification failed: index table hash mismatch. "
+                    + "The file may be corrupted or modified.");
         }
     }
 
@@ -548,8 +554,11 @@ public class NpkFile implements AutoCloseable {
     private static byte[] computeVerification(byte[] indexBytes, int resourceCount) {
         byte[] headerBytes = new byte[NPK_MAGIC.length + 4];
         System.arraycopy(NPK_MAGIC, 0, headerBytes, 0, NPK_MAGIC.length);
-        writeIntLE(headerBytes, NPK_MAGIC.length, resourceCount);
-        return computeHash(concat(headerBytes, indexBytes));
+        Bytes.writeIntLE(headerBytes, NPK_MAGIC.length, resourceCount);
+        byte[] combined = new byte[headerBytes.length + indexBytes.length];
+        System.arraycopy(headerBytes, 0, combined, 0, headerBytes.length);
+        System.arraycopy(indexBytes, 0, combined, headerBytes.length, indexBytes.length);
+        return computeHash(combined);
     }
 
     /**
@@ -572,23 +581,6 @@ public class NpkFile implements AutoCloseable {
         } catch (NoSuchAlgorithmException e) {
             throw new NpkException("SHA-256 algorithm not available.", e);
         }
-    }
-
-    /**
-     * 拼接两个字节数组。
-     */
-    private static byte[] concat(byte[] a, byte[] b) {
-        byte[] result = new byte[a.length + b.length];
-        System.arraycopy(a, 0, result, 0, a.length);
-        System.arraycopy(b, 0, result, a.length, b.length);
-        return result;
-    }
-
-    private static void writeIntLE(byte[] buffer, int offset, int value) {
-        buffer[offset] = (byte) (value & 0xFF);
-        buffer[offset + 1] = (byte) ((value >> 8) & 0xFF);
-        buffer[offset + 2] = (byte) ((value >> 16) & 0xFF);
-        buffer[offset + 3] = (byte) ((value >> 24) & 0xFF);
     }
 
     /**

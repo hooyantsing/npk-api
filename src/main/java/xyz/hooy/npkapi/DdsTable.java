@@ -27,10 +27,19 @@ public class DdsTable {
 
     /**
      * 添加 DDS 纹理源。如果 {@code index < 0}，自动分配下一个可用索引。
+     *
+     * @param ddsSource 纹理源（非 null）
+     * @throws NpkException 纹理源为 null，或其索引已被表中既有纹理占用
      */
     public void put(DdsSource ddsSource) {
+        if (ddsSource == null) {
+            throw new NpkException("DdsSource cannot be null.");
+        }
         if (ddsSource.getIndex() < 0) {
             ddsSource.setIndex(nextIndex());
+        } else if (ddsTable.containsKey(ddsSource.getIndex())) {
+            throw new NpkException("Duplicate DDS index: " + ddsSource.getIndex()
+                    + " is already occupied in the DDS table.");
         }
         ddsTable.put(ddsSource.getIndex(), ddsSource);
     }

@@ -15,8 +15,9 @@ import java.io.IOException;
  * <h3>使用示例</h3>
  * <pre>{@code
  * DdsSource dds = new DdsSource(ddsFileBytes, Frame.TYPE_FXT3, 256, 256);
- * int index = img.addDdsSource(dds);
- * img.addDdsImage(index, 0, 0, 64, 64, 0, 0, 64, 64);
+ * int index = ((DdsCapableImg) img).addDdsSource(dds);
+ * // 裁切纹理 (0,0)-(64,64) 区域，画布 64x64，绘制原点 (0,0)
+ * ((DdsCapableImg) img).addDdsImage(index, new Rectangle(0, 0, 64, 64), new Rectangle(0, 0, 64, 64));
  * }</pre>
  */
 public class DdsSource {
@@ -28,19 +29,25 @@ public class DdsSource {
     private int length;
     private int width;
     private int height;
-    private byte[] rawData;
+    private byte[] data;
+
+    /**
+     * 解码结果缓存：同一纹理常被多个 FXT 帧引用，惰性解码一次后复用。
+     * setData 时失效。缓存图像为共享对象，调用方不应修改其像素。
+     */
+    private BufferedImage cachedImage;
 
     public DdsSource() {
     }
 
     /**
-     * @param rawData     完整的 DDS 文件字节
+     * @param data        完整的 DDS 文件字节
      * @param pixelFormat DDS 像素压缩格式（如 {@link Frame#TYPE_FXT1}）
      * @param width       DDS 图像宽（一般要求被 4 整除）
      * @param height      DDS 图像高（一般要求被 4 整除）
      */
-    public DdsSource(byte[] rawData, int pixelFormat, int width, int height) {
-        this.rawData = rawData;
+    public DdsSource(byte[] data, int pixelFormat, int width, int height) {
+        this.data = data;
         this.pixelFormat = pixelFormat;
         this.width = width;
         this.height = height;
@@ -53,20 +60,27 @@ public class DdsSource {
     }
 
     /**
-     * 解码为图像（依赖 ImageIO 的 DDS 插件）
+     * 解码为图像（依赖 ImageIO 的 DDS 插件）。
+     * <p>
+     * 解码结果被缓存：同一纹理常被多个 FXT 帧裁切引用，避免重复解码。
+     * 返回的是共享缓存对象，调用方不应修改其像素；需要修改时请自行拷贝。
+     * </p>
      *
      * @return 解码后的图像
      * @throws NpkException 无原始数据或解码失败
      */
     public BufferedImage getImage() {
-        if (rawData == null) {
-            throw new NpkException("DDS source at index " + index + " has no raw data to decode.");
+        if (data == null) {
+            throw new NpkException("DDS source at index " + index + " has no data to decode.");
         }
-        try {
-            return ImageIO.read(new ByteArrayInputStream(rawData));
-        } catch (IOException e) {
-            throw new NpkException("Failed to decode DDS source at index " + index, e);
+        if (cachedImage == null) {
+            try {
+                cachedImage = ImageIO.read(new ByteArrayInputStream(data));
+            } catch (IOException e) {
+                throw new NpkException("Failed to decode DDS source at index " + index, e);
+            }
         }
+        return cachedImage;
     }
 
     public int getTitle() {
@@ -140,11 +154,15 @@ public class DdsSource {
     /**
      * 完整的 DDS 文件字节
      */
-    public byte[] getRawData() {
-        return rawData;
+    public byte[] getData() {
+        return data;
     }
 
-    public void setRawData(byte[] rawData) {
-        this.rawData = rawData;
+    /**
+     * 设置完整的 DDS 文件字节，同时使解码缓存失效。
+     */
+    public void setData(byte[] data) {
+        this.data = data;
+        this.cachedImage = null;
     }
 }

@@ -23,7 +23,7 @@ import java.io.IOException;
  *   - colors[colorCount] (4 bytes each: R, G, B, A)
  * </pre>
  */
-public class Version4Img extends Version2Img {
+public class Version4Img extends Version2Img implements PaletteCapable {
 
     /**
      * 无状态索引色编解码器单例：所有 V4/V6 实例共享。
@@ -44,11 +44,6 @@ public class Version4Img extends Version2Img {
     @Override
     public int getVersion() {
         return 4;
-    }
-
-    @Override
-    public boolean supportPaletteSource() {
-        return true;
     }
 
     @Override

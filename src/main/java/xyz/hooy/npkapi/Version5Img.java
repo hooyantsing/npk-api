@@ -5,16 +5,16 @@ import xyz.hooy.npkapi.codec.PixelCodec;
 
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
+import java.awt.*;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * IMG V5 格式实现 — 支持 DDS 纹理的图像。
  * <p>
- * V5 在 V2 的基础上增加了 DDS 纹理表（DdsTable）。
+ * V5 在 V2 的基础上增加了 DDS 纹理表（{@link DdsTable}），
+ * 并通过实现 {@link DdsCapable} 对外提供 DDS 能力。
  * FXT1/FXT3/FXT5 类型的帧不直接存储像素数据，
  * 而是引用 DDS 表中的共享纹理，并通过裁剪区域获取子图像。
  * </p>
@@ -24,7 +24,7 @@ import java.util.Map;
  * [V2 Header]
  * [DDS Table]
  *   - ddsCount (int32)
- *   - imgLength (int32, 整个 IMG 文件大小；写出时由 write() 完成后回填实际值)
+ *   - imgLength (int32, 整个 IMG 文件大小；写出时由 finishWrite 回填实际值)
  *   - colorNum (int32, V5 中无功能用途；读取时保存、写回时还原以保证往返保真)
  *   - palette[colorNum] (4 bytes each: R, G, B, A; 同上保真读写)
  *   - dds[ddsCount]:
@@ -48,26 +48,28 @@ import java.util.Map;
  * [padding (int32)]
  * </pre>
  * <p>
- * 数据区按「帧表 → DDS 纹理数据（ZLIB 压缩）→ 非 FXT/非引用帧像素数据」的顺序排列；
- * FXT 帧本身不持有像素数据，其纹理由 DdsCodec 按 ddsIndex 从 DDS 表获取。
+ * 数据区按「DDS 纹理数据（ZLIB 压缩）→ 非 FXT/非引用帧像素数据」的顺序排列；
+ * FXT 帧本身不持有像素数据，其纹理由 {@link DdsCodec} 按 ddsIndex 从 DDS 表获取。
  * </p>
  */
-public class Version5Img extends AbstractImg {
+public class Version5Img extends AbstractImg implements DdsCapable {
+
+    /**
+     * V5 头部中「整个 IMG 文件大小」字段（imgLength）相对 IMG 起始位置的偏移：
+     * magic(16) + tableLength(4) + padding(4) + version(4) + frameCount(4) + ddsCount(4)。
+     * 头部先于帧数据写出，总大小此刻未知，故在 {@link #finishWrite} 中按
+     * 写出起始位置相对回填（不假设流从位置 0 开始）。
+     */
+    private static final int IMG_LENGTH_FIELD_OFFSET = AbstractImg.MAGIC_LENGTH + 4 + 4 + 4 + 4 + 4;
 
     protected DdsTable ddsTable;
 
     /**
-     * 写入阶段缓存的 DDS 压缩数据（index → ZLIB 压缩后字节），
-     * 保证头部写入的 length 字段与实际写入的数据长度一致。
+     * 写入阶段缓存的 DDS 压缩数据（index → ZLIB 压缩后字节）。
+     * 由 {@link #prepareWrite()} 填充、{@link #finishWrite} 清空，
+     * 保证头部写入的 length 字段与实际写出的数据长度一致。
      */
     private final Map<Integer, byte[]> ddsCompressedCache = new LinkedHashMap<>();
-
-    /**
-     * V5 头部中「整个 IMG 文件大小」字段（imgLength）在文件中的偏移：
-     * magic(16) + tableLength(4) + padding(4) + version(4) + frameCount(4) + ddsCount(4)。
-     * 头部先于帧数据写出，总大小此刻未知，故在 {@link #write} 完成后回填实际值。
-     */
-    private static final int IMG_LENGTH_FIELD_OFFSET = 36;
 
     /**
      * V5 头部中类似 IMG V4 的调色板数据。在 V5 中没有任何用途，
@@ -92,18 +94,109 @@ public class Version5Img extends AbstractImg {
     }
 
     @Override
-    public boolean supportDdsSource() {
-        return true;
-    }
-
-    @Override
     public int getDdsSourceCount() {
         return ddsTable != null ? ddsTable.size() : 0;
     }
 
     @Override
     public DdsSource getDdsSource(int index) {
-        return ddsTable != null ? ddsTable.get(index) : null;
+        DdsSource ddsSource = ddsTable != null ? ddsTable.get(index) : null;
+        if (ddsSource == null) {
+            throw new IndexOutOfBoundsException("DDS source index " + index
+                    + " out of bounds [0, " + getDdsSourceCount() + ")");
+        }
+        return ddsSource;
+    }
+
+    /**
+     * 登记一张 DDS 纹理到 DDS 表，返回其分配的索引。
+     * <p>
+     * 传入的 {@link DdsSource} 须携带完整的 DDS 文件字节
+     * （本库不实现 BufferedImage → DDS 的 DXT 压缩）。
+     * 压缩前/后大小（fullLength/length）会在写出阶段按 ZLIB 压缩结果自动回填。
+     * </p>
+     *
+     * @param ddsSource 携带完整 DDS 文件字节与像素格式、宽高的纹理源
+     * @return 该 DDS 在表中分配的索引，供 {@link #addDdsImage} 引用
+     * @throws NpkException 纹理源为 null、缺少数据或索引与既有纹理冲突
+     */
+    @Override
+    public int addDdsSource(DdsSource ddsSource) {
+        if (ddsSource == null || ddsSource.getData() == null || ddsSource.getData().length == 0) {
+            throw new NpkException("DDS data cannot be null or empty.");
+        }
+        if (ddsTable == null) {
+            ddsTable = new DdsTable();
+        }
+        ddsTable.put(ddsSource); // index < 0 时自动分配下一个可用索引；重复索引抛出 NpkException
+        return ddsSource.getIndex();
+    }
+
+    /**
+     * 追加一个引用 DDS 纹理裁切区域的 FXT 帧（DDS 引用型索引项）。
+     * <p>
+     * 帧的颜色系统（type）无需显式传入——一帧即从所引用的 DDS 大图裁切而来，
+     * 其压缩方式必然等于该 DDS 的像素格式，故直接取自 {@code DdsSource.pixelFormat}
+     * （取值 0x12/0x13/0x14，与 {@link Frame#TYPE_FXT1} 等同一编码空间）。
+     * 帧的贴图宽高由裁切区域自动得出，压缩状态按格式规范固定为
+     * {@link Frame#COMPRESSED_DDS}，保留的 length 字段置 0。
+     * </p>
+     *
+     * @param ddsSourceIndex 引用的 DDS 纹理索引（来自 {@link #addDdsSource} 的返回值）
+     * @param textureCrop    纹理裁切区域：x=左边界、y=上边界、width/height=区域尺寸；
+     *                       须为正值且不得超出纹理源宽高
+     * @param frameCanvas    帧画布：x/y=图像起始绘制点坐标，width/height=帧域尺寸（基准用，须为正值）
+     * @throws NpkException DDS 索引不存在、像素格式非 FXT、裁切区域或画布参数非法
+     */
+    @Override
+    public void addDdsImage(int ddsSourceIndex, Rectangle textureCrop, Rectangle frameCanvas) {
+        if (textureCrop == null || frameCanvas == null) {
+            throw new NpkException("textureCrop and frameCanvas cannot be null.");
+        }
+        DdsSource ddsSource = ddsTable != null ? ddsTable.get(ddsSourceIndex) : null;
+        if (ddsSource == null) {
+            throw new NpkException("DDS source not found for index " + ddsSourceIndex
+                    + ". Call addDdsSource() first.");
+        }
+        // 帧的颜色系统直接沿用所引用 DDS 的像素格式（FXT1/FXT3/FXT5）
+        int frameType = ddsSource.getPixelFormat();
+        if (!Frame.isFxtType(frameType)) {
+            throw new NpkException("DDS source at index " + ddsSourceIndex
+                    + " has a non-FXT pixel format (0x" + Integer.toHexString(frameType)
+                    + "); a DDS-reference frame requires FXT1/FXT3/FXT5 (0x12/0x13/0x14).");
+        }
+        if (textureCrop.width <= 0 || textureCrop.height <= 0) {
+            throw new NpkException("Invalid DDS crop region (width/height must be positive): "
+                    + textureCrop);
+        }
+        long cropRight = (long) textureCrop.x + textureCrop.width;
+        long cropDown = (long) textureCrop.y + textureCrop.height;
+        if (textureCrop.x < 0 || textureCrop.y < 0
+                || cropRight > ddsSource.getWidth() || cropDown > ddsSource.getHeight()) {
+            throw new NpkException("DDS crop region " + textureCrop
+                    + " exceeds DDS source bounds "
+                    + ddsSource.getWidth() + "x" + ddsSource.getHeight() + ".");
+        }
+        if (frameCanvas.width <= 0 || frameCanvas.height <= 0) {
+            throw new NpkException("Frame canvas dimensions must be positive: "
+                    + frameCanvas.width + "x" + frameCanvas.height);
+        }
+
+        Frame frame = new Frame(frameType);
+        frame.setCompressed(Frame.COMPRESSED_DDS); // 规范：DDS 引用型索引项压缩状态为 7（ZLIB）
+        frame.setWidth(textureCrop.width);
+        frame.setHeight(textureCrop.height);
+        frame.setLength(0);                // 保留字段（原图片大小位置），须为 0
+        frame.setX(frameCanvas.x);
+        frame.setY(frameCanvas.y);
+        frame.setFrameWidth(frameCanvas.width);
+        frame.setFrameHeight(frameCanvas.height);
+        frame.setDdsIndex(ddsSourceIndex);
+        frame.setLeftCut(textureCrop.x);
+        frame.setUpCut(textureCrop.y);
+        frame.setRightCut((int) cropRight);
+        frame.setDownCut((int) cropDown);
+        frames.add(frame);
     }
 
     @Override
@@ -114,7 +207,7 @@ public class Version5Img extends AbstractImg {
         if (ddsCount < 0) {
             throw new NpkException("Corrupt IMG v5: negative DDS count " + ddsCount + ".");
         }
-        stream.readInt();                  // imgLength（整个 IMG 文件大小，写出时由 write() 回填实际值）
+        stream.readInt();                  // imgLength（整个 IMG 文件大小，写出时由 finishWrite 回填实际值）
         int colorNum = stream.readInt();   // V5 头部调色板颜色数目（绝大部分为 0）
         if (colorNum < 0 || colorNum > PaletteSource.MAX_COLOR_SIZE) {
             throw new NpkException("Corrupt IMG v5: invalid header palette color count " + colorNum + ".");
@@ -137,9 +230,41 @@ public class Version5Img extends AbstractImg {
             ddsSource.setLength(stream.readInt());
             ddsSource.setWidth(stream.readInt());
             ddsSource.setHeight(stream.readInt());
+            if (ddsSource.getFullLength() < 0 || ddsSource.getLength() < 0) {
+                throw new NpkException("Corrupt IMG v5: negative DDS data length at index "
+                        + ddsSource.getIndex() + " (fullLength=" + ddsSource.getFullLength()
+                        + ", length=" + ddsSource.getLength() + ").");
+            }
             table.put(ddsSource);
         }
         this.ddsTable = table;
+    }
+
+    /**
+     * 写出前置准备：预先压缩所有 DDS 数据并回填 fullLength/length 字段，
+     * 使头部表项声明的长度与数据区实际写出的字节一致。
+     * <p>
+     * 副作用说明：本方法会更新各 {@link DdsSource} 的 fullLength/length 元数据，
+     * 使其反映最近一次写出的实际值。
+     * </p>
+     */
+    @Override
+    protected void prepareWrite() {
+        ddsCompressedCache.clear();
+        if (ddsTable == null) {
+            return;
+        }
+        for (DdsSource ddsSource : ddsTable.values()) {
+            byte[] data = ddsSource.getData();
+            if (data == null) {
+                throw new NpkException("DDS source at index " + ddsSource.getIndex()
+                        + " has no data to write.");
+            }
+            byte[] compressed = Bytes.compress(data);
+            ddsSource.setFullLength(data.length);
+            ddsSource.setLength(compressed.length);
+            ddsCompressedCache.put(ddsSource.getIndex(), compressed);
+        }
     }
 
     @Override
@@ -148,7 +273,7 @@ public class Version5Img extends AbstractImg {
 
         int ddsCount = ddsTable != null ? ddsTable.size() : 0;
         stream.writeInt(ddsCount);
-        stream.writeInt(0); // imgLength 占位（整个 IMG 文件大小），由 write() 完成后回填实际值
+        stream.writeInt(0); // imgLength 占位（整个 IMG 文件大小），由 finishWrite 回填实际值
         // V5 头部调色板：在 V5 中无用途，但极少数文件保留有颜色项，需往返保真
         if (headerPalette != null && headerPalette.size() > 0) {
             stream.writeInt(headerPalette.size());
@@ -158,15 +283,8 @@ public class Version5Img extends AbstractImg {
         }
 
         if (ddsTable != null) {
-            // DDS 数据以 ZLIB 压缩形式存储：先压缩以确定头部的大小字段，并缓存供写数据阶段使用
-            ddsCompressedCache.clear();
+            // fullLength/length 已在 prepareWrite 阶段按 ZLIB 压缩结果回填，与缓存数据一致
             for (DdsSource ddsSource : ddsTable.values()) {
-                if (ddsSource.getRawData() != null) {
-                    byte[] compressed = Bytes.compress(ddsSource.getRawData());
-                    ddsSource.setFullLength(ddsSource.getRawData().length);
-                    ddsSource.setLength(compressed.length);
-                    ddsCompressedCache.put(ddsSource.getIndex(), compressed);
-                }
                 stream.writeInt(ddsSource.getTitle());
                 stream.writeInt(ddsSource.getPixelFormat());
                 stream.writeInt(ddsSource.getIndex());
@@ -178,54 +296,58 @@ public class Version5Img extends AbstractImg {
         }
     }
 
+    /**
+     * 写出收尾：回填头部的 imgLength 字段（相对写出起始位置，
+     * 不依赖流从位置 0 开始的假设），并清理压缩缓存。
+     */
     @Override
-    public void write(ImageOutputStream stream) throws IOException {
-        super.write(stream);
-        // V5 头部的 imgLength 字段记录整个 IMG 文件大小。头部先于帧数据写出，
-        // 此刻才能得知总大小，故写完后回填该字段（避免修改后字段与实际大小不符）
-        long totalSize = stream.getStreamPosition();
-        stream.seek(IMG_LENGTH_FIELD_OFFSET);
-        stream.writeInt((int) totalSize);
-        stream.seek(totalSize);
+    protected void finishWrite(ImageOutputStream stream, long startPosition) throws IOException {
+        long endPosition = stream.getStreamPosition();
+        stream.seek(startPosition + IMG_LENGTH_FIELD_OFFSET);
+        stream.writeInt((int) (endPosition - startPosition));
+        stream.seek(endPosition);
+        ddsCompressedCache.clear();
     }
 
+    /**
+     * 读取数据区：先读 ZLIB 压缩的 DDS 纹理数据（解压上限为头部声明的 fullLength，
+     * 防御压缩炸弹），再读非 FXT/非引用帧的像素数据。
+     * <p>
+     * FXT 帧不持有自身像素数据，其 DDS 纹理由 DdsCodec 从 ddsTable 按 ddsIndex 获取。
+     * </p>
+     */
     @Override
-    protected void readFrames(ImageInputStream stream) throws IOException {
-        List<Frame> frameList = new ArrayList<>(frameSize);
-        for (int i = 0; i < frameSize; i++) {
-            Frame frame = new Frame();
-            frame.setType(stream.readInt());
-            readFrameDescriptor(stream, frame);
-            frameList.add(frame);
-        }
-
-        // 先读 DDS 纹理数据：文件中存储的是 ZLIB 压缩后的 DDS，
-        // 按「压缩后大小(length)」读取字节并解压得到完整 DDS 文件
+    protected void readDataSection(ImageInputStream stream) throws IOException {
         if (ddsTable != null) {
             for (DdsSource ddsSource : ddsTable.values()) {
-                int compressedLength = ddsSource.getLength();
-                if (compressedLength < 0) {
-                    throw new NpkException("Corrupt IMG v5: negative DDS data length "
-                            + compressedLength + " at index " + ddsSource.getIndex() + ".");
-                }
-                byte[] compressed = new byte[compressedLength];
+                byte[] compressed = new byte[ddsSource.getLength()];
                 stream.readFully(compressed);
-                ddsSource.setRawData(Bytes.decompress(compressed));
+                ddsSource.setData(Bytes.decompress(compressed, ddsSource.getFullLength()));
             }
         }
-
-        // 再读非 DDS 帧的像素数据
-        for (int i = 0; i < frameSize; i++) {
-            Frame frame = frameList.get(i);
+        for (Frame frame : frames) {
             if (!frame.isReference() && !frame.isFxt()) {
                 readFrameRawData(stream, frame);
             }
         }
+    }
 
-        // FXT 帧不持有自身像素数据，其 DDS 纹理由 DdsCodec 从 ddsTable 按 ddsIndex 获取，
-        // 此处不再挂载 rawData，以免 setRawData 覆盖保留的 length 字段
-
-        this.frames = frameList;
+    /**
+     * 写入数据区：先写 ZLIB 压缩的 DDS 纹理数据（取自 prepareWrite 的缓存，
+     * 与头部 length 字段一致），再写非 FXT/非引用帧的像素数据。
+     */
+    @Override
+    protected void writeDataSection(ImageOutputStream stream) throws IOException {
+        if (ddsTable != null) {
+            for (DdsSource ddsSource : ddsTable.values()) {
+                stream.write(ddsCompressedCache.get(ddsSource.getIndex()));
+            }
+        }
+        for (Frame frame : frames) {
+            if (!frame.isReference() && !frame.isFxt()) {
+                writeFrameRawData(stream, frame);
+            }
+        }
     }
 
     @Override
@@ -242,31 +364,6 @@ public class Version5Img extends AbstractImg {
             Bytes.skipFully(stream, 4); // padding
         } else {
             super.readFrameDescriptor(stream, frame);
-        }
-    }
-
-    @Override
-    protected void writeFrames(ImageOutputStream stream) throws IOException {
-        // 写帧表
-        for (Frame frame : frames) {
-            writeFrameDescriptor(stream, frame);
-        }
-        // 写 DDS 数据（ZLIB 压缩后的字节，与头部 length 字段一致）
-        if (ddsTable != null) {
-            for (DdsSource ddsSource : ddsTable.values()) {
-                byte[] compressed = ddsCompressedCache.get(ddsSource.getIndex());
-                if (compressed != null) {
-                    stream.write(compressed);
-                } else if (ddsSource.getRawData() != null) {
-                    stream.write(ddsSource.getRawData());
-                }
-            }
-        }
-        // 写非 FXT、非引用帧的像素数据
-        for (Frame frame : frames) {
-            if (!frame.isReference() && !frame.isFxt()) {
-                writeFrameRawData(stream, frame);
-            }
         }
     }
 
@@ -302,94 +399,5 @@ public class Version5Img extends AbstractImg {
             return 64; // type(4) + 8 个 int 字段(32) + padding(4) + 裁剪信息(20) + padding(4)
         }
         return super.frameTableEntrySize(frame);
-    }
-
-    /**
-     * 登记一张 DDS 纹理到 DDS 表，返回其分配的索引。
-     * <p>
-     * 传入的 {@link DdsSource} 须携带完整的 DDS 文件字节
-     * （本库不实现 BufferedImage → DDS 的 DXT 压缩）。
-     * 压缩前/后大小（fullLength/length）会在 writeHeader 阶段按 ZLIB 压缩结果自动回填。
-     * </p>
-     *
-     * @param ddsSource 携带完整 DDS 文件字节与像素格式、宽高的纹理源
-     * @return 该 DDS 在表中分配的索引，供 {@link #addDdsImage} 引用
-     */
-    @Override
-    public int addDdsSource(DdsSource ddsSource) {
-        if (ddsSource == null || ddsSource.getRawData() == null || ddsSource.getRawData().length == 0) {
-            throw new NpkException("DDS data cannot be null or empty.");
-        }
-        if (ddsTable == null) {
-            ddsTable = new DdsTable();
-        }
-        ddsTable.put(ddsSource); // index < 0 时自动分配下一个可用索引
-        invalidateRawData();
-        return ddsSource.getIndex();
-    }
-
-    /**
-     * 追加一个引用 DDS 纹理裁切区域的 FXT 帧（DDS 引用型索引项）。
-     * <p>
-     * 帧的颜色系统（type）无需显式传入——一帧即从所引用的 DDS 大图裁切而来，
-     * 其压缩方式必然等于该 DDS 的像素格式，故直接取自 {@code DdsSource.pixelFormat}
-     * （取值 0x12/0x13/0x14，与 {@link Frame#TYPE_FXT1} 等同一编码空间）。
-     * 帧的贴图宽高由裁切区域自动得出（right-left × down-up），
-     * 压缩状态按格式规范固定为 7（ZLIB），保留的 length 字段置 0。
-     * </p>
-     *
-     * @param ddsSourceIndex 引用的 DDS 纹理索引（来自 {@link #addDdsSource} 的返回值）
-     * @param left           裁切区域左边界
-     * @param up             裁切区域上边界
-     * @param right          裁切区域右边界
-     * @param down           裁切区域下边界
-     * @param x              图像起始绘制点 X 坐标
-     * @param y              图像起始绘制点 Y 坐标
-     * @param frameWidth     帧域宽（基准用）
-     * @param frameHeight    帧域高（基准用）
-     */
-    @Override
-    public void addDdsImage(int ddsSourceIndex, int left, int up, int right, int down,
-                            int x, int y, int frameWidth, int frameHeight) {
-        DdsSource ddsSource = ddsTable != null ? ddsTable.get(ddsSourceIndex) : null;
-        if (ddsSource == null) {
-            throw new NpkException("DDS source not found for index " + ddsSourceIndex
-                    + ". Call addDdsSource() first.");
-        }
-        // 帧的颜色系统直接沿用所引用 DDS 的像素格式（FXT1/FXT3/FXT5）
-        int frameType = ddsSource.getPixelFormat();
-        if (!Frame.isFxtType(frameType)) {
-            throw new NpkException("DDS source at index " + ddsSourceIndex
-                    + " has a non-FXT pixel format (0x" + Integer.toHexString(frameType)
-                    + "); a DDS-reference frame requires FXT1/FXT3/FXT5 (0x12/0x13/0x14).");
-        }
-        if (right <= left || down <= up) {
-            throw new NpkException("Invalid DDS crop region: ["
-                    + left + "," + up + "," + right + "," + down + "]");
-        }
-        if (left < 0 || up < 0 || right > ddsSource.getWidth() || down > ddsSource.getHeight()) {
-            throw new NpkException("DDS crop region [" + left + "," + up + "," + right + "," + down
-                    + "] exceeds DDS source bounds " + ddsSource.getWidth() + "x" + ddsSource.getHeight());
-        }
-        if (frameWidth <= 0 || frameHeight <= 0) {
-            throw new NpkException("Frame dimensions must be positive: "
-                    + frameWidth + "x" + frameHeight);
-        }
-        Frame frame = new Frame(frameType);
-        frame.setCompressed(Frame.COMPRESSED_DDS); // 规范：DDS 引用型索引项压缩状态为 7（ZLIB）
-        frame.setWidth(right - left);
-        frame.setHeight(down - up);
-        frame.setLength(0);                // 保留字段（原图片大小位置），须为 0
-        frame.setX(x);
-        frame.setY(y);
-        frame.setFrameWidth(frameWidth);
-        frame.setFrameHeight(frameHeight);
-        frame.setDdsIndex(ddsSourceIndex);
-        frame.setLeftCut(left);
-        frame.setUpCut(up);
-        frame.setRightCut(right);
-        frame.setDownCut(down);
-        frames.add(frame);
-        invalidateRawData();
     }
 }

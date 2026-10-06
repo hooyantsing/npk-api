@@ -17,6 +17,11 @@ import java.util.Hashtable;
 public abstract class Abstract16BitPixelCodec extends AbstractPixelCodec {
 
     /**
+     * 每像素字节数（16 位色）
+     */
+    private static final int BYTES_PER_PIXEL = 2;
+
+    /**
      * RGBA 分量位掩码，顺序为 {R, G, B, A}
      */
     protected abstract int[] bitMasks();
@@ -24,7 +29,7 @@ public abstract class Abstract16BitPixelCodec extends AbstractPixelCodec {
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
         int[] masks = bitMasks();
-        byte[] data = frame.getDecompressedData();
+        byte[] data = frame.getDecompressedData(frame.expectedDataSize(BYTES_PER_PIXEL));
         ColorModel colorModel = new DirectColorModel(16, masks[0], masks[1], masks[2], masks[3]);
         SampleModel sampleModel = new SinglePixelPackedSampleModel(
                 DataBuffer.TYPE_USHORT, frame.getWidth(), frame.getHeight(), masks);

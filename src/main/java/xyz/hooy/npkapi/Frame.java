@@ -11,7 +11,6 @@ package xyz.hooy.npkapi;
  *   <li>引用帧（REFERENCE）— 指向另一个帧的索引</li>
  *   <li>DDS 帧（FXT1/FXT3/FXT5）— 引用 DdsTable 中的纹理数据</li>
  * </ul>
- * </p>
  *
  * <h3>关于 TYPE_INDEXED 与 TYPE_ARGB1555</h3>
  * <p>
@@ -21,6 +20,14 @@ package xyz.hooy.npkapi;
  *   <li>IMG V4/V6：{@code 0x0E} 表示索引色（调色板）格式</li>
  * </ul>
  * 两者共享相同的类型值，由 IMG 版本决定语义解释。
+ * </p>
+ *
+ * <h3>length 字段语义</h3>
+ * <p>
+ * 帧描述中的 length 字段对图像帧而言是像素数据字节数，对 FXT 帧而言是保留字段（须为 0）。
+ * 本类中该字段不由外部单独维护：{@link #getLength()} 在帧挂载了像素数据时
+ * 直接返回数据长度（单一事实来源），仅在无数据时（FXT 帧、描述解析阶段）
+ * 返回 {@link #setLength(int)} 记录的描述值。
  * </p>
  */
 public class Frame {
@@ -83,7 +90,7 @@ public class Frame {
     public static final int COMPRESSED = 0x06;
 
     /**
-     * ZLIB 压缩（DDS 引用型索引项，见 {@link Version5Img#addDdsImage}）
+     * ZLIB 压缩（DDS 引用型索引项，见 {@link DdsCapable#addDdsImage}）
      */
     public static final int COMPRESSED_DDS = 0x07;
 
@@ -108,7 +115,7 @@ public class Frame {
     private int height;
 
     /**
-     * 图像帧：原始数据长度（字节）
+     * 帧描述中的 length 字段值（见类文档「length 字段语义」）
      */
     private int length;
 
@@ -179,7 +186,7 @@ public class Frame {
         } else {
             return "Frame{type=0x" + Integer.toHexString(type)
                     + ", " + width + "x" + height
-                    + ", length=" + length + "}";
+                    + ", length=" + getLength() + "}";
         }
     }
 
@@ -208,23 +215,48 @@ public class Frame {
     }
 
     /**
-     * 获取解压后的原始像素数据。
-     * 如果帧数据是压缩的，会自动解压；否则直接返回原始数据。
-     * 引用帧与 FXT 帧不持有像素数据，调用本方法会抛出异常。
+     * 计算本帧像素数据的期望字节数（宽 × 高 × 每像素字节数）。
      *
-     * @return 解压后的字节数组
-     * @throws NpkException 帧无原始像素数据时抛出（引用帧、FXT 帧，
-     *                      或手工构造但未挂载数据的帧）
+     * @param bytesPerPixel 每像素字节数（索引色 1、16 位色 2、ARGB8888 4）
+     * @return 期望字节数
+     * @throws NpkException 宽高为负或乘积超出 int 范围（损坏文件的防御）
      */
-    public byte[] getDecompressedData() {
+    public int expectedDataSize(int bytesPerPixel) {
+        long size = (long) width * height * bytesPerPixel;
+        if (width < 0 || height < 0 || size > Integer.MAX_VALUE) {
+            throw new NpkException("Frame data size overflow: " + width + "x" + height
+                    + " x " + bytesPerPixel + " bytes/pixel.");
+        }
+        return (int) size;
+    }
+
+    /**
+     * 获取解压后的原始像素数据，并校验其长度恰为期望值。
+     * <p>
+     * 返回值始终是独立副本：调用方（如像素编解码器将其包装进
+     * {@code DataBuffer}）修改返回数组不会影响帧内部状态。
+     * 压缩数据解压时以 {@code expectedSize} 为上限，防御压缩炸弹。
+     * </p>
+     *
+     * @param expectedSize 期望的数据字节数（通常来自 {@link #expectedDataSize(int)}）
+     * @return 解压后的独立字节数组，长度恰为 expectedSize
+     * @throws NpkException 帧无原始像素数据（引用帧、FXT 帧或未挂载数据的帧），
+     *                      或数据长度与期望不符、解压失败/超限
+     */
+    public byte[] getDecompressedData(int expectedSize) {
         if (rawData == null) {
             throw new NpkException("Frame has no raw data (type=0x"
                     + Integer.toHexString(type) + ").");
         }
-        if (isCompressed()) {
-            return Bytes.decompress(rawData);
+        if (expectedSize < 0) {
+            throw new IllegalArgumentException("expectedSize must be >= 0: " + expectedSize);
         }
-        return rawData;
+        byte[] data = isCompressed() ? Bytes.decompress(rawData, expectedSize) : rawData.clone();
+        if (data.length != expectedSize) {
+            throw new NpkException("Frame data length " + data.length
+                    + " does not match expected size " + expectedSize + " (" + this + ").");
+        }
+        return data;
     }
 
     /**
@@ -282,10 +314,19 @@ public class Frame {
         this.height = height;
     }
 
+    /**
+     * 帧描述中的 length 值：挂载了像素数据时为数据长度（单一事实来源），
+     * 否则为描述解析/保留字段值（FXT 帧恒为 0）。
+     */
     public int getLength() {
-        return length;
+        return rawData != null ? rawData.length : length;
     }
 
+    /**
+     * 设置帧描述中的 length 字段值。
+     * 仅对未挂载像素数据的帧有效（FXT 保留字段、描述解析阶段）；
+     * 挂载数据后 {@link #getLength()} 以数据长度为准，本值被忽略。
+     */
     public void setLength(int length) {
         this.length = length;
     }
@@ -322,6 +363,10 @@ public class Frame {
         this.frameHeight = frameHeight;
     }
 
+    /**
+     * 帧的原始像素字节（可能是压缩的），仅供序列化与编解码使用。
+     * 注意：返回内部引用，调用方不应修改其内容。
+     */
     public byte[] getRawData() {
         return rawData;
     }

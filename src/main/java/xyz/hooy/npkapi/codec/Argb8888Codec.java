@@ -15,9 +15,14 @@ import java.util.Hashtable;
  */
 public class Argb8888Codec extends AbstractPixelCodec {
 
+    /**
+     * 每像素字节数（32 位色）
+     */
+    private static final int BYTES_PER_PIXEL = 4;
+
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
-        byte[] data = frame.getDecompressedData();
+        byte[] data = frame.getDecompressedData(frame.expectedDataSize(BYTES_PER_PIXEL));
         ColorModel colorModel = new ComponentColorModel(
                 ColorSpace.getInstance(ColorSpace.CS_sRGB),
                 new int[]{8, 8, 8, 8}, true, false,

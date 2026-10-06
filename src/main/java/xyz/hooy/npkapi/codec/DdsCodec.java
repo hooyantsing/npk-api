@@ -6,6 +6,7 @@ import xyz.hooy.npkapi.Frame;
 import xyz.hooy.npkapi.NpkException;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
@@ -18,6 +19,8 @@ import java.util.Arrays;
  * </p>
  * <p>
  * 依赖 TwelveMonkeys imageio-dds 插件进行 DDS 格式解码。
+ * 同一纹理的解码结果由 {@link DdsSource} 缓存（常被多个 FXT 帧共享），
+ * 本编解码器返回给调用方的子图像是独立拷贝，修改它不会污染缓存。
  * </p>
  */
 public class DdsCodec implements PixelCodec {
@@ -32,7 +35,7 @@ public class DdsCodec implements PixelCodec {
             Arrays.asList(ImageIO.getReaderFormatNames()).contains(DDS_FORMAT);
 
     /**
-     * 将 FXT 帧解码为所引用 DDS 纹理的裁剪子图像。
+     * 将 FXT 帧解码为所引用 DDS 纹理的裁剪子图像（独立拷贝）。
      *
      * @param frame   FXT 帧描述（含 ddsIndex 与裁剪区域）
      * @param context 须携带 DdsTable 的解码上下文
@@ -49,17 +52,32 @@ public class DdsCodec implements PixelCodec {
         if (width <= 0 || height <= 0) {
             throw new NpkException("Invalid DDS sub-image dimensions: " + width + "x" + height);
         }
-        if (width > ddsImage.getWidth() || height > ddsImage.getHeight()) {
-            throw new NpkException("DDS sub-image region (" + width + "x" + height
-                    + ") exceeds DDS source size (" + ddsImage.getWidth() + "x" + ddsImage.getHeight() + ").");
+        if (frame.getLeftCut() < 0 || frame.getUpCut() < 0
+                || width > ddsImage.getWidth() || height > ddsImage.getHeight()
+                || frame.getLeftCut() + width > ddsImage.getWidth()
+                || frame.getUpCut() + height > ddsImage.getHeight()) {
+            throw new NpkException("DDS sub-image region (" + width + "x" + height + " at "
+                    + frame.getLeftCut() + "," + frame.getUpCut() + ") exceeds DDS source size ("
+                    + ddsImage.getWidth() + "x" + ddsImage.getHeight() + ").");
         }
 
-        return ddsImage.getSubimage(frame.getLeftCut(), frame.getUpCut(), width, height);
+        // DdsSource 缓存解码结果供多帧共享，getSubimage 与其共享栅格内存；
+        // 拷贝为独立图像，防止调用方修改像素污染缓存、影响其他帧
+        BufferedImage region = ddsImage.getSubimage(
+                frame.getLeftCut(), frame.getUpCut(), width, height);
+        BufferedImage copy = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = copy.createGraphics();
+        try {
+            graphics.drawImage(region, 0, 0, null);
+        } finally {
+            graphics.dispose();
+        }
+        return copy;
     }
 
     private BufferedImage getDdsImage(Frame frame, CodecContext context) {
         DdsSource ddsSource = getDdsSource(frame, context);
-        if (ddsSource == null || ddsSource.getRawData() == null) {
+        if (ddsSource == null) {
             throw new NpkException("DDS source not found for index " + frame.getDdsIndex());
         }
 
@@ -100,7 +118,7 @@ public class DdsCodec implements PixelCodec {
     /**
      * 检查当前 ImageIO 环境是否支持 DDS 格式读取（结果在类加载时探测并缓存）
      */
-    public boolean isDdsSupported() {
+    public static boolean isDdsSupported() {
         return DDS_SUPPORTED;
     }
 }

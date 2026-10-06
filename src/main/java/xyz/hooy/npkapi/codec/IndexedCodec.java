@@ -20,6 +20,11 @@ import java.util.Map;
  */
 public class IndexedCodec extends AbstractPixelCodec {
 
+    /**
+     * 每像素字节数（8 位索引）
+     */
+    private static final int BYTES_PER_PIXEL = 1;
+
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
         if (context == null || context.getPalette() == null) {
@@ -30,12 +35,8 @@ public class IndexedCodec extends AbstractPixelCodec {
             throw new NpkException("IndexedCodec requires a non-empty palette (frame "
                     + frame.getWidth() + "x" + frame.getHeight() + ").");
         }
-        byte[] data = frame.getDecompressedData();
-        if (data.length != (long) frame.getWidth() * frame.getHeight()) {
-            throw new NpkException("Indexed frame data length " + data.length
-                    + " does not match frame dimensions " + frame.getWidth()
-                    + "x" + frame.getHeight() + ".");
-        }
+        // 数据长度与帧尺寸的匹配校验由 getDecompressedData 完成
+        byte[] data = frame.getDecompressedData(frame.expectedDataSize(BYTES_PER_PIXEL));
 
         // 使用带 alpha 通道的字节数组构造器，保留调色板中每项的透明度（R, G, B, A）
         int size = palette.size();

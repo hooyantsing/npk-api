@@ -28,7 +28,7 @@ import java.util.Map;
  *     - colors[colorNum] (4 bytes each: R, G, B, A)
  * </pre>
  */
-public class Version6Img extends Version4Img {
+public class Version6Img extends Version4Img implements MultiPaletteCapable {
 
     private List<PaletteSource> palettes = new ArrayList<>();
     private int activePaletteIndex;
@@ -75,14 +75,14 @@ public class Version6Img extends Version4Img {
      * 追加单帧（仅限单一调色板方案时使用）。
      * <p>
      * 多调色板状态下各调色板须锁步增长，本方法将抛出 {@link NpkException}，
-     * 此时须改用 {@link #addPalettesImage(BufferedImage[])}。
+     * 此时须改用 {@link #addMultiPaletteImage(BufferedImage[])}。
      * </p>
      */
     @Override
     public void addImage(BufferedImage image, int frameType) {
         if (palettes.size() > 1) {
             throw new NpkException("This V6 IMG has " + palettes.size() + " palettes; use "
-                    + "addPalettesImage(BufferedImage[]) to add a frame while keeping all palettes in sync. "
+                    + "addMultiPaletteImage(BufferedImage[]) to add a frame while keeping all palettes in sync. "
                     + "Single-image addImage is only allowed when there is exactly one palette.");
         }
         super.addImage(image, frameType);
@@ -142,7 +142,7 @@ public class Version6Img extends Version4Img {
      * </p>
      */
     @Override
-    public void addPalettesImage(BufferedImage[] paletteImages) {
+    public void addMultiPaletteImage(BufferedImage[] paletteImages) {
         validatePaletteImages(paletteImages);
         int paletteCount = paletteImages.length;
         ensurePaletteLayout(paletteCount);
@@ -169,7 +169,6 @@ public class Version6Img extends Version4Img {
         }
 
         frames.add(createIndexedFrame(referenceImage, indexes));
-        invalidateRawData();
     }
 
     /**
@@ -221,7 +220,7 @@ public class Version6Img extends Version4Img {
             if (palettes.size() != paletteCount) {
                 throw new NpkException("paletteImages length (" + paletteCount + ") does not match the "
                         + "established palette count (" + palettes.size() + "). Once palettes are "
-                        + "established, every addPalettesImage(BufferedImage[]) call must pass the same number of images.");
+                        + "established, every addMultiPaletteImage(BufferedImage[]) call must pass the same number of images.");
             }
             int referenceSize = palettes.get(0).size();
             for (int i = 1; i < palettes.size(); i++) {
