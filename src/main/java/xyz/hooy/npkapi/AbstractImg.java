@@ -130,6 +130,15 @@ public abstract class AbstractImg implements Img {
     }
 
     @Override
+    public Frame getFrame(int index) {
+        if (index < 0 || index >= frames.size()) {
+            throw new IndexOutOfBoundsException(
+                    "Frame index " + index + " out of bounds [0, " + frames.size() + ")");
+        }
+        return frames.get(index);
+    }
+
+    @Override
     public BufferedImage getImage(int index) {
         return getImage(index, new HashSet<Integer>());
     }
@@ -148,8 +157,33 @@ public abstract class AbstractImg implements Img {
                     "Reference index " + referenceIndex + " out of bounds [0, " + frames.size() + ")");
         }
         Frame frame = new Frame(Frame.TYPE_REFERENCE);
-        frame.setReference(referenceIndex);
+        frame.setReference(resolveReferenceTarget(referenceIndex));
         frames.add(frame);
+    }
+
+    /**
+     * 将引用链展平至首个非引用帧。
+     * <p>
+     * DNF 客户端沿引用链逐层寻帧且不检测有向环（遇环会栈溢出闪退），
+     * 官方资源的链接深度最大仅为 2；展平后新建引用帧深度恒为 1，
+     * 解码语义不变且对游戏更稳妥。若既有链中存在环（只可能来自损坏文件），
+     * 保持用户传入的直接索引，由 {@link #getImage(int)} 的环检测兜底报错。
+     * </p>
+     */
+    private int resolveReferenceTarget(int referenceIndex) {
+        int target = referenceIndex;
+        for (int guard = 0; guard < frames.size(); guard++) {
+            Frame candidate = frames.get(target);
+            if (!candidate.isReference()) {
+                return target;
+            }
+            int next = candidate.getReference();
+            if (next < 0 || next >= frames.size()) {
+                return target; // 无效链接，保留原值交由解码时明确报错
+            }
+            target = next;
+        }
+        return referenceIndex; // 链中存在环：保持原值
     }
 
     @Override

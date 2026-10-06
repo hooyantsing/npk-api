@@ -6,20 +6,21 @@ import xyz.hooy.npkapi.Frame;
 import xyz.hooy.npkapi.NpkException;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
 /**
- * DDS/FXT 纹理编解码器。
+ * DDS 引用帧（V5 sprite 帧）编解码器。
  * <p>
- * 用于 IMG V5 格式中的 FXT1/FXT3/FXT5 类型帧。
- * 这类帧的数据来源是 DdsTable 中的 DDS 纹理，
- * 解码时通过裁剪区域（leftCut, upCut, rightCut, downCut）获取子图像。
+ * 用于 IMG V5 中压缩状态为 {@link Frame#COMPRESSED_DDS} 的帧
+ * （颜色系统可为 FXT1/FXT3/FXT5，也可为 ARGB8888 等裸像素格式）。
+ * 这类帧不持有像素数据，其图像来自 DdsTable 中的共享纹理，
+ * 解码时通过裁剪区域（leftCut, upCut, rightCut, downCut）获取子图像，
+ * 并按旋转标志（{@link Frame#getRotate()}）还原图集中的旋转打包。
  * </p>
  * <p>
- * 依赖 TwelveMonkeys imageio-dds 插件进行 DDS 格式解码。
- * 同一纹理的解码结果由 {@link DdsSource} 缓存（常被多个 FXT 帧共享），
+ * DXT 纹理的解码依赖 TwelveMonkeys imageio-dds 插件；裸像素纹理无此依赖。
+ * 同一纹理的解码结果由 {@link DdsSource} 缓存（常被多个帧共享），
  * 本编解码器返回给调用方的子图像是独立拷贝，修改它不会污染缓存。
  * </p>
  */
@@ -35,71 +36,72 @@ public class DdsCodec implements PixelCodec {
             Arrays.asList(ImageIO.getReaderFormatNames()).contains(DDS_FORMAT);
 
     /**
-     * 将 FXT 帧解码为所引用 DDS 纹理的裁剪子图像（独立拷贝）。
+     * 将 DDS 引用帧解码为所引用纹理的裁剪子图像（独立拷贝）。
+     * <p>
+     * 若帧的旋转标志（{@link Frame#getRotate()}）为 1，说明该贴图在纹理图集中
+     * 被旋转 90° 存放（图集打包优化），裁剪后须逆时针旋转 90° 还原
+     * （与游戏行为一致，经真实文件与独立实现交叉验证）。
+     * </p>
      *
-     * @param frame   FXT 帧描述（含 ddsIndex 与裁剪区域）
+     * @param frame   DDS 引用帧描述（含 ddsIndex、裁剪区域与旋转标志）
      * @param context 须携带 DdsTable 的解码上下文
-     * @return 裁剪区域对应的子图像
+     * @return 裁剪（并按需旋转）后的子图像
      * @throws NpkException 缺少 DDS 插件、上下文缺少 DdsTable、DDS 源缺失，
-     *                      或裁切出的子图尺寸非正/大于纹理尺寸时抛出
+     *                      或裁切区域尺寸非正/超出纹理边界时抛出
      */
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
         BufferedImage ddsImage = getDdsImage(frame, context);
 
-        int width = frame.getRightCut() - frame.getLeftCut();
-        int height = frame.getDownCut() - frame.getUpCut();
-        if (width <= 0 || height <= 0) {
-            throw new NpkException("Invalid DDS sub-image dimensions: " + width + "x" + height);
+        int cropWidth = frame.getRightCut() - frame.getLeftCut();
+        int cropHeight = frame.getDownCut() - frame.getUpCut();
+        if (cropWidth <= 0 || cropHeight <= 0) {
+            throw new NpkException("Invalid DDS sub-image dimensions: " + cropWidth + "x" + cropHeight);
         }
         if (frame.getLeftCut() < 0 || frame.getUpCut() < 0
-                || width > ddsImage.getWidth() || height > ddsImage.getHeight()
-                || frame.getLeftCut() + width > ddsImage.getWidth()
-                || frame.getUpCut() + height > ddsImage.getHeight()) {
-            throw new NpkException("DDS sub-image region (" + width + "x" + height + " at "
-                    + frame.getLeftCut() + "," + frame.getUpCut() + ") exceeds DDS source size ("
+                || frame.getRightCut() > ddsImage.getWidth()
+                || frame.getDownCut() > ddsImage.getHeight()) {
+            throw new NpkException("DDS sub-image region [" + frame.getLeftCut() + ","
+                    + frame.getUpCut() + "," + frame.getRightCut() + "," + frame.getDownCut()
+                    + "] exceeds DDS source size ("
                     + ddsImage.getWidth() + "x" + ddsImage.getHeight() + ").");
         }
 
+        boolean rotated = frame.getRotate() != 0;
+        int outWidth = rotated ? cropHeight : cropWidth;
+        int outHeight = rotated ? cropWidth : cropHeight;
+
         // DdsSource 缓存解码结果供多帧共享，getSubimage 与其共享栅格内存；
-        // 拷贝为独立图像，防止调用方修改像素污染缓存、影响其他帧
+        // 逐像素拷贝为独立图像（按需逆时针旋转 90°），防止调用方修改污染缓存
         BufferedImage region = ddsImage.getSubimage(
-                frame.getLeftCut(), frame.getUpCut(), width, height);
-        BufferedImage copy = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D graphics = copy.createGraphics();
-        try {
-            graphics.drawImage(region, 0, 0, null);
-        } finally {
-            graphics.dispose();
+                frame.getLeftCut(), frame.getUpCut(), cropWidth, cropHeight);
+        BufferedImage copy = new BufferedImage(outWidth, outHeight, BufferedImage.TYPE_INT_ARGB);
+        for (int sy = 0; sy < cropHeight; sy++) {
+            for (int sx = 0; sx < cropWidth; sx++) {
+                int argb = region.getRGB(sx, sy);
+                if (rotated) {
+                    // 逆时针 90°：src(x, y) → dst(y, cropWidth - 1 - x)
+                    copy.setRGB(sy, cropWidth - 1 - sx, argb);
+                } else {
+                    copy.setRGB(sx, sy, argb);
+                }
+            }
         }
         return copy;
     }
 
     private BufferedImage getDdsImage(Frame frame, CodecContext context) {
-        DdsSource ddsSource = getDdsSource(frame, context);
-        if (ddsSource == null) {
-            throw new NpkException("DDS source not found for index " + frame.getDdsIndex());
-        }
-
-        BufferedImage ddsImage = ddsSource.getImage();
-        if (ddsImage == null) {
-            throw new NpkException("ImageIO returned null for DDS data. Unsupported DDS sub-format?");
-        }
-        return ddsImage;
-    }
-
-    private DdsSource getDdsSource(Frame frame, CodecContext context) {
-        if (!isDdsSupported()) {
-            throw new NpkException("ImageIO DDS plugin not available. "
-                    + "Please ensure imageio-dds is on the classpath.");
-        }
-
-        // FXT 帧本身不持有像素数据，DDS 纹理来自上下文中的 DdsTable（已解压的完整 DDS）
+        // DDS 引用帧本身不持有像素数据，纹理来自上下文中的 DdsTable（已解压的完整纹理数据）
         DdsTable ddsTable = context != null ? context.getDdsTable() : null;
         if (ddsTable == null) {
             throw new NpkException("DdsCodec requires a DdsTable in CodecContext.");
         }
-        return ddsTable.get(frame.getDdsIndex());
+        DdsSource ddsSource = ddsTable.get(frame.getDdsIndex());
+        if (ddsSource == null) {
+            throw new NpkException("DDS source not found for index " + frame.getDdsIndex());
+        }
+        // DXT 格式需要 ImageIO DDS 插件（DdsSource.getImage 内部校验）；裸像素格式无此依赖
+        return ddsSource.getImage();
     }
 
     /**

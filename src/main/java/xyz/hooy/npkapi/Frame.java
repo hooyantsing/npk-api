@@ -9,7 +9,9 @@ package xyz.hooy.npkapi;
  *   <li>图像帧（ARGB1555/ARGB4444/ARGB8888）— 直接存储像素数据</li>
  *   <li>索引帧（INDEXED）— 在 V4/V6 上下文中，type 值 0x0E 表示索引色</li>
  *   <li>引用帧（REFERENCE）— 指向另一个帧的索引</li>
- *   <li>DDS 帧（FXT1/FXT3/FXT5）— 引用 DdsTable 中的纹理数据</li>
+ *   <li>DDS 引用帧 — 压缩状态为 {@link #COMPRESSED_DDS}(7)，引用 DdsTable 中的
+ *       共享纹理；其颜色系统取自所引用纹理的像素格式（FXT1/FXT3/FXT5 或
+ *       ARGB8888 等裸像素格式），见 {@link #isDdsReference()}</li>
  * </ul>
  *
  * <h3>关于 TYPE_INDEXED 与 TYPE_ARGB1555</h3>
@@ -169,6 +171,21 @@ public class Frame {
      */
     private int downCut;
 
+    /**
+     * DDS 帧：裁剪信息前的保留双字（真实文件恒为 0，读出保留、写回还原以保证往返保真）
+     */
+    private int reserved;
+
+    /**
+     * DDS 帧：旋转标志（0/1）。
+     * <p>
+     * V5 纹理图集打包时会将部分贴图旋转 90° 存放以提高利用率；
+     * 该标志为 1 时，按裁剪区域取出的子图须再<b>逆时针旋转 90°</b> 才是帧的最终图像
+     * （此时裁剪区域宽高与帧宽高互换）。
+     * </p>
+     */
+    private int rotate;
+
     public Frame() {
     }
 
@@ -180,9 +197,10 @@ public class Frame {
     public String toString() {
         if (isReference()) {
             return "Frame{REFERENCE -> " + reference + "}";
-        } else if (isFxt()) {
-            return "Frame{FXT, ddsIndex=" + ddsIndex
-                    + ", cut=[" + leftCut + "," + upCut + "," + rightCut + "," + downCut + "]}";
+        } else if (isDdsReference()) {
+            return "Frame{DDS-REF, ddsIndex=" + ddsIndex
+                    + ", cut=[" + leftCut + "," + upCut + "," + rightCut + "," + downCut + "]"
+                    + (rotate != 0 ? ", rotate=90CCW" : "") + "}";
         } else {
             return "Frame{type=0x" + Integer.toHexString(type)
                     + ", " + width + "x" + height
@@ -200,6 +218,20 @@ public class Frame {
 
     public boolean isFxt() {
         return isFxtType(type);
+    }
+
+    /**
+     * 是否为 DDS 引用帧（V5 sprite 帧，64 字节索引项，不持有像素数据）。
+     * <p>
+     * 判定依据是压缩状态字段 {@link #COMPRESSED_DDS}(7)，而非帧类型：
+     * 真实 V5 文件中 DDS 引用帧的颜色系统取自所引用纹理的像素格式，
+     * 除 FXT1/FXT3/FXT5(0x12/0x13/0x14) 外还常见 ARGB8888(0x10) 等
+     * 普通点阵格式值（此时纹理数据为未压缩像素而非 DDS 文件），
+     * 仅凭类型无法与普通点阵帧区分（与游戏及主流工具的解析行为一致）。
+     * </p>
+     */
+    public boolean isDdsReference() {
+        return compressed == COMPRESSED_DDS;
     }
 
     public boolean isCompressed() {
@@ -414,5 +446,29 @@ public class Frame {
 
     public void setDownCut(int downCut) {
         this.downCut = downCut;
+    }
+
+    /**
+     * DDS 帧裁剪信息前的保留双字（读出保留、写回还原）
+     */
+    public int getReserved() {
+        return reserved;
+    }
+
+    public void setReserved(int reserved) {
+        this.reserved = reserved;
+    }
+
+    /**
+     * DDS 帧旋转标志：1 表示裁剪出的子图须逆时针旋转 90° 后才是帧图像
+     *
+     * @see #isDdsReference()
+     */
+    public int getRotate() {
+        return rotate;
+    }
+
+    public void setRotate(int rotate) {
+        this.rotate = rotate;
     }
 }

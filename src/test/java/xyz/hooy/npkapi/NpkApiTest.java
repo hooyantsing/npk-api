@@ -182,6 +182,29 @@ public class NpkApiTest {
         img.addReferenceImage(0);
         assertEquals(2, img.getImageCount());
         assertNotNull(img.getImage(1)); // 引用帧应解引用到帧 0
+
+        // 帧元数据访问
+        Frame frame0 = img.getFrame(0);
+        assertEquals(16, frame0.getWidth());
+        assertEquals(16, frame0.getHeight());
+        assertTrue(img.getFrame(1).isReference());
+        assertThrows(IndexOutOfBoundsException.class, () -> img.getFrame(2));
+    }
+
+    @Test
+    void testReferenceChainFlattened() {
+        // 引用链展平：指向引用帧时自动解析到最终图像帧（深度恒为 1，
+        // 规避 DNF 客户端不检测有向环、深链闪退的兼容性问题）
+        Version2Img img = new Version2Img();
+        img.addImage(new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB), Frame.TYPE_ARGB8888);
+        img.addReferenceImage(0); // 帧1 -> 帧0
+        img.addReferenceImage(1); // 帧2 -> 展平为 帧0
+        img.addReferenceImage(2); // 帧3 -> 展平为 帧0
+
+        assertEquals(0, img.getFrame(1).getReference());
+        assertEquals(0, img.getFrame(2).getReference());
+        assertEquals(0, img.getFrame(3).getReference());
+        assertNotNull(img.getImage(3));
     }
 
     @Test

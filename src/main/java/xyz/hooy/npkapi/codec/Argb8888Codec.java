@@ -22,17 +22,27 @@ public class Argb8888Codec extends AbstractPixelCodec {
 
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
-        byte[] data = frame.getDecompressedData(frame.expectedDataSize(BYTES_PER_PIXEL));
+        return decodeRawPixels(
+                frame.getDecompressedData(frame.expectedDataSize(BYTES_PER_PIXEL)),
+                frame.getWidth(), frame.getHeight());
+    }
+
+    /**
+     * 解码裸 BGRA 像素字节。返回图像直接包装入参数组（不复制），
+     * 调用方此后不得修改该数组。
+     */
+    @Override
+    public BufferedImage decodeRawPixels(byte[] pixelData, int width, int height) {
         ColorModel colorModel = new ComponentColorModel(
                 ColorSpace.getInstance(ColorSpace.CS_sRGB),
                 new int[]{8, 8, 8, 8}, true, false,
                 ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
         SampleModel sampleModel = new PixelInterleavedSampleModel(
-                DataBuffer.TYPE_BYTE, frame.getWidth(), frame.getHeight(),
+                DataBuffer.TYPE_BYTE, width, height,
                 // DNF 数据流按 B, G, R, A 顺序存储，而 ComponentColorModel 分量顺序为 R, G, B, A，
                 // 故 band 偏移为 {2, 1, 0, 3}
-                4, frame.getWidth() * 4, new int[]{2, 1, 0, 3});
-        DataBuffer dataBuffer = new DataBufferByte(data, data.length);
+                4, width * 4, new int[]{2, 1, 0, 3});
+        DataBuffer dataBuffer = new DataBufferByte(pixelData, pixelData.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
         return new BufferedImage(colorModel, raster, false, new Hashtable<>());
     }

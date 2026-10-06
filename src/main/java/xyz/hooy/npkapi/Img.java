@@ -29,8 +29,8 @@ import java.io.IOException;
  * img.read(imageInputStream);
  * BufferedImage sprite = img.getImage(0);
  *
- * if (img instanceof PaletteCapableImg) {
- *     PaletteSource palette = ((PaletteCapableImg) img).getPaletteSource(0);
+ * if (img instanceof PaletteCapable) {
+ *     PaletteSource palette = ((PaletteCapable) img).getPaletteSource(0);
  * }
  * }</pre>
  *
@@ -64,6 +64,20 @@ public interface Img extends NpkResource {
      * @return 帧总数
      */
     int getImageCount();
+
+    /**
+     * 获取指定帧的数据模型（描述字段与像素字节）。
+     * <p>
+     * 用于读取帧的绘制偏移（x/y）、画布尺寸（frameWidth/frameHeight）等
+     * 解码为 {@link BufferedImage} 时不携带的元数据。
+     * 注意：返回的帧是内部可变对象，直接修改其描述字段会影响后续写出。
+     * </p>
+     *
+     * @param index 帧索引（0 ~ getImageCount()-1）
+     * @return 对应帧
+     * @throws IndexOutOfBoundsException 帧索引越界
+     */
+    Frame getFrame(int index);
 
     /**
      * 解码指定帧为图像，引用帧自动解引用。

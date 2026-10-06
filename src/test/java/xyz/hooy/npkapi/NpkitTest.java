@@ -337,7 +337,7 @@ public class NpkitTest {
             assertEquals(Frame.TYPE_FXT1, dds.getPixelFormat());
             assertEquals(8, dds.getWidth());
             assertEquals(8, dds.getHeight());
-            assertEquals(ddsBytes.length, dds.getFullLength());
+            assertEquals(ddsBytes.length, dds.getRawSize());
             assertArrayEquals(ddsBytes, dds.getData()); // ZLIB 压缩→解压字节保真
         }
     }
@@ -358,12 +358,105 @@ public class NpkitTest {
         // 不存在的 DDS 索引拒绝
         assertThrows(NpkException.class,
                 () -> img.addDdsImage(42, new Rectangle(0, 0, 4, 4), new Rectangle(0, 0, 4, 4)));
-        // 非 FXT 像素格式拒绝
-        int badFormat = img.addDdsSource(
-                new DdsSource(new byte[]{1}, Frame.TYPE_ARGB8888, 8, 8));
+
+        // 纹理源数据校验：DXT 缺 "DDS " 魔数 / 裸像素尺寸不符 / 未知格式均拒绝
         assertThrows(NpkException.class,
-                () -> img.addDdsImage(badFormat, new Rectangle(0, 0, 4, 4), new Rectangle(0, 0, 4, 4)));
-        assertEquals(0, img.getImageCount());
+                () -> img.addDdsSource(new DdsSource(new byte[]{1, 2, 3, 4}, Frame.TYPE_FXT1, 8, 8)));
+        assertThrows(NpkException.class,
+                () -> img.addDdsSource(new DdsSource(new byte[]{1}, Frame.TYPE_ARGB8888, 8, 8)));
+        assertThrows(NpkException.class,
+                () -> img.addDdsSource(new DdsSource(new byte[64], 0x99, 8, 8)));
+
+        // 裸像素格式（真实 V5 文件常见 0x10 ARGB8888 图集）为合法纹理源
+        int rawIndex = img.addDdsSource(
+                new DdsSource(new byte[8 * 8 * 4], Frame.TYPE_ARGB8888, 8, 8));
+        img.addDdsImage(rawIndex, new Rectangle(0, 0, 4, 4), new Rectangle(0, 0, 4, 4));
+        assertEquals(1, img.getImageCount());
+        assertEquals(2, img.getDdsSourceCount());
+    }
+
+    @Test
+    void testVersion5RawAtlasRotatedRoundTrip(@TempDir Path tempDir) throws IOException {
+        // V5 裸像素图集 + 旋转标志的完整往返（真实文件的主流形态，不依赖 DDS 解码插件）：
+        // 图集为 8x8 ARGB8888 裸像素；裁切 (2,1)-(6,4)（4x3 区域）旋转存放，帧尺寸为 3x4
+        int atlasW = 8, atlasH = 8;
+        BufferedImage atlas = new BufferedImage(atlasW, atlasH, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < atlasH; y++) {
+            for (int x = 0; x < atlasW; x++) {
+                atlas.setRGB(x, y, 0xFF000000 | (x * 16) | (y << 8) | ((x ^ y) << 16));
+            }
+        }
+        byte[] atlasBytes = new byte[atlasW * atlasH * 4];
+        for (int y = 0; y < atlasH; y++) {
+            for (int x = 0; x < atlasW; x++) {
+                int argb = atlas.getRGB(x, y);
+                int o = (y * atlasW + x) * 4;
+                atlasBytes[o] = (byte) (argb & 0xFF);          // B
+                atlasBytes[o + 1] = (byte) ((argb >> 8) & 0xFF);  // G
+                atlasBytes[o + 2] = (byte) ((argb >> 16) & 0xFF); // R
+                atlasBytes[o + 3] = (byte) ((argb >> 24) & 0xFF); // A
+            }
+        }
+
+        Version5Img img = new Version5Img();
+        img.setName("test/raw_atlas.img");
+        int ddsIndex = img.addDdsSource(new DdsSource(atlasBytes, Frame.TYPE_ARGB8888, atlasW, atlasH));
+        // 不旋转帧：裁切 (0,0)-(2,2)
+        img.addDdsImage(ddsIndex, new Rectangle(0, 0, 2, 2), new Rectangle(0, 0, 2, 2));
+        // 旋转帧：裁切 (2,1)-(6,4)，图集中旋转存放，帧尺寸 = 3x4（宽高互换）
+        img.addDdsImage(ddsIndex, new Rectangle(2, 1, 4, 3), new Rectangle(5, 6, 3, 4), true);
+        assertEquals(2, img.getImageCount());
+
+        NpkFile npk = NpkFile.create();
+        npk.addResource(img);
+        Path out = tempDir.resolve("v5_raw.npk");
+        npk.save(out.toFile());
+
+        try (NpkFile reopened = NpkFile.open(out.toFile())) {
+            Img loaded = reopened.getImages().get(0);
+            assertEquals(5, loaded.getVersion());
+            DdsCapable ddsImg = assertInstanceOf(DdsCapable.class, loaded);
+            DdsSource dds = ddsImg.getDdsSource(0);
+            assertEquals(Frame.TYPE_ARGB8888, dds.getPixelFormat());
+            assertArrayEquals(atlasBytes, dds.getData());
+
+            // 帧0：不旋转裁切
+            BufferedImage f0 = loaded.getImage(0);
+            assertEquals(2, f0.getWidth());
+            assertEquals(2, f0.getHeight());
+            assertEquals(atlas.getRGB(1, 1), f0.getRGB(1, 1));
+
+            // 帧1：旋转存放，解码须逆时针 90° 还原为 3x4
+            BufferedImage f1 = loaded.getImage(1);
+            assertEquals(3, f1.getWidth());
+            assertEquals(4, f1.getHeight());
+            int cropW = 4, cropH = 3, cropX = 2, cropY = 1;
+            for (int oy = 0; oy < f1.getHeight(); oy++) {
+                for (int ox = 0; ox < f1.getWidth(); ox++) {
+                    // 逆时针 90°：dst(ox, oy) = src(cropW-1-oy, ox)（图集坐标再加裁切原点）
+                    int sx = cropX + (cropW - 1 - oy);
+                    int sy = cropY + ox;
+                    assertEquals(atlas.getRGB(sx, sy), f1.getRGB(ox, oy),
+                            "rotated pixel mismatch at (" + ox + "," + oy + ")");
+                }
+            }
+        }
+
+        // 序列化字节布局保真：DDS 表项字段序为 compressedSize 在前、rawSize 在后
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (MemoryCacheImageOutputStream mos = new MemoryCacheImageOutputStream(baos)) {
+            mos.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            img.write(mos);
+            mos.flush();
+        }
+        byte[] bytes = baos.toByteArray();
+        int compressedSize = Bytes.readIntLE(bytes, 44 + 12);
+        int rawSize = Bytes.readIntLE(bytes, 44 + 16);
+        assertEquals(atlasBytes.length, rawSize);
+        assertTrue(compressedSize < rawSize, "compressed block should be smaller than raw atlas");
+        // 数据区首个块 = ZLIB(纹理数据)：表长 2x64=128，数据区起点 = 44+28+128
+        byte[] block = java.util.Arrays.copyOfRange(bytes, 44 + 28 + 128, 44 + 28 + 128 + compressedSize);
+        assertArrayEquals(atlasBytes, Bytes.decompress(block, rawSize));
     }
 
     @Test

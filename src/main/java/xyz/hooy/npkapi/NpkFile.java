@@ -481,6 +481,11 @@ public class NpkFile implements AutoCloseable {
             System.arraycopy(encryptedName, 0, indexBytes, idx + 8, NAME_FIELD_SIZE);
             idx += INDEX_ENTRY_SIZE;
             currentOffset += data.length;
+            // NPK 索引偏移为 int32：总大小超过 2GB 时溢出为负，提前明确拒绝而非静默写坏
+            if (currentOffset < 0) {
+                throw new NpkException("NPK format limit exceeded: total file size would surpass "
+                        + "2GB (index offsets are int32). Split the resources into multiple NPK files.");
+            }
         }
         stream.write(indexBytes);
 

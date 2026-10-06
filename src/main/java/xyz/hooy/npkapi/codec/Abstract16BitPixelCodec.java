@@ -28,12 +28,18 @@ public abstract class Abstract16BitPixelCodec extends AbstractPixelCodec {
 
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
+        return decodeRawPixels(
+                frame.getDecompressedData(frame.expectedDataSize(BYTES_PER_PIXEL)),
+                frame.getWidth(), frame.getHeight());
+    }
+
+    @Override
+    public BufferedImage decodeRawPixels(byte[] pixelData, int width, int height) {
         int[] masks = bitMasks();
-        byte[] data = frame.getDecompressedData(frame.expectedDataSize(BYTES_PER_PIXEL));
         ColorModel colorModel = new DirectColorModel(16, masks[0], masks[1], masks[2], masks[3]);
         SampleModel sampleModel = new SinglePixelPackedSampleModel(
-                DataBuffer.TYPE_USHORT, frame.getWidth(), frame.getHeight(), masks);
-        short[] shortData = Bytes.littleEndianShorts(data);
+                DataBuffer.TYPE_USHORT, width, height, masks);
+        short[] shortData = Bytes.littleEndianShorts(pixelData);
         DataBuffer dataBuffer = new DataBufferUShort(shortData, shortData.length);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
         return new BufferedImage(colorModel, raster, false, new Hashtable<>());

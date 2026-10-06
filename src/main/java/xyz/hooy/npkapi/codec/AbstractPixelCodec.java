@@ -33,4 +33,21 @@ public abstract class AbstractPixelCodec implements PixelCodec {
         frame.compressAndSetData(pixelData);
         return frame;
     }
+
+    /**
+     * 将未经帧封装的裸像素字节直接解码为图像。
+     * <p>
+     * 供 V5 纹理图集（{@link xyz.hooy.npkapi.DdsSource}）等以裸像素格式
+     * 存储的数据复用像素布局知识；默认不支持，由裸像素类编解码器覆写。
+     * </p>
+     *
+     * @param pixelData 未压缩的裸像素字节
+     * @param width     图像宽
+     * @param height    图像高
+     * @return 解码后的图像（部分实现直接包装入参数组，调用方此后不应修改该数组）
+     */
+    public BufferedImage decodeRawPixels(byte[] pixelData, int width, int height) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + " does not support raw pixel decoding.");
+    }
 }
