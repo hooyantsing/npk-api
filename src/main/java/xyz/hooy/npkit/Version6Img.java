@@ -71,6 +71,13 @@ public class Version6Img extends Version4Img {
         return palettes.get(index);
     }
 
+    /**
+     * 追加单帧（仅限单一调色板方案时使用）。
+     * <p>
+     * 多调色板状态下各调色板须锁步增长，本方法将抛出 {@link NpkException}，
+     * 此时须改用 {@link #addPalettesImage(BufferedImage[])}。
+     * </p>
+     */
     @Override
     public void addImage(BufferedImage image, int frameType) {
         if (palettes.size() > 1) {

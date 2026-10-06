@@ -210,9 +210,11 @@ public class Frame {
     /**
      * 获取解压后的原始像素数据。
      * 如果帧数据是压缩的，会自动解压；否则直接返回原始数据。
+     * 引用帧与 FXT 帧不持有像素数据，调用本方法会抛出异常。
      *
      * @return 解压后的字节数组
-     * @throws NpkException 帧无原始像素数据时抛出（如手工构造但未挂载数据的帧）
+     * @throws NpkException 帧无原始像素数据时抛出（引用帧、FXT 帧，
+     *                      或手工构造但未挂载数据的帧）
      */
     public byte[] getDecompressedData() {
         if (rawData == null) {

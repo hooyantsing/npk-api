@@ -35,7 +35,8 @@ public final class ImgFactory {
     }
 
     /**
-     * 注册指定版本的 IMG 构造器
+     * 注册指定版本的 IMG 构造器。
+     * 若该版本已有构造器（包括内置的 2/4/5/6），新构造器将覆盖旧值。
      *
      * @param version  IMG 文件版本号
      * @param supplier 实例构造器

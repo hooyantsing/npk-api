@@ -242,6 +242,12 @@ public abstract class AbstractImg implements Img {
      * 以便未修改时可原样快速重存。一旦帧等内部结构被修改，必须调用本方法
      * 清空缓存，使后续保存时重新序列化，避免修改被静默丢弃。
      * </p>
+     * <p>
+     * 注意：addImage / addReferenceImage / addDdsSource / addDdsImage /
+     * addPalettesImage 等方法会自动调用本方法；但通过 {@link #getPaletteSource(int)}
+     * 或 {@link #getDdsSource(int)} 拿到的 PaletteSource / DdsSource 是可变对象，
+     * 直接修改它们不会触发失效，再次保存时修改会被缓存的原始字节覆盖。
+     * </p>
      */
     protected void invalidateRawData() {
         this.rawData = null;

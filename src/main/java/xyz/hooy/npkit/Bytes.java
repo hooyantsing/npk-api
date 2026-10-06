@@ -60,6 +60,7 @@ public final class Bytes {
 
     /**
      * 将字节流按小端序两两合并为 short 数组（每两个字节组成一个 16 位字）。
+     * 字节长度为奇数时，末尾多余的单个字节将被忽略。
      */
     public static short[] littleEndianShorts(byte[] bytes) {
         short[] shorts = new short[bytes.length / 2];

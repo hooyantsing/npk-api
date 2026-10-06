@@ -146,14 +146,16 @@ public class NpkFile implements AutoCloseable {
     /**
      * 打开并解析一个 NPK 文件。
      * <p>
-     * 读取 NPK 文件头、索引表和资源数据，自动识别 IMG/OGG 类型
-     * 并根据 IMG 版本号创建对应的处理器。
+     * 读取 NPK 文件头、索引表和资源数据：名称以 {@code .ogg}（不区分大小写）结尾的
+     * 资源视为 OGG 音频，其余按 IMG 解析并根据版本号创建对应处理器。
+     * 索引表 SHA-256 校验失败或资源区间越界时视为文件损坏。
+     * 所有资源数据会一次性全量读入内存。
      * </p>
      *
      * @param file NPK 文件
      * @return 解析后的 NpkFile 实例
      * @throws IOException  文件读取异常
-     * @throws NpkException 文件格式错误
+     * @throws NpkException 文件不存在或格式错误
      */
     public static NpkFile open(File file) throws IOException {
         if (!file.exists() || !file.isFile()) {
@@ -236,9 +238,15 @@ public class NpkFile implements AutoCloseable {
     }
 
     /**
-     * 添加资源到 NPK 文件
+     * 添加资源到 NPK 文件。
+     * <p>
+     * 名称须非空、经 ISO-8859-1 编码后不超过 255 字节且可无损编码
+     * （中文名等会被拒绝），并且不得与既有资源重名（不区分大小写）；
+     * OGG 资源必须已携带数据，否则无法序列化保存。
+     * </p>
      *
      * @param resource IMG 或 OGG 资源
+     * @throws NpkException 资源为 null、名称非法、名称重复或 OGG 资源缺少数据
      */
     public void addResource(NpkResource resource) {
         if (resource == null) {
@@ -297,10 +305,16 @@ public class NpkFile implements AutoCloseable {
     }
 
     /**
-     * 将 NPK 文件保存到指定路径
+     * 将 NPK 文件保存到指定路径。
+     * <p>
+     * 注意：本方法直接写入目标文件，写出过程中失败（如某个资源无法序列化）时
+     * 目标文件可能已被部分写入而损坏，不会自动回滚；重要文件建议先保存到
+     * 临时路径再替换。保存成功后，本实例的源文件将更新为该路径。
+     * </p>
      *
      * @param file 目标文件
-     * @throws IOException 写入异常
+     * @throws IOException  写入异常
+     * @throws NpkException 某个资源无法序列化时抛出
      */
     public void save(File file) throws IOException {
         ensureOpen();

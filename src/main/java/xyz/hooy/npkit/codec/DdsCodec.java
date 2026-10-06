@@ -31,6 +31,15 @@ public class DdsCodec implements PixelCodec {
     private static final boolean DDS_SUPPORTED =
             Arrays.asList(ImageIO.getReaderFormatNames()).contains(DDS_FORMAT);
 
+    /**
+     * 将 FXT 帧解码为所引用 DDS 纹理的裁剪子图像。
+     *
+     * @param frame   FXT 帧描述（含 ddsIndex 与裁剪区域）
+     * @param context 须携带 DdsTable 的解码上下文
+     * @return 裁剪区域对应的子图像
+     * @throws NpkException 缺少 DDS 插件、上下文缺少 DdsTable、DDS 源缺失，
+     *                      或裁切出的子图尺寸非正/大于纹理尺寸时抛出
+     */
     @Override
     public BufferedImage decode(Frame frame, CodecContext context) {
         BufferedImage ddsImage = getDdsImage(frame, context);
@@ -75,9 +84,14 @@ public class DdsCodec implements PixelCodec {
         return ddsTable.get(frame.getDdsIndex());
     }
 
+    /**
+     * DDS 编码暂不支持 — 写入 DDS 纹理需要专门的压缩算法（如 S3TC/DXT）。
+     *
+     * @throws UnsupportedOperationException 恒定抛出；请通过 Version5Img.addDdsSource()
+     *                                       登记预构建的 DDS 数据，再用 addDdsImage() 添加帧
+     */
     @Override
     public Frame encode(BufferedImage image, CodecContext context) {
-        // DDS 编码暂不支持 — 写入 DDS 纹理需要专门的压缩算法（如 S3TC/DXT）
         throw new UnsupportedOperationException(
                 "DDS encoding is not supported (no DXT compression). Use Version5Img.addDdsSource() "
                         + "to register pre-built DDS data, then Version5Img.addDdsImage() to add frames.");

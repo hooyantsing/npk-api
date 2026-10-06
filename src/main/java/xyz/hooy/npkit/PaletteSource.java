@@ -36,8 +36,9 @@ public class PaletteSource {
     /**
      * 获取指定索引处的颜色
      *
-     * @param index 颜色索引（0~255）
+     * @param index 颜色索引（0 ~ size()-1）
      * @return 对应颜色
+     * @throws IndexOutOfBoundsException 索引越界时抛出
      */
     public Color get(int index) {
         return colors.get(index);

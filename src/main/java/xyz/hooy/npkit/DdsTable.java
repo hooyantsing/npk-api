@@ -26,7 +26,7 @@ public class DdsTable {
     }
 
     /**
-     * 添加 DDS 纹理源。如果 index < 0，自动分配下一个可用索引。
+     * 添加 DDS 纹理源。如果 {@code index < 0}，自动分配下一个可用索引。
      */
     public void put(DdsSource ddsSource) {
         if (ddsSource.getIndex() < 0) {

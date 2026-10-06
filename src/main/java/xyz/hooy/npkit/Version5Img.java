@@ -24,23 +24,32 @@ import java.util.Map;
  * [V2 Header]
  * [DDS Table]
  *   - ddsCount (int32)
- *   - imgLength (int32, unused)
- *   - colorNum (int32, unused in V5 but present)
- *   - palette[colorNum] (4 bytes each, unused)
+ *   - imgLength (int32, 整个 IMG 文件大小；写出时由 write() 完成后回填实际值)
+ *   - colorNum (int32, V5 中无功能用途；读取时保存、写回时还原以保证往返保真)
+ *   - palette[colorNum] (4 bytes each: R, G, B, A; 同上保真读写)
  *   - dds[ddsCount]:
  *     - title (int32)
  *     - pixelFormat (int32)
  *     - index (int32)
- *     - fullLength (int32)
- *     - length (int32)
+ *     - fullLength (int32, 压缩前数据长度；写出时按 ZLIB 压缩结果回填)
+ *     - length (int32, 压缩后数据长度；写出时按 ZLIB 压缩结果回填)
  *     - width (int32)
  *     - height (int32)
  * </pre>
  *
- * <h3>V5 帧表扩展</h3>
+ * <h3>V5 帧表扩展与数据区顺序</h3>
  * <p>
- * FXT 类型帧在标准帧描述后附加 DDS 裁剪信息：
- * ddsIndex, leftCut, upCut, rightCut, downCut
+ * FXT 类型帧在标准帧描述后附加 DDS 裁剪信息（前后各有一个 4 字节 padding）：
+ * </p>
+ * <pre>
+ * [标准帧描述 8 个 int]
+ * [padding (int32)]
+ * [ddsIndex, leftCut, upCut, rightCut, downCut (各 int32)]
+ * [padding (int32)]
+ * </pre>
+ * <p>
+ * 数据区按「帧表 → DDS 纹理数据（ZLIB 压缩）→ 非 FXT/非引用帧像素数据」的顺序排列；
+ * FXT 帧本身不持有像素数据，其纹理由 DdsCodec 按 ddsIndex 从 DDS 表获取。
  * </p>
  */
 public class Version5Img extends AbstractImg {
