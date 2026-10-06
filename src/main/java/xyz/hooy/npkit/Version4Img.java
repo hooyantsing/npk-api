@@ -99,6 +99,10 @@ public class Version4Img extends Version2Img {
      */
     protected void readPalette(ImageInputStream stream) throws IOException {
         int colorNum = stream.readInt();
+        if (colorNum < 0 || colorNum > PaletteSource.MAX_COLOR_SIZE) {
+            throw new NpkException("Corrupt IMG v" + getVersion()
+                    + ": invalid palette color count " + colorNum + ".");
+        }
         byte[] paletteBytes = new byte[4 * colorNum];
         stream.readFully(paletteBytes);
         this.palette = PaletteSource.fromBytes(paletteBytes, colorNum);

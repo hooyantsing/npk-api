@@ -212,10 +212,12 @@ public class Frame {
      * 如果帧数据是压缩的，会自动解压；否则直接返回原始数据。
      *
      * @return 解压后的字节数组
+     * @throws NpkException 帧无原始像素数据时抛出（如手工构造但未挂载数据的帧）
      */
     public byte[] getDecompressedData() {
         if (rawData == null) {
-            return null;
+            throw new NpkException("Frame has no raw data (type=0x"
+                    + Integer.toHexString(type) + ").");
         }
         if (isCompressed()) {
             return Bytes.decompress(rawData);

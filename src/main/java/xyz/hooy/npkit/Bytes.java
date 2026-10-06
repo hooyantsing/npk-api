@@ -1,6 +1,8 @@
 package xyz.hooy.npkit;
 
+import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterOutputStream;
@@ -38,6 +40,22 @@ public final class Bytes {
             throw new NpkException("Failed to decompress data.", e);
         }
         return outputStream.toByteArray();
+    }
+
+    /**
+     * 跳过指定字节数。
+     * 与 {@link ImageInputStream#skipBytes(int)} 不同，剩余字节不足时抛出
+     * {@link EOFException} 而非静默少跳，避免截断文件导致后续解析错位。
+     */
+    public static void skipFully(ImageInputStream stream, int count) throws IOException {
+        long remaining = count;
+        while (remaining > 0) {
+            long skipped = stream.skipBytes((int) Math.min(remaining, Integer.MAX_VALUE));
+            if (skipped <= 0) {
+                throw new EOFException("Failed to skip " + count + " bytes: stream exhausted.");
+            }
+            remaining -= skipped;
+        }
     }
 
     /**

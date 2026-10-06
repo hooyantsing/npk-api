@@ -13,7 +13,10 @@ import java.util.List;
  */
 public class PaletteSource {
 
-    private static final int MAX_COLOR_SIZE = 256;
+    /**
+     * 调色板颜色数上限（8 位索引寻址）
+     */
+    public static final int MAX_COLOR_SIZE = 256;
 
     private final List<Color> colors;
 

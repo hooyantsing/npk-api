@@ -91,19 +91,26 @@ public class Version6Img extends Version4Img {
     @Override
     protected void readPalette(ImageInputStream stream) throws IOException {
         int paletteCount = stream.readInt();
+        if (paletteCount < 0) {
+            throw new NpkException("Corrupt IMG v6: negative palette count " + paletteCount + ".");
+        }
         List<PaletteSource> paletteList = new ArrayList<>(paletteCount);
         for (int i = 0; i < paletteCount; i++) {
             int colorNum = stream.readInt();
+            if (colorNum < 0 || colorNum > PaletteSource.MAX_COLOR_SIZE) {
+                throw new NpkException("Corrupt IMG v6: invalid color count " + colorNum
+                        + " for palette #" + i + ".");
+            }
             byte[] paletteBytes = new byte[4 * colorNum];
             stream.readFully(paletteBytes);
             paletteList.add(PaletteSource.fromBytes(paletteBytes, colorNum));
         }
 
-        if (!paletteList.isEmpty()) {
-            this.palettes = paletteList;
-            this.palette = paletteList.get(0);
-            this.activePaletteIndex = 0;
-        }
+        // 无条件替换：paletteCount==0 的文件写出时保持 0（往返保真），
+        // 此时 palette 置 null，解码索引帧会在 IndexedCodec 处得到明确报错
+        this.palettes = paletteList;
+        this.palette = paletteList.isEmpty() ? null : paletteList.get(0);
+        this.activePaletteIndex = 0;
     }
 
     @Override
@@ -133,12 +140,25 @@ public class Version6Img extends Version4Img {
         int paletteCount = paletteImages.length;
         ensurePaletteLayout(paletteCount);
 
+        // 两阶段提交：第一阶段只收集与校验（不改动任何调色板），
+        // 全部通过后第二阶段统一提交，任一步失败都不会留下半更新的调色板状态
         BufferedImage referenceImage = paletteImages[0];
         int oldSize = palettes.get(0).size();
-        int[] indexes = assignColorIndexes(referenceImage);
+        List<Color> referenceNewColors = new ArrayList<>();
+        int[] indexes = assignColorIndexes(referenceImage, referenceNewColors);
 
+        List<List<Color>> pendingColors = new ArrayList<>(paletteCount);
+        pendingColors.add(referenceNewColors);
         for (int i = 1; i < paletteCount; i++) {
-            syncPalette(i, paletteImages[i], indexes, oldSize);
+            pendingColors.add(syncPalette(i, paletteImages[i], indexes, oldSize, referenceNewColors.size()));
+        }
+
+        // 第二阶段：统一提交（256 色上限已在收集阶段预检，palette.add 仅作二次防线）
+        for (int i = 0; i < paletteCount; i++) {
+            PaletteSource palette = palettes.get(i);
+            for (Color color : pendingColors.get(i)) {
+                palette.add(color);
+            }
         }
 
         frames.add(createIndexedFrame(referenceImage, indexes));
@@ -210,17 +230,19 @@ public class Version6Img extends Version4Img {
     /**
      * 以参考图为所有调色板划分共享索引分区，返回每像素的索引流。
      * <p>
-     * 同色像素归为同一索引；既有颜色复用其索引以保证跨帧一致，
-     * 新颜色追加到参考调色板（palette[0]）末尾。
+     * 同色像素归为同一索引；既有颜色复用其索引以保证跨帧一致。
+     * 新颜色不直接追加参考调色板，而是暂存到 {@code newColors} 交由调用方统一提交
+     * （两阶段提交，校验失败时调色板不被部分污染）。
      * </p>
      */
-    private int[] assignColorIndexes(BufferedImage referenceImage) {
+    private int[] assignColorIndexes(BufferedImage referenceImage, List<Color> newColors) {
         int width = referenceImage.getWidth();
         int height = referenceImage.getHeight();
         int[] referenceArgb = referenceImage.getRGB(0, 0, width, height, null, 0, width);
         Map<Integer, Integer> argbToIndex = new HashMap<>();
         PaletteSource referencePalette = palettes.get(0);
-        for (int i = 0; i < referencePalette.size(); i++) {
+        int oldSize = referencePalette.size();
+        for (int i = 0; i < oldSize; i++) {
             argbToIndex.put(referencePalette.get(i).getRGB(), i); // 复用既有颜色索引，保证跨帧一致
         }
         int[] indexes = new int[referenceArgb.length];
@@ -228,8 +250,12 @@ public class Version6Img extends Version4Img {
             int argb = referenceArgb[pixel];
             Integer colorIndex = argbToIndex.get(argb);
             if (colorIndex == null) {
-                referencePalette.add(new Color(argb, true));
-                colorIndex = referencePalette.size() - 1;
+                if (oldSize + newColors.size() >= PaletteSource.MAX_COLOR_SIZE) {
+                    throw new NpkException("Palette overflow: cannot exceed "
+                            + PaletteSource.MAX_COLOR_SIZE + " colors while adding a multi-palette frame.");
+                }
+                newColors.add(new Color(argb, true));
+                colorIndex = oldSize + newColors.size() - 1;
                 argbToIndex.put(argb, colorIndex);
             }
             indexes[pixel] = colorIndex;
@@ -238,17 +264,19 @@ public class Version6Img extends Version4Img {
     }
 
     /**
-     * 按参考分区给指定调色板同步追加新颜色。
+     * 按参考分区校验指定图像并收集其待追加的新颜色。
      * <p>
      * 既有索引（小于 oldSize）处颜色须与该调色板既有颜色一致；
-     * 新索引分区组内颜色须一致，组内颜色按相同索引顺序追加到调色板末尾。
+     * 新索引分区组内颜色须一致。新颜色不直接追加调色板，而是按索引顺序
+     * 收集为返回值交由调用方统一提交（两阶段提交）。
      * </p>
      */
-    private void syncPalette(int paletteIndex, BufferedImage image, int[] indexes, int oldSize) {
+    private List<Color> syncPalette(int paletteIndex, BufferedImage image,
+                                    int[] indexes, int oldSize, int newColorCount) {
         PaletteSource palette = palettes.get(paletteIndex);
         int width = image.getWidth();
         int[] argb = image.getRGB(0, 0, width, image.getHeight(), null, 0, width);
-        int newSize = palettes.get(0).size();
+        int newSize = oldSize + newColorCount;
         int[] slotColor = new int[newSize];
         boolean[] slotSet = new boolean[newSize];
         for (int pixel = 0; pixel < indexes.length; pixel++) {
@@ -270,9 +298,11 @@ public class Version6Img extends Version4Img {
                 slotSet[colorIndex] = true;
             }
         }
+        List<Color> appended = new ArrayList<>(newSize - oldSize);
         for (int colorIndex = oldSize; colorIndex < newSize; colorIndex++) {
-            palette.add(new Color(slotColor[colorIndex], true));
+            appended.add(new Color(slotColor[colorIndex], true));
         }
+        return appended;
     }
 
     /**

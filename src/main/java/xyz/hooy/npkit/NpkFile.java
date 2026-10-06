@@ -114,11 +114,32 @@ public class NpkFile implements AutoCloseable {
         this.resources.clear();
     }
 
+    /**
+     * 校验 NpkFile 未被关闭。
+     * close() 会清空资源列表，此后继续操作（尤其 save 覆盖源文件）会静默丢失数据，故一律拒绝。
+     */
+    private void ensureOpen() {
+        if (closed) {
+            throw new NpkException("NpkFile is closed.");
+        }
+    }
+
     @Override
     public String toString() {
+        // 不委托 getImages/getOggs（它们带 ensureOpen 校验），
+        // 保证 toString 在已关闭实例上也可安全调用（调试器/日志场景）
+        int imageCount = 0;
+        int oggCount = 0;
+        for (NpkResource resource : resources) {
+            if (resource instanceof Img) {
+                imageCount++;
+            } else if (resource instanceof Ogg) {
+                oggCount++;
+            }
+        }
         return "NpkFile{resources=" + resources.size()
-                + ", images=" + getImages().size()
-                + ", oggs=" + getOggs().size()
+                + ", images=" + imageCount
+                + ", oggs=" + oggCount
                 + (sourceFile != null ? ", file='" + sourceFile.getName() + "'" : "") + "}";
     }
 
@@ -157,6 +178,7 @@ public class NpkFile implements AutoCloseable {
      * 获取所有资源（IMG + OGG）
      */
     public List<NpkResource> getResources() {
+        ensureOpen();
         return Collections.unmodifiableList(resources);
     }
 
@@ -164,6 +186,7 @@ public class NpkFile implements AutoCloseable {
      * 获取所有 IMG 图像资源
      */
     public List<Img> getImages() {
+        ensureOpen();
         return findResources(Img.class);
     }
 
@@ -171,6 +194,7 @@ public class NpkFile implements AutoCloseable {
      * 获取所有 OGG 音频资源
      */
     public List<Ogg> getOggs() {
+        ensureOpen();
         return findResources(Ogg.class);
     }
 
@@ -194,6 +218,7 @@ public class NpkFile implements AutoCloseable {
      * @return 匹配的资源，未找到返回 null
      */
     public NpkResource findByName(String name) {
+        ensureOpen();
         for (NpkResource resource : resources) {
             if (resource.getName().equalsIgnoreCase(name)) {
                 return resource;
@@ -206,6 +231,7 @@ public class NpkFile implements AutoCloseable {
      * 获取资源总数
      */
     public int getResourceCount() {
+        ensureOpen();
         return resources.size();
     }
 
@@ -215,8 +241,23 @@ public class NpkFile implements AutoCloseable {
      * @param resource IMG 或 OGG 资源
      */
     public void addResource(NpkResource resource) {
+        if (resource == null) {
+            throw new NpkException("Resource cannot be null.");
+        }
+        ensureOpen();
         if (resource.getName() == null || resource.getName().isEmpty()) {
             throw new NpkException("Resource name cannot be null or empty.");
+        }
+        // 资源名经 ISO-8859-1 单字节编码后 XOR 加密写入 256 字节字段；
+        // 超长名称会被静默截断、无法无损编码的字符（如中文）会被替换为 '?'，均须提前拒绝
+        byte[] nameBytes = resource.getName().getBytes(StandardCharsets.ISO_8859_1);
+        if (nameBytes.length > MAX_NAME_LENGTH) {
+            throw new NpkException("Resource name too long: max " + MAX_NAME_LENGTH
+                    + " bytes, got " + nameBytes.length + " (" + resource.getName() + ").");
+        }
+        if (!resource.getName().equals(new String(nameBytes, StandardCharsets.ISO_8859_1))) {
+            throw new NpkException("Resource name contains characters not representable "
+                    + "in ISO-8859-1: " + resource.getName());
         }
         if (findByName(resource.getName()) != null) {
             throw new NpkException("Duplicate resource name: " + resource.getName());
@@ -236,6 +277,7 @@ public class NpkFile implements AutoCloseable {
      * @return 是否成功移除
      */
     public boolean removeResource(NpkResource resource) {
+        ensureOpen();
         return resources.remove(resource);
     }
 
@@ -246,6 +288,7 @@ public class NpkFile implements AutoCloseable {
      * @return 被移除的资源，未找到返回 null
      */
     public NpkResource removeByName(String name) {
+        ensureOpen();
         NpkResource resource = findByName(name);
         if (resource != null) {
             resources.remove(resource);
@@ -260,6 +303,7 @@ public class NpkFile implements AutoCloseable {
      * @throws IOException 写入异常
      */
     public void save(File file) throws IOException {
+        ensureOpen();
         try (FileImageOutputStream stream = new FileImageOutputStream(file)) {
             stream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
             write(stream);
@@ -271,6 +315,7 @@ public class NpkFile implements AutoCloseable {
      * 获取源文件（如果是从文件打开的）
      */
     public File getSourceFile() {
+        ensureOpen();
         return sourceFile;
     }
 
@@ -357,7 +402,7 @@ public class NpkFile implements AutoCloseable {
             imgStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 
             // 跳过魔数(16) + tableLength(4) + padding(4) 读取版本号
-            imgStream.skipBytes(AbstractImg.IMG_MAGIC.length + 8);
+            Bytes.skipFully(imgStream, AbstractImg.IMG_MAGIC.length + 8);
             int version = imgStream.readInt();
             imgStream.seek(0);
 

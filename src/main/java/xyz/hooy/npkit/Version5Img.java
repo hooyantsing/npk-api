@@ -54,10 +54,11 @@ public class Version5Img extends AbstractImg {
     private final Map<Integer, byte[]> ddsCompressedCache = new LinkedHashMap<>();
 
     /**
-     * V5 头部中的「整个 IMG 文件大小」字段。该字段对解析无实际用途，
-     * 读取时保存以便重新序列化时原样写回，保证往返保真。
+     * V5 头部中「整个 IMG 文件大小」字段（imgLength）在文件中的偏移：
+     * magic(16) + tableLength(4) + padding(4) + version(4) + frameCount(4) + ddsCount(4)。
+     * 头部先于帧数据写出，总大小此刻未知，故在 {@link #write} 完成后回填实际值。
      */
-    private int imgLength;
+    private static final int IMG_LENGTH_FIELD_OFFSET = 36;
 
     /**
      * V5 头部中类似 IMG V4 的调色板数据。在 V5 中没有任何用途，
@@ -101,8 +102,14 @@ public class Version5Img extends AbstractImg {
         super.readHeader(stream);
 
         int ddsCount = stream.readInt();
-        this.imgLength = stream.readInt(); // 整个 IMG 文件大小（V5 中无用途，保存以往返写回）
+        if (ddsCount < 0) {
+            throw new NpkException("Corrupt IMG v5: negative DDS count " + ddsCount + ".");
+        }
+        stream.readInt();                  // imgLength（整个 IMG 文件大小，写出时由 write() 回填实际值）
         int colorNum = stream.readInt();   // V5 头部调色板颜色数目（绝大部分为 0）
+        if (colorNum < 0 || colorNum > PaletteSource.MAX_COLOR_SIZE) {
+            throw new NpkException("Corrupt IMG v5: invalid header palette color count " + colorNum + ".");
+        }
         if (colorNum > 0) {
             byte[] paletteBytes = new byte[4 * colorNum];
             stream.readFully(paletteBytes);
@@ -132,7 +139,7 @@ public class Version5Img extends AbstractImg {
 
         int ddsCount = ddsTable != null ? ddsTable.size() : 0;
         stream.writeInt(ddsCount);
-        stream.writeInt(imgLength); // 还原读取到的「整个 IMG 文件大小」字段
+        stream.writeInt(0); // imgLength 占位（整个 IMG 文件大小），由 write() 完成后回填实际值
         // V5 头部调色板：在 V5 中无用途，但极少数文件保留有颜色项，需往返保真
         if (headerPalette != null && headerPalette.size() > 0) {
             stream.writeInt(headerPalette.size());
@@ -163,6 +170,17 @@ public class Version5Img extends AbstractImg {
     }
 
     @Override
+    public void write(ImageOutputStream stream) throws IOException {
+        super.write(stream);
+        // V5 头部的 imgLength 字段记录整个 IMG 文件大小。头部先于帧数据写出，
+        // 此刻才能得知总大小，故写完后回填该字段（避免修改后字段与实际大小不符）
+        long totalSize = stream.getStreamPosition();
+        stream.seek(IMG_LENGTH_FIELD_OFFSET);
+        stream.writeInt((int) totalSize);
+        stream.seek(totalSize);
+    }
+
+    @Override
     protected void readFrames(ImageInputStream stream) throws IOException {
         List<Frame> frameList = new ArrayList<>(frameSize);
         for (int i = 0; i < frameSize; i++) {
@@ -176,7 +194,12 @@ public class Version5Img extends AbstractImg {
         // 按「压缩后大小(length)」读取字节并解压得到完整 DDS 文件
         if (ddsTable != null) {
             for (DdsSource ddsSource : ddsTable.values()) {
-                byte[] compressed = new byte[ddsSource.getLength()];
+                int compressedLength = ddsSource.getLength();
+                if (compressedLength < 0) {
+                    throw new NpkException("Corrupt IMG v5: negative DDS data length "
+                            + compressedLength + " at index " + ddsSource.getIndex() + ".");
+                }
+                byte[] compressed = new byte[compressedLength];
                 stream.readFully(compressed);
                 ddsSource.setRawData(Bytes.decompress(compressed));
             }
@@ -201,13 +224,13 @@ public class Version5Img extends AbstractImg {
         if (frame.isFxt()) {
             // FXT 帧：标准图像帧描述 + DDS 裁剪信息
             readStandardFrameFields(stream, frame);
-            stream.skipBytes(4); // padding
+            Bytes.skipFully(stream, 4); // padding
             frame.setDdsIndex(stream.readInt());
             frame.setLeftCut(stream.readInt());
             frame.setUpCut(stream.readInt());
             frame.setRightCut(stream.readInt());
             frame.setDownCut(stream.readInt());
-            stream.skipBytes(4); // padding
+            Bytes.skipFully(stream, 4); // padding
         } else {
             super.readFrameDescriptor(stream, frame);
         }

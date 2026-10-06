@@ -3,10 +3,15 @@ package npkapi;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import xyz.hooy.npkit.*;
+import xyz.hooy.npkit.Frame;
 import xyz.hooy.npkit.codec.Argb8888Codec;
 
+import javax.imageio.stream.MemoryCacheImageOutputStream;
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -274,5 +279,149 @@ public class NpkitTest {
             assertEquals(8, dds.getHeight());
             assertArrayEquals(ddsBytes, dds.getRawData()); // ZLIB 压缩→解压字节保真
         }
+    }
+
+    @Test
+    void testAddPalettesImageAtomicity() {
+        // V6 多调色板两阶段提交：冲突失败后调色板不得被部分污染，修复后可重试
+        Version6Img img = new Version6Img();
+
+        // 第一帧：建立 2 个调色板（各 2 色：红/蓝 与 绿/黄，共享索引分区）
+        BufferedImage f1a = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage f1b = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+        f1a.setRGB(0, 0, 0xFFFF0000);
+        f1a.setRGB(1, 0, 0xFFFF0000);
+        f1a.setRGB(0, 1, 0xFF0000FF);
+        f1a.setRGB(1, 1, 0xFF0000FF);
+        f1b.setRGB(0, 0, 0xFF00FF00);
+        f1b.setRGB(1, 0, 0xFF00FF00);
+        f1b.setRGB(0, 1, 0xFFFFFF00);
+        f1b.setRGB(1, 1, 0xFFFFFF00);
+        img.addPalettesImage(new BufferedImage[]{f1a, f1b});
+        assertEquals(2, img.getPaletteSource(0).size());
+        assertEquals(2, img.getPaletteSource(1).size());
+
+        // 冲突尝试：参考图新增同分区两个像素（白/白），第二图同分区异色（白/黑）→ 抛异常
+        BufferedImage f2a = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage f2b = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+        f2a.setRGB(0, 0, 0xFFFF0000); // 既有索引 0（红）
+        f2a.setRGB(1, 0, 0xFF0000FF); // 既有索引 1（蓝）
+        f2a.setRGB(0, 1, 0xFFFFFFFF); // 新增索引 2
+        f2a.setRGB(1, 1, 0xFFFFFFFF); // 新增索引 2
+        f2b.setRGB(0, 0, 0xFF00FF00); // 索引 0 → 绿 ✓
+        f2b.setRGB(1, 0, 0xFFFFFF00); // 索引 1 → 黄 ✓
+        f2b.setRGB(0, 1, 0xFFFFFFFF); // 新分区首个像素
+        f2b.setRGB(1, 1, 0xFF000000); // 同分区异色 → 冲突
+        assertThrows(NpkException.class,
+                () -> img.addPalettesImage(new BufferedImage[]{f2a, f2b}));
+
+        // 原子性：失败后调色板仍等长（2/2，未被部分污染），帧数不变
+        assertEquals(2, img.getPaletteSource(0).size());
+        assertEquals(2, img.getPaletteSource(1).size());
+        assertEquals(1, img.getImageCount());
+
+        // 修正后重试成功（旧实现会因调色板尺寸失配被永久锁死）
+        f2b.setRGB(1, 1, 0xFFFFFFFF);
+        img.addPalettesImage(new BufferedImage[]{f2a, f2b});
+        assertEquals(3, img.getPaletteSource(0).size());
+        assertEquals(3, img.getPaletteSource(1).size());
+        assertEquals(2, img.getImageCount());
+    }
+
+    @Test
+    void testIndexedEncodeAtomicity() {
+        // V4 索引色编码两阶段提交：调色板溢出时不得被部分污染
+        Version4Img img = new Version4Img();
+        PaletteSource palette = img.getPaletteSource(0);
+        for (int i = 0; i < 255; i++) {
+            palette.add(new Color(i, i, i));
+        }
+
+        // 图像含 2 个新颜色 → 溢出抛出，调色板应保持 255
+        BufferedImage image = new BufferedImage(2, 1, BufferedImage.TYPE_INT_ARGB);
+        image.setRGB(0, 0, 0xFF123456);
+        image.setRGB(1, 0, 0xFF654321);
+        assertThrows(NpkException.class, () -> img.addImage(image, Frame.TYPE_INDEXED));
+        assertEquals(255, palette.size());
+        assertEquals(0, img.getImageCount());
+
+        // 仅 1 个新颜色时可正常提交至 256
+        image.setRGB(1, 0, 0xFF123456);
+        img.addImage(image, Frame.TYPE_INDEXED);
+        assertEquals(256, palette.size());
+        assertEquals(1, img.getImageCount());
+    }
+
+    @Test
+    void testClosedNpkFileRejected(@TempDir Path tempDir) throws IOException {
+        // close 后所有操作拒绝，防止 save 用空资源列表覆盖源文件
+        NpkFile npk = NpkFile.create();
+        npk.addResource(new Ogg("sound/a.ogg", new byte[]{1, 2, 3}));
+        Path out = tempDir.resolve("closed.npk");
+        npk.save(out.toFile());
+
+        npk.close();
+        assertThrows(NpkException.class, () -> npk.addResource(new Ogg("b.ogg", new byte[]{1})));
+        assertThrows(NpkException.class, npk::getResources);
+        assertThrows(NpkException.class, npk::getResourceCount);
+        assertThrows(NpkException.class, () -> npk.save(out.toFile()));
+
+        // 源文件未被空内容覆盖，仍可正常打开
+        try (NpkFile reopened = NpkFile.open(out.toFile())) {
+            assertEquals(1, reopened.getResourceCount());
+        }
+    }
+
+    @Test
+    void testAddResourceNameValidation() {
+        // 超长名称与无法以 ISO-8859-1 无损编码的名称（会被静默截断/替换为 '?'）均提前拒绝
+        NpkFile npk = NpkFile.create();
+        assertThrows(NpkException.class, () -> npk.addResource(null));
+        assertThrows(NpkException.class,
+                () -> npk.addResource(new Ogg(repeat('a', 300), new byte[]{1})));
+        assertThrows(NpkException.class,
+                () -> npk.addResource(new Ogg("sprite/中文名.img", new byte[]{1})));
+        assertEquals(0, npk.getResourceCount());
+    }
+
+    @Test
+    void testCorruptNpkRejected(@TempDir Path tempDir) throws IOException {
+        // 魔数有效但 resourceCount 声称 1000，远超文件实际大小 → 拒绝而非 OOM
+        byte[] corrupt = new byte[NpkFile.NPK_MAGIC.length + 4 + 32];
+        System.arraycopy(NpkFile.NPK_MAGIC, 0, corrupt, 0, NpkFile.NPK_MAGIC.length);
+        corrupt[16] = (byte) 0xE8; // 1000 (LE)
+        corrupt[17] = 0x03;
+        Path out = tempDir.resolve("corrupt.npk");
+        Files.write(out, corrupt);
+        NpkException e = assertThrows(NpkException.class, () -> NpkFile.open(out.toFile()));
+        assertTrue(e.getMessage().contains("Corrupt NPK"));
+    }
+
+    @Test
+    void testV5ImgLengthBackfill() throws IOException {
+        // V5 头部 imgLength 字段（偏移 36）须在写出完成后回填为实际文件大小
+        Version5Img img = new Version5Img();
+        int ddsIndex = img.addDdsSource(
+                new DdsSource(new byte[]{0x44, 0x44, 0x53, 0x20, 0x7C, 0, 0, 0}, Frame.TYPE_FXT1, 8, 8));
+        img.addDdsImage(ddsIndex, 0, 0, 4, 4, 0, 0, 4, 4);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (MemoryCacheImageOutputStream out = new MemoryCacheImageOutputStream(baos)) {
+            out.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            img.write(out);
+            out.flush();
+        }
+        byte[] bytes = baos.toByteArray();
+        int imgLength = (bytes[36] & 0xFF) | ((bytes[37] & 0xFF) << 8)
+                | ((bytes[38] & 0xFF) << 16) | ((bytes[39] & 0xFF) << 24);
+        assertEquals(bytes.length, imgLength);
+    }
+
+    private static String repeat(char c, int count) {
+        StringBuilder sb = new StringBuilder(count);
+        for (int i = 0; i < count; i++) {
+            sb.append(c);
+        }
+        return sb.toString();
     }
 }

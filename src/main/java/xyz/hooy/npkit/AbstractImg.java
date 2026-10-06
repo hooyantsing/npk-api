@@ -257,14 +257,17 @@ public abstract class AbstractImg implements Img {
         if (!Arrays.equals(IMG_MAGIC, magic)) {
             throw new NpkException("Invalid IMG file: magic bytes mismatch.");
         }
-        stream.readInt();          // tableLength (unused, can be recalculated)
-        stream.skipBytes(4);       // padding
+        stream.readInt();               // tableLength (unused, can be recalculated)
+        Bytes.skipFully(stream, 4);     // padding（skipBytes 在截断文件上会静默少跳）
         int version = stream.readInt();
         if (getVersion() != version) {
             throw new NpkException(getClass().getSimpleName() + " cannot process IMG v" + version
                     + " (expected v" + getVersion() + ")");
         }
         this.frameSize = stream.readInt();
+        if (frameSize < 0) {
+            throw new NpkException("Corrupt IMG: negative frame count " + frameSize + ".");
+        }
     }
 
     /**
@@ -325,13 +328,21 @@ public abstract class AbstractImg implements Img {
         frame.setY(stream.readInt());
         frame.setFrameWidth(stream.readInt());
         frame.setFrameHeight(stream.readInt());
+        if (frame.getWidth() < 0 || frame.getHeight() < 0) {
+            throw new NpkException("Corrupt IMG: negative frame dimensions "
+                    + frame.getWidth() + "x" + frame.getHeight() + ".");
+        }
     }
 
     /**
      * 读取帧的原始像素数据。
      */
     protected void readFrameRawData(ImageInputStream stream, Frame frame) throws IOException {
-        byte[] data = new byte[frame.getLength()];
+        int length = frame.getLength();
+        if (length < 0) {
+            throw new NpkException("Corrupt IMG: negative frame data length " + length + ".");
+        }
+        byte[] data = new byte[length];
         stream.readFully(data);
         frame.setRawData(data);
     }

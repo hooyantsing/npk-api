@@ -6,7 +6,9 @@ import xyz.hooy.npkit.PaletteSource;
 
 import java.awt.*;
 import java.awt.image.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,7 +26,16 @@ public class IndexedCodec extends AbstractPixelCodec {
             throw new NpkException("IndexedCodec requires a Palette in CodecContext.");
         }
         PaletteSource palette = context.getPalette();
+        if (palette.size() == 0) {
+            throw new NpkException("IndexedCodec requires a non-empty palette (frame "
+                    + frame.getWidth() + "x" + frame.getHeight() + ").");
+        }
         byte[] data = frame.getDecompressedData();
+        if (data.length != (long) frame.getWidth() * frame.getHeight()) {
+            throw new NpkException("Indexed frame data length " + data.length
+                    + " does not match frame dimensions " + frame.getWidth()
+                    + "x" + frame.getHeight() + ".");
+        }
 
         // 使用带 alpha 通道的字节数组构造器，保留调色板中每项的透明度（R, G, B, A）
         int size = palette.size();
@@ -59,21 +70,31 @@ public class IndexedCodec extends AbstractPixelCodec {
         int[] rgbData = new int[width * height];
         image.getRGB(0, 0, width, height, rgbData, 0, width);
 
-        // ARGB → 索引哈希表：既有颜色复用索引，新颜色追加到调色板末尾
+        // ARGB → 索引哈希表：既有颜色复用索引；新颜色先收集、全部通过后再统一提交，
+        // 避免中途溢出/异常导致调色板被部分污染
         Map<Integer, Integer> argbToIndex = new HashMap<>();
         for (int i = 0; i < palette.size(); i++) {
             argbToIndex.put(palette.get(i).getRGB(), i);
         }
+        List<Color> newColors = new ArrayList<>();
         byte[] data = new byte[rgbData.length];
         for (int i = 0; i < rgbData.length; i++) {
             int argb = rgbData[i];
             Integer colorIndex = argbToIndex.get(argb);
             if (colorIndex == null) {
-                palette.add(new Color(argb, true));
-                colorIndex = palette.size() - 1;
+                if (palette.size() + newColors.size() >= PaletteSource.MAX_COLOR_SIZE) {
+                    throw new NpkException("Palette overflow: cannot exceed "
+                            + PaletteSource.MAX_COLOR_SIZE + " colors while encoding image "
+                            + width + "x" + height + ".");
+                }
+                newColors.add(new Color(argb, true));
+                colorIndex = palette.size() + newColors.size() - 1;
                 argbToIndex.put(argb, colorIndex);
             }
             data[i] = colorIndex.byteValue();
+        }
+        for (Color color : newColors) {
+            palette.add(color);
         }
         return createFrame(Frame.TYPE_INDEXED, image, data);
     }
