@@ -15,7 +15,7 @@ import java.util.*;
  * IMG 各版本实现的模板基类。
  * <p>
  * 采用模板方法模式固化「文件头 → 帧表 → 数据区」的读写流程，
- * 子类（V2/V4/V5/V6）通过覆写各阶段钩子方法扩展版本特有的结构：
+ * 子类（V1~V6）通过覆写各阶段钩子方法扩展版本特有的结构：
  * </p>
  * <ul>
  *   <li>{@link #readHeader}/{@link #writeHeader} — 头部扩展（调色板、DDS 表等）</li>
@@ -45,7 +45,9 @@ import java.util.*;
  *   - frame[0..n] 原始像素数据
  * </pre>
  *
+ * @see Version1Img
  * @see Version2Img
+ * @see Version3Img
  * @see Version4Img
  * @see Version5Img
  * @see Version6Img
@@ -68,6 +70,10 @@ public abstract class AbstractImg implements Img {
     /**
      * 版本号字段在 IMG 文件中的字节偏移：magic(16) + tableLength(4) + padding(4)。
      * 供外部在不完整解析文件的情况下探测 IMG 版本（如 NPK 资源分派）。
+     * <p>
+     * V1 使用 18 字节旧魔数 + int16 未知字段 + int32 keep（见 {@link Version1Img}），
+     * 18 + 2 + 4 = 24，版本号恰好也落在本偏移，故该偏移对全部版本通用。
+     * </p>
      */
     public static final int VERSION_OFFSET = MAGIC_LENGTH + 4 + 4;
 

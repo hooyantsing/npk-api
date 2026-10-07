@@ -77,9 +77,17 @@ public class NpkApiTest {
 
     @Test
     void testImgFactory() {
+        Img v1 = ImgFactory.create(1);
+        assertEquals(1, v1.getVersion());
+        assertInstanceOf(Version1Img.class, v1);
+
         Img v2 = ImgFactory.create(2);
         assertEquals(2, v2.getVersion());
         assertInstanceOf(Version2Img.class, v2);
+
+        Img v3 = ImgFactory.create(3);
+        assertEquals(3, v3.getVersion());
+        assertInstanceOf(Version3Img.class, v3);
 
         Img v4 = ImgFactory.create(4);
         assertEquals(4, v4.getVersion());

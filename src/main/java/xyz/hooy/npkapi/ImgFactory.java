@@ -25,7 +25,9 @@ public final class ImgFactory {
     private static final Map<Integer, Supplier<Img>> REGISTRY = new ConcurrentHashMap<>();
 
     static {
+        register(1, Version1Img::new);
         register(2, Version2Img::new);
+        register(3, Version3Img::new);
         register(4, Version4Img::new);
         register(5, Version5Img::new);
         register(6, Version6Img::new);
@@ -36,7 +38,7 @@ public final class ImgFactory {
 
     /**
      * 注册指定版本的 IMG 构造器。
-     * 若该版本已有构造器（包括内置的 2/4/5/6），新构造器将覆盖旧值。
+     * 若该版本已有构造器（包括内置的 1/2/3/4/5/6），新构造器将覆盖旧值。
      *
      * @param version  IMG 文件版本号
      * @param supplier 实例构造器

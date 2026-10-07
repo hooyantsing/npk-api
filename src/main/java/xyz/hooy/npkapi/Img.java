@@ -7,7 +7,8 @@ import java.io.IOException;
 /**
  * IMG 图像资源接口（核心能力）。
  * <p>
- * IMG 是 NPK 文件中的图像资源格式，支持多个版本（V2/V4/V5/V6），
+ * IMG 是 NPK 文件中的图像资源格式，支持多个版本（V1/V2/V3/V4/V5/V6，
+ * 其中 V1 为早期交错布局、V3 为无公开样本的过渡版本 best-effort 支持），
  * 每个版本有不同的像素编码方式和附加数据结构。
  * </p>
  * <p>
@@ -35,7 +36,9 @@ import java.io.IOException;
  * }</pre>
  *
  * @see ImgFactory
+ * @see Version1Img
  * @see Version2Img
+ * @see Version3Img
  * @see Version4Img
  * @see Version5Img
  * @see Version6Img

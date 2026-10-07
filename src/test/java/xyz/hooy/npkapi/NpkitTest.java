@@ -4,9 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import xyz.hooy.npkapi.codec.Argb8888Codec;
 
+import javax.imageio.stream.MemoryCacheImageInputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -457,6 +459,176 @@ public class NpkitTest {
         // 数据区首个块 = ZLIB(纹理数据)：表长 2x64=128，数据区起点 = 44+28+128
         byte[] block = java.util.Arrays.copyOfRange(bytes, 44 + 28 + 128, 44 + 28 + 128 + compressedSize);
         assertArrayEquals(atlasBytes, Bytes.decompress(block, rawSize));
+    }
+
+    @Test
+    void testVersion1GoldenBytesParse() throws IOException {
+        // 按 V1 约定构造合成文件：旧魔数 + int16 unknown + keep + version + count，
+        // 帧交错布局；未压缩帧的 length 字段故意写入垃圾值 999，
+        // 验证解析按 w*h*bpp 修正（PyDnfEx fix_size / DNFToolKit 一致行为）
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        bos.write(Version1Img.getImgMagicOld());
+        bos.write(new byte[]{0, 0});            // unknown (int16 LE)
+        writeIntLE(bos, 0);                     // keep
+        writeIntLE(bos, 1);                     // version
+        writeIntLE(bos, 3);                     // frameCount
+        // 帧0：2x2 ARGB8888 未压缩（length 字段 = 999 垃圾值，实际 16 字节）
+        writeIntLE(bos, Frame.TYPE_ARGB8888);
+        writeIntLE(bos, Frame.UNCOMPRESSED);
+        writeIntLE(bos, 2);
+        writeIntLE(bos, 2);
+        writeIntLE(bos, 999);
+        writeIntLE(bos, 0);
+        writeIntLE(bos, 0);
+        writeIntLE(bos, 2);
+        writeIntLE(bos, 2);
+        bos.write(new byte[]{
+                0x00, 0x00, (byte) 0xFF, (byte) 0xFF,   // (0,0) 红
+                0x00, (byte) 0xFF, 0x00, (byte) 0xFF,   // (1,0) 绿
+                (byte) 0xFF, 0x00, 0x00, (byte) 0xFF,   // (0,1) 蓝
+                (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}); // (1,1) 白
+        // 帧1：2x2 ARGB4444 ZLIB 压缩（length 字段可信；2x2 像素 × 2 字节 = 8 字节）
+        byte[] raw4444 = new byte[]{
+                0x00, (byte) 0xFF,   // (0,0) 红
+                0x00, (byte) 0xFF,   // (1,0) 红
+                0x00, (byte) 0xFF,   // (0,1) 红
+                0x00, (byte) 0xFF};  // (1,1) 红
+        byte[] zlib4444 = Bytes.compress(raw4444);
+        writeIntLE(bos, Frame.TYPE_ARGB4444);
+        writeIntLE(bos, Frame.COMPRESSED);
+        writeIntLE(bos, 2);
+        writeIntLE(bos, 2);
+        writeIntLE(bos, zlib4444.length);
+        writeIntLE(bos, 0);
+        writeIntLE(bos, 0);
+        writeIntLE(bos, 2);
+        writeIntLE(bos, 2);
+        bos.write(zlib4444);
+        // 帧2：指向帧 -> 0
+        writeIntLE(bos, Frame.TYPE_REFERENCE);
+        writeIntLE(bos, 0);
+        byte[] golden = bos.toByteArray();
+
+        Img img = ImgFactory.create(1);
+        assertInstanceOf(Version1Img.class, img);
+        try (MemoryCacheImageInputStream in =
+                     new MemoryCacheImageInputStream(new ByteArrayInputStream(golden))) {
+            in.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            img.read(in);
+        }
+        assertEquals(1, img.getVersion());
+        assertEquals(3, img.getImageCount());
+
+        BufferedImage f0 = img.getImage(0);
+        assertEquals(2, f0.getWidth());
+        assertEquals(0xFFFF0000, f0.getRGB(0, 0));
+        assertEquals(0xFF00FF00, f0.getRGB(1, 0));
+        assertEquals(0xFF0000FF, f0.getRGB(0, 1));
+        assertEquals(0xFFFFFFFF, f0.getRGB(1, 1));
+
+        assertEquals(0xFFFF0000, img.getImage(1).getRGB(0, 0)); // zlib 帧解码
+        assertTrue(img.getFrame(2).isReference());
+        assertEquals(0xFFFF0000, img.getImage(2).getRGB(0, 0)); // 指向帧解引用
+
+        // 重写：未压缩帧 length 字段规范化为实际值 16，且往返像素一致
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (MemoryCacheImageOutputStream mos = new MemoryCacheImageOutputStream(out)) {
+            mos.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            img.write(mos);
+            mos.flush();
+        }
+        byte[] rewritten = out.toByteArray();
+        int frame0LengthOffset = 32 + 16; // header(18+2+4+4+4=32) + type(4)+comp(4)+w(4)+h(4)
+        assertEquals(16, Bytes.readIntLE(rewritten, frame0LengthOffset));
+
+        Img img2 = ImgFactory.create(1);
+        try (MemoryCacheImageInputStream in =
+                     new MemoryCacheImageInputStream(new ByteArrayInputStream(rewritten))) {
+            in.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            img2.read(in);
+        }
+        assertEquals(3, img2.getImageCount());
+        assertEquals(0xFFFF0000, img2.getImage(0).getRGB(0, 0));
+        assertEquals(0xFFFF0000, img2.getImage(1).getRGB(0, 0));
+    }
+
+    @Test
+    void testVersion1NpkContainerRoundTrip(@TempDir Path tempDir) throws IOException {
+        // V1 经 NPK 容器完整往返：资源分派按偏移 24 探测版本号（V1 旧魔数下同样成立）
+        Version1Img img = new Version1Img();
+        img.setName("old/legacy.img");
+        BufferedImage src = new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB);
+        src.setRGB(1, 2, 0xFF123456);
+        img.addImage(src, Frame.TYPE_ARGB8888);
+        img.addReferenceImage(0);
+
+        NpkFile npk = NpkFile.create();
+        npk.addResource(img);
+        Path out = tempDir.resolve("v1.npk");
+        npk.save(out.toFile());
+
+        try (NpkFile reopened = NpkFile.open(out.toFile())) {
+            Img loaded = reopened.getImages().get(0);
+            assertInstanceOf(Version1Img.class, loaded);
+            assertEquals("old/legacy.img", loaded.getName());
+            assertEquals(1, loaded.getVersion());
+            assertEquals(2, loaded.getImageCount());
+            assertEquals(0xFF123456, loaded.getImage(0).getRGB(1, 2));
+            assertEquals(0xFF123456, loaded.getImage(1).getRGB(1, 2)); // 引用帧
+        }
+    }
+
+    @Test
+    void testVersion3NpkContainerRoundTrip(@TempDir Path tempDir) throws IOException {
+        // V3（V2 布局 best-effort）经 NPK 容器完整往返
+        Version3Img img = new Version3Img();
+        img.setName("rare/transitional.img");
+        BufferedImage src = new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB);
+        src.setRGB(2, 2, 0xFF654321);
+        img.addImage(src, Frame.TYPE_ARGB1555);
+
+        NpkFile npk = NpkFile.create();
+        npk.addResource(img);
+        Path out = tempDir.resolve("v3.npk");
+        npk.save(out.toFile());
+
+        try (NpkFile reopened = NpkFile.open(out.toFile())) {
+            Img loaded = reopened.getImages().get(0);
+            assertInstanceOf(Version3Img.class, loaded);
+            assertEquals(3, loaded.getVersion());
+            assertEquals(1, loaded.getImageCount());
+            // ARGB1555 有损（1 bit alpha + 5 bit 通道），验证近似还原
+            int argb = loaded.getImage(0).getRGB(2, 2);
+            assertEquals(0xFF, (argb >> 24) & 0xFF);
+            assertEquals(0x60, (argb >> 16) & 0xF8);
+        }
+    }
+
+    @Test
+    void testVersion1RejectsWrongMagicAndVersion() throws IOException {
+        // 旧魔数校验：V1 拒绝新魔数文件；版本校验：V2 拒绝 version=1
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        bos.write(AbstractImg.getImgMagic());   // 新魔数（16B）
+        writeIntLE(bos, 0);
+        writeIntLE(bos, 0);
+        writeIntLE(bos, 1);
+        writeIntLE(bos, 0); // version=1
+        byte[] bytes = bos.toByteArray();
+
+        Img v1 = ImgFactory.create(1);
+        try (MemoryCacheImageInputStream in =
+                     new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
+            in.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+            NpkException e = assertThrows(NpkException.class, () -> v1.read(in));
+            assertTrue(e.getMessage().contains("magic"));
+        }
+    }
+
+    private static void writeIntLE(ByteArrayOutputStream bos, int value) {
+        bos.write(value & 0xFF);
+        bos.write((value >> 8) & 0xFF);
+        bos.write((value >> 16) & 0xFF);
+        bos.write((value >> 24) & 0xFF);
     }
 
     @Test
